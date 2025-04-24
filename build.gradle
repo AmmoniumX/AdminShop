@@ -188,6 +188,28 @@ repositories {
             includeGroup "curse.maven"
         }
     }
+    maven {
+        url "https://maven.architectury.dev/"
+    }
+    maven {
+        url "https://maven.saps.dev/releases"
+        content {
+            includeGroup "dev.latvian.mods"
+            includeGroup "dev.ftb.mods"
+        }
+    }
+    maven {
+        url "https://maven.ftb.dev/releases"
+        content {
+            includeGroup "dev.ftb.mods"
+        }
+    }
+    maven {
+        url "https://maven.ftb.dev/snapshots"
+        content {
+            includeGroup "dev.ftb.mods"
+        }
+    }
     // If you have mod jar dependencies in ./libs, you can declare them as a repository like so:
      flatDir {
          dir 'libs'
@@ -209,12 +231,15 @@ dependencies {
     // Patchouli as mandatory dependency
     compileOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}:api")
     runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}")
-    //JUnit Testing
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
 
-    // runtimeOnly testing
-//    runtimeOnly(fg.deobf("mekanism:Mekanism:${mc_version}-${mek_version}:all"))
+    // FTB teams as mandatory dependency
+    implementation fg.deobf("dev.architectury:architectury-forge:${architectury_api_version}")
+    implementation fg.deobf("dev.ftb.mods:ftb-library-forge:${ftblib_version}") { transitive = false }
+    implementation fg.deobf("dev.ftb.mods:ftb-teams-forge:${ftbteams_version}") { transitive = false }
+
+    //JUnit Testing
+    // testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    // testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
 
     //CSV Reader
     //implementation 'org.apache.commons:commons-csv:1.9.0'
