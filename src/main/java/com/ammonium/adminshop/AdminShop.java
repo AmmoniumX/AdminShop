@@ -54,18 +54,10 @@ public class AdminShop {
             LOGGER.debug("Pattern is null or empty");
             return Optional.empty();
         }
-
         StringReader reader = new StringReader(pattern);
 
-        // Get the item registry
-        Registry<?> rawItemRegistry = Registry.REGISTRY.get(Registry.ITEM_REGISTRY.registry());
-        if (rawItemRegistry == null) {
-            throw new IllegalStateException("Item registry not found");
-        }
-        //noinspection unchecked // Cast to Registry<Item> is safe because we know the registry is for items
-        Registry<Item> itemRegistry = (Registry<Item>) rawItemRegistry;
-
-        HolderLookup<Item> itemLookup = new HolderLookup.RegistryLookup<>(itemRegistry);
+        // Get the item lookup
+        HolderLookup<Item> itemLookup = new HolderLookup.RegistryLookup<>(Registry.ITEM);
         try {
             ItemParser.ItemResult result = ItemParser.parseForItem(itemLookup, reader);
             return Optional.of(result);
