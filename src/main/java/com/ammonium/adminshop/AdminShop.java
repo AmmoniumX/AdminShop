@@ -7,13 +7,7 @@ import com.ammonium.adminshop.screen.ModMenuTypes;
 import com.ammonium.adminshop.setup.ClientSetup;
 import com.ammonium.adminshop.setup.Config;
 import com.ammonium.adminshop.setup.ModSetup;
-import com.mojang.brigadier.StringReader;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.logging.LogUtils;
-import net.minecraft.commands.arguments.item.ItemParser;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.Registry;
-import net.minecraft.world.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
@@ -21,8 +15,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
-
-import java.util.Optional;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(AdminShop.MODID)
@@ -45,27 +37,6 @@ public class AdminShop {
         ModBlockEntities.register(eventBus);
         ModMenuTypes.register(eventBus);
 
-    }
-
-    private static Optional<ItemParser.ItemResult> parseItem(String pattern) throws IllegalStateException {
-
-        // Check for empty or null pattern
-        if (pattern == null || pattern.isEmpty()) {
-            LOGGER.debug("Pattern is null or empty");
-            return Optional.empty();
-        }
-        StringReader reader = new StringReader(pattern);
-
-        // Get the item lookup
-        HolderLookup<Item> itemLookup = new HolderLookup.RegistryLookup<>(Registry.ITEM);
-        try {
-            ItemParser.ItemResult result = ItemParser.parseForItem(itemLookup, reader);
-            return Optional.of(result);
-
-        } catch (CommandSyntaxException e) {
-            LOGGER.debug("Failed to parse item: {}", pattern);
-            return Optional.empty();
-        }
     }
 
     private void setup(final FMLCommonSetupEvent event) {

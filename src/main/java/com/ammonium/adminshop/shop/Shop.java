@@ -3,8 +3,12 @@ package com.ammonium.adminshop.shop;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.client.jei.ShopBuyWrapper;
 import com.ammonium.adminshop.client.jei.ShopSellWrapper;
+import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSource;
+import net.minecraft.commands.arguments.item.ItemParser;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
@@ -28,8 +32,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import static com.ammonium.adminshop.AdminShop.LOGGER;
+
 /**
  * Loads and stores the shop contents from a csv file. Is a singleton.
+ * TODO refactor from kjs-style NBT to /give-style NBT
+ * TODO refactor from csv into datapack format
  */
 public class Shop {
     private static final Path SHOP_FILE_PATH = FMLPaths.CONFIGDIR.get().resolve("adminshop/shop.csv");
@@ -52,6 +60,27 @@ public class Shop {
     private final Map<TagKey<Fluid>, ShopItem> shopSellFluidTagMap;
     private final Map<ItemStack, ShopItem> shopBuyItemNBTMap;
     public List<String> errors;
+
+    private static Optional<ItemParser.ItemResult> parseItem(String pattern) {
+
+        // Check for empty or null pattern
+        if (pattern == null || pattern.isEmpty()) {
+            LOGGER.debug("Pattern is null or empty");
+            return Optional.empty();
+        }
+        StringReader reader = new StringReader(pattern);
+
+        // Get the item lookup
+        HolderLookup<Item> itemLookup = new HolderLookup.RegistryLookup<>(Registry.ITEM);
+        try {
+            ItemParser.ItemResult result = ItemParser.parseForItem(itemLookup, reader);
+            return Optional.of(result);
+
+        } catch (CommandSyntaxException e) {
+            LOGGER.debug("Failed to parse item: {}", pattern);
+            return Optional.empty();
+        }
+    }
 
     public static Shop get(){
         if(instance == null)
@@ -114,7 +143,7 @@ public class Shop {
                 buyRecipes.add(new ShopBuyWrapper(buyItem.getFluid().getFluid(), buyItem.getPrice(), buyItem.getPermitTier()));
             }
         });
-        AdminShop.LOGGER.debug("Read "+buyRecipes.size()+" buy recipes");
+        LOGGER.debug("Read "+buyRecipes.size()+" buy recipes");
         return buyRecipes;
     }
 
@@ -127,7 +156,7 @@ public class Shop {
                 sellRecipes.add(new ShopSellWrapper(sellItem.getFluid().getFluid(), sellItem.getPrice(), sellItem.getPermitTier()));
             }
         });
-        AdminShop.LOGGER.debug("Read "+sellRecipes.size()+" sell recipes");
+        LOGGER.debug("Read "+sellRecipes.size()+" sell recipes");
         return sellRecipes;
     }
 
@@ -177,20 +206,20 @@ public class Shop {
     }
 
     public void loadFromFile(CommandSource initiator){
-        AdminShop.LOGGER.debug("loadFromFile(CommandSource)");
+        LOGGER.debug("loadFromFile(CommandSource)");
         generateDefaultShopFile();
         try {
             loadFromFile(Files.readString(SHOP_FILE_PATH), initiator);
         }catch (FileNotFoundException e) {
-            AdminShop.LOGGER.error("Shop file not found. This should not happen!");
+            LOGGER.error("Shop file not found. This should not happen!");
         }catch (IOException e){
-            AdminShop.LOGGER.error("Problem reading header/skipping first record in shop file!");
+            LOGGER.error("Problem reading header/skipping first record in shop file!");
             e.printStackTrace();
         }
     }
 
     public void loadFromFile(String csv, CommandSource initiator) {
-        AdminShop.LOGGER.debug("loadFromFile(String csv, " +
+        LOGGER.debug("loadFromFile(String csv, " +
                 "CommandSource initiator="+(initiator != null ? initiator.toString() : "null")+")");
         //Clear out existing shop data
         shopTextRaw = csv;
@@ -224,7 +253,7 @@ public class Shop {
     }
 
     public void loadFromFile(String csv) {
-        AdminShop.LOGGER.debug("loadFromFile(String)");
+        LOGGER.debug("loadFromFile(String)");
         //Clear out existing shop data
         shopTextRaw = csv;
         errors.clear();
@@ -247,13 +276,13 @@ public class Shop {
 
         //Parse file
         List<List<String>> parsedCSV = CSVParser.parseCSV(csv);
-        AdminShop.LOGGER.debug("Reading "+parsedCSV.size()+" shop lines...");
+        LOGGER.debug("Reading "+parsedCSV.size()+" shop lines...");
         int line = 0;
         for(List<String> record : parsedCSV){
             line++;
             parseLine(record.toArray(new String[]{}), line, errors);
         }
-        AdminShop.LOGGER.debug("Calling printErrors from loadFromFile(String csv)");
+        LOGGER.debug("Calling printErrors from loadFromFile(String csv)");
         printErrors(null);
     }
 
@@ -264,22 +293,22 @@ public class Shop {
 
     public void printErrors(CommandSource initiator){
 //        if (initiator == null) return;
-        AdminShop.LOGGER.debug("Initiator is null: "+(initiator == null));
-        AdminShop.LOGGER.debug("Initiator is ServerPlayer: "+ (initiator instanceof ServerPlayer));
-        AdminShop.LOGGER.debug("CONTEXT: "+CONTEXT);
+        LOGGER.debug("Initiator is null: "+(initiator == null));
+        LOGGER.debug("Initiator is ServerPlayer: "+ (initiator instanceof ServerPlayer));
+        LOGGER.debug("CONTEXT: "+CONTEXT);
         String serverSide = (initiator instanceof ServerPlayer) ? "S" : "C";
-        AdminShop.LOGGER.debug("Errors size:" + errors.size());
+        LOGGER.debug("Errors size:" + errors.size());
 
         if (errors.size() == 0) {
-            AdminShop.LOGGER.info("Shop reloaded, syntax is correct");
+            LOGGER.info("Shop reloaded, syntax is correct");
             return;
         }
         if (initiator != null) {
             initiator.sendSystemMessage(Component.literal("["+errors.size()+" AdminShop shop.csv errors detected]"));
             errors.forEach(e -> initiator.sendSystemMessage(Component.literal("["+e+"]")));
         }
-        AdminShop.LOGGER.error("[AdminShop shop.csv errors]");
-        errors.forEach(e -> AdminShop.LOGGER.error(serverSide+"["+e+"]"));
+        LOGGER.error("[AdminShop shop.csv errors]");
+        errors.forEach(e -> LOGGER.error(serverSide+"["+e+"]"));
 //        errors.clear();
     }
 
@@ -288,7 +317,7 @@ public class Shop {
         for(String segment: line) {
             debugLine.append(segment).append(",");
         }
-        AdminShop.LOGGER.debug(debugLine.toString());
+        LOGGER.debug(debugLine.toString());
         //Skip empty lines
         if(line.length == 0)
             return;
@@ -394,7 +423,7 @@ public class Shop {
         //Check if NBT can be parsed
         if(nbtText != null){
             nbtText = kjsIntoNBT(nbtText);
-            AdminShop.LOGGER.debug("Parsing NBT: "+nbtText);
+            LOGGER.debug("Parsing NBT: "+nbtText);
             try {
                 nbt = TagParser.parseTag(nbtText);
             }catch (CommandSyntaxException e){
@@ -404,7 +433,7 @@ public class Shop {
         }
 
         //Strip extraneous text from item/fluid name
-        AdminShop.LOGGER.debug("Parsing resource location: "+line[2]);
+        LOGGER.debug("Parsing resource location: "+line[2]);
         String itemResource = line[2];
         StringBuilder nameBuilder = new StringBuilder();
         String[] split = itemResource.split(":");
@@ -423,7 +452,7 @@ public class Shop {
 //                AdminShop.LOGGER.debug("KubeJS Item");
                 // Parse if in Item.of(''), form
                 if(itemResource.startsWith("Item.of('") && itemResource.endsWith("',")) {
-                    AdminShop.LOGGER.debug("Trimming Item.of(''),");
+                    LOGGER.debug("Trimming Item.of(''),");
                     // Remove them
                     itemResource = itemResource.substring("Item.of('".length(), itemResource.length() - 2);
                 }
@@ -433,11 +462,11 @@ public class Shop {
         else{
             //mod name : item name, remove the > at the end
             if(isTag){
-                AdminShop.LOGGER.debug("Crafttweaker Tag");
+                LOGGER.debug("Crafttweaker Tag");
                 nameBuilder.append(split[2]);
                 nameBuilder.append(split[3].substring(0, split[3].length()));
             }else{
-                AdminShop.LOGGER.debug("Crafttweaker Item");
+                LOGGER.debug("Crafttweaker Item");
                 nameBuilder.append(split[1]);
                 nameBuilder.append(split[2].substring(0, split[2].length()));
             }
@@ -460,7 +489,7 @@ public class Shop {
         assert !isTag || !isBuy; // only selling items/fluids can have tags
 
         // Check if item or fluid are a valid ResourceLocation
-        AdminShop.LOGGER.debug("Checking resource location: "+itemResource);
+        LOGGER.debug("Checking resource location: "+itemResource);
         ResourceLocation resourceLocation = new ResourceLocation(itemResource);
         // First check: non-tag item or fluid
         if(!isTag && !hasNBT) {
@@ -475,22 +504,22 @@ public class Shop {
         else if (isTag) {
             if (isItem) {
                 if (ForgeRegistries.ITEMS.isEmpty()) {
-                    AdminShop.LOGGER.error("Item registry is not yet loaded!");
+                    LOGGER.error("Item registry is not yet loaded!");
                     isError = true;
                 }
                 // Get item tag
                 ITagManager<Item> tags = ForgeRegistries.ITEMS.tags();
                 if (tags == null) {
-                    AdminShop.LOGGER.debug("ForgeRegistries.ITEMS.tags() is null");
+                    LOGGER.debug("ForgeRegistries.ITEMS.tags() is null");
                     isError = true;
                 } else {
                     TagKey<Item> itemTag = ItemTags.create(resourceLocation);
                     Optional<Item> itemFromTag = tags.getTag(itemTag).stream().findAny();
                     if (itemFromTag.isPresent()) {
-                        AdminShop.LOGGER.debug("Found item tag: "+itemFromTag.get());
+                        LOGGER.debug("Found item tag: "+itemFromTag.get());
                     } else {
                         errors.add("Line "+lineNumber+": Item tag \""+itemResource+"\" is not a valid item tag!");
-                        AdminShop.LOGGER.debug("No item tag found for "+itemResource);
+                        LOGGER.debug("No item tag found for "+itemResource);
                         isError = true;
                     }
 //                    AdminShop.LOGGER.debug("-Item tag names count: "+tags.getTagNames().count());
@@ -500,22 +529,22 @@ public class Shop {
 
             } else {
                 if (ForgeRegistries.FLUIDS.isEmpty()) {
-                    AdminShop.LOGGER.error("Item registry is not yet loaded!");
+                    LOGGER.error("Item registry is not yet loaded!");
                     isError = true;
                 }
                 // Get fluid tag
                 ITagManager<Fluid> tags = ForgeRegistries.FLUIDS.tags();
                 if (tags == null) {
-                    AdminShop.LOGGER.debug("ForgeRegistries.FLUIDS.tags() is null");
+                    LOGGER.debug("ForgeRegistries.FLUIDS.tags() is null");
                     isError = true;
                 } else {
                     TagKey<Fluid> fluidTag = FluidTags.create(resourceLocation);
                     Optional<Fluid> fluidFromTag = tags.getTag(fluidTag).stream().findAny();
                     if (fluidFromTag.isPresent()) {
-                        AdminShop.LOGGER.debug("Found fluid tag: "+fluidFromTag.get());
+                        LOGGER.debug("Found fluid tag: "+fluidFromTag.get());
                     } else {
                         errors.add("Line " + lineNumber + ": Fluid tag \"" + itemResource + "\" is not a valid fluid tag!");
-                        AdminShop.LOGGER.debug("No fluid tag found for "+itemResource);
+                        LOGGER.debug("No fluid tag found for "+itemResource);
                         isError = true;
                     }
                 }
@@ -560,7 +589,7 @@ public class Shop {
             itemShopItemMap.put(shopItem.getItem().getItem(), shopItem);
         } else if (!isTag && isItem && hasNBT && isBuy) {
             // Buying Item with NBT
-            AdminShop.LOGGER.debug("Saving shopItem to item NBT map");
+            LOGGER.debug("Saving shopItem to item NBT map");
             shopBuyItemNBTMap.put(shopItem.getItem(), shopItem);
             // Add to list of NBT items
             if (!shopStockBuyNBT.containsKey(shopItem.getItem().getItem())) {
@@ -627,7 +656,7 @@ public class Shop {
                 FileOutputStream outStream = new FileOutputStream(SHOP_FILE_PATH.toFile());
                 outStream.write(buffer);
             }catch (IOException e){
-                AdminShop.LOGGER.error("Could not copy default shop file to config");
+                LOGGER.error("Could not copy default shop file to config");
                 e.printStackTrace();
                 System.exit(1);
             }
