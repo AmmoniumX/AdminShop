@@ -1,7 +1,6 @@
 package com.ammonium.adminshop.blocks;
 
-import net.minecraftforge.items.ItemStackHandler;
+import net.minecraft.world.Container;
 
-public interface ItemSellerMachine extends ShopMachine {
-    ItemStackHandler getItemHandler();
+public interface ItemSellerMachine extends Container, ShopMachine {
 }

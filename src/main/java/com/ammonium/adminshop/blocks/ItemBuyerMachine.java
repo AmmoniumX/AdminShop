@@ -1,10 +1,9 @@
 package com.ammonium.adminshop.blocks;
 
 import com.ammonium.adminshop.shop.ShopItem;
-import net.minecraftforge.items.ItemStackHandler;
+import net.minecraft.world.Container;
 
-public interface ItemBuyerMachine extends ShopMachine {
-    ItemStackHandler getItemHandler();
+public interface ItemBuyerMachine extends Container, ShopMachine {
     void setTargetShopItem(ShopItem item);
     // TODO change to setTargetShopRecipe(ShopRecipe recipe)
 }
