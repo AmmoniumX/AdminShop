@@ -16,8 +16,9 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
-import net.minecraftforge.items.ItemStackHandler;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
@@ -60,7 +61,8 @@ public class ShopBuyItemRecipe implements Recipe<Container> {
         }
 
         // Check if machine can hold result item
-        ItemStackHandler handler = machine.getItemHandler();
+//        ItemStackHandler handler = machine.getItemHandler();
+        IItemHandler handler = machine.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
         if (handler == null) {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: handler is null");
             return false;
@@ -78,7 +80,7 @@ public class ShopBuyItemRecipe implements Recipe<Container> {
         MoneyManager manager = MoneyManager.get(level);
         Pair<String, Integer> account = machine.getAccount();
         manager.subtractBalance(account, price);
-        ItemStackHandler handler = machine.getItemHandler();
+        IItemHandler handler = machine.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
         ItemStack output = ItemHandlerHelper.insertItemStacked(handler, result.copy(), false);
         return output;
     }

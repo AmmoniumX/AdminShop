@@ -16,7 +16,8 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.items.IItemHandler;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
@@ -54,7 +55,7 @@ public class ShopSellItemRecipe implements Recipe<Container> {
         }
 
         // Check if machine contains at least said number of items
-        ItemStackHandler handler = machine.getItemHandler();
+        IItemHandler handler = machine.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
         if (handler == null) {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: handler is null");
             return false;
@@ -74,7 +75,7 @@ public class ShopSellItemRecipe implements Recipe<Container> {
         // Important: we assume that this is only ever called after matches() succeeds
         MoneyManager manager = MoneyManager.get(level);
         Pair<String, Integer> account = machine.getAccount();
-        ItemStackHandler handler = machine.getItemHandler();
+        IItemHandler handler = machine.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
 
         for (int slot = 0; slot < handler.getSlots(); slot++) {
             if (!handler.extractItem(slot, item.getCount(), false).isEmpty()) {
