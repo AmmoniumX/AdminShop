@@ -417,6 +417,12 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
         return slots;
     }
 
+    // TODO: enable once we have recipe system fully working
+//    @Override
+//    public boolean canPlaceItem(int i, ItemStack itemStack) {
+//        return false;
+//    }
+
     @Override
     public boolean canPlaceItemThroughFace(int i, ItemStack itemStack, @Nullable Direction direction) {
         return this.canPlaceItem(i, itemStack);

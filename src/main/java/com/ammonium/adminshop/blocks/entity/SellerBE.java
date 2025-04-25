@@ -349,9 +349,26 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
     }
 
     @Override
+    public boolean canPlaceItem(int i, ItemStack itemStack) {
+        boolean fits = super.canPlaceItem(i, itemStack);
+        if (!fits) { return false; }
+        boolean isInItemMap = Shop.get().getShopSellItemMap().containsKey(itemStack.getItem());
+        if (isInItemMap) { return true; }
+        boolean isInTags = itemStack.getTags().anyMatch(itemTag -> Shop.get().hasSellShopItemTag(itemTag));
+        if (isInTags) { return true; }
+        return false;
+    }
+
+    @Override
     public boolean canPlaceItemThroughFace(int i, ItemStack itemStack, @Nullable Direction direction) {
         return this.canPlaceItem(i, itemStack);
     }
+
+    // TODO: enable once we have recipe system fully working
+//    @Override
+//    public boolean canTakeItemThroughFace(int i, ItemStack itemStack, Direction direction) {
+//        return false;
+//    }
 
     @Override
     public boolean canTakeItemThroughFace(int i, ItemStack itemStack, Direction direction) {
