@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.network;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.BuyerMachine;
+import com.ammonium.adminshop.blocks.ItemBuyerMachine;
 import com.ammonium.adminshop.money.MoneyManager;
 import com.ammonium.adminshop.shop.Shop;
 import com.ammonium.adminshop.shop.ShopItem;
@@ -47,7 +47,7 @@ public class PacketSetBuyerTarget {
                 // Get IBuyerBE
                 Level level = player.level;
                 BlockEntity blockEntity = level.getBlockEntity(this.pos);
-                if (!(blockEntity instanceof BuyerMachine buyerEntity)) {
+                if (!(blockEntity instanceof ItemBuyerMachine buyerEntity)) {
                     AdminShop.LOGGER.error("BlockEntity at pos is not BuyerMachine");
                     return;
                 }

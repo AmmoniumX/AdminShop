@@ -398,6 +398,10 @@ public class MoneyManager extends SavedData {
         setDirty();
         return getBankAccount(player, id).addBalance(amount);
     }
+    public boolean addBalance(Pair<String, Integer> account, long amount){
+        setDirty();
+        return getBankAccount(account).addBalance(amount);
+    }
 
     @Deprecated
     public boolean subtractBalance(String player, long amount){
@@ -408,7 +412,12 @@ public class MoneyManager extends SavedData {
         setDirty();
         return getBankAccount(player, id).subtractBalance(amount);
     }
+    public boolean subtractBalance(Pair<String, Integer> account, long amount){
+        setDirty();
+        return getBankAccount(account).subtractBalance(amount);
+    }
 
+    @Deprecated
     public boolean setBalance(String player, long amount){
         if(amount < 0) return false;
         getBankAccount(player, 1).setBalance(amount);

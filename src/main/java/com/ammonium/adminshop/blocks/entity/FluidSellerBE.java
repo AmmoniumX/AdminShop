@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.ShopMachine;
+import com.ammonium.adminshop.blocks.FluidSellerMachine;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
 import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
@@ -43,20 +43,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-public class FluidSellerBE extends FluidHandlerBlockEntity implements ShopMachine {
+public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSellerMachine {
     private String ownerUUID;
     private Pair<String, Integer> account;
     private int tickCounter = 0;
-    private final int tankCapacity = 64000;
+    private static final int TANK_CAPACITY = 64000;
 
     public FluidSellerBE(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.FLUID_SELLER.get(), pWorldPosition, pBlockState);
-        this.tank = new InsertSellableOnlyTank(tankCapacity, this::sendUpdates);
-    }
-
-    // Secure method for internal fluid extraction
-    private FluidStack secureDrain(FluidStack resource, IFluidHandler.FluidAction action) {
-        return ((InsertSellableOnlyTank) this.tank).secureDrain(resource, action);
+//        this.tank = new InsertSellableOnlyTank(TANK_CAPACITY, this::sendUpdates);
+        this.tank = new FluidTank(TANK_CAPACITY);
     }
 
     public void setOwnerUUID(String ownerUUID) {
@@ -168,7 +164,7 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements ShopMachin
                 return;
             }
 //            AdminShop.LOGGER.debug("Found valid fluid: "+shopItem.getFluid().getDisplayName().getString());
-            FluidStack toDrain = sellerEntity.secureDrain(fluidStack, IFluidHandler.FluidAction.SIMULATE);
+            FluidStack toDrain = fluidHandler.drain(fluidStack, IFluidHandler.FluidAction.SIMULATE);
             if(toDrain.isEmpty()) {
 //                AdminShop.LOGGER.debug("toDrain is empty!");
                 return;
@@ -197,9 +193,8 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements ShopMachin
                 success = moneyManager.addBalance(accOwner, accID, price);
             }
             if (success) {
-                FluidStack drained = sellerEntity.secureDrain(fluidStack, IFluidHandler.FluidAction.EXECUTE);
+                FluidStack drained = fluidHandler.drain(toDrain, IFluidHandler.FluidAction.EXECUTE);
 //                AdminShop.LOGGER.debug("Successfully drained "+drained+"mb");
-//                AdminShop.LOGGER.debug("Tank is now "+sellerEntity.tank.getFluid().getAmount()+"mb "+sellerEntity.tank.getFluid().getDisplayName().getString());
             } else {
                 AdminShop.LOGGER.debug("Error selling fluid.");
                 return;

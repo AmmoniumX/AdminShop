@@ -22,6 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-public abstract class DetectorScreen<T extends DetectorMenu, Q extends Detector> extends AbstractContainerScreen<T> {
+public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detector> extends AbstractContainerScreen<T> {
     private final Class<Q> detectorClass;
     private final BlockPos blockPos;
     private Q detectorBE;
@@ -41,13 +42,11 @@ public abstract class DetectorScreen<T extends DetectorMenu, Q extends Detector>
     private EditBox thresholdInputBox;
     private final List<Pair<String, Integer>> usableAccounts = new ArrayList<>();
 
-
     private int usableAccountsIndex = -1; // -1 for unset
     private String username = "";
 
     public DetectorScreen(T pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos, Class<Q> pClass) {
         super(pMenu, pPlayerInventory, pTitle);
-//        AdminShop.LOGGER.debug("Initializing DetectorScreen");
         this.blockPos = blockPos;
         this.detectorClass = pClass;
         if (!pClass.isInstance(pMenu.getBlockEntity())) {
@@ -61,7 +60,7 @@ public abstract class DetectorScreen<T extends DetectorMenu, Q extends Detector>
     protected abstract ResourceLocation getTexture();
 
     public DetectorScreen(T pMenu, Inventory inventory, Component pTitle, Class<Q> pClass) {
-        this(pMenu, inventory, pTitle, (pClass.cast(pMenu.getBlockEntity())).getBlockPos(), pClass);
+        this(pMenu, inventory, pTitle, ((BlockEntity) pMenu.getBlockEntity()).getBlockPos(), pClass);
     }
 
     private Pair<String, Integer> getAccountDetails() {

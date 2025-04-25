@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.ItemShopMachine;
+import com.ammonium.adminshop.blocks.ShopMachine;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
 import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
@@ -45,7 +45,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-public class SellerBE extends BlockEntity implements ItemShopMachine {
+public class SellerBE extends BlockEntity implements ShopMachine {
     private String ownerUUID;
     private Pair<String, Integer> account;
 

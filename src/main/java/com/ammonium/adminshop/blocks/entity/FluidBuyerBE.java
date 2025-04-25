@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.BuyerMachine;
+import com.ammonium.adminshop.blocks.FluidBuyerMachine;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
 import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
@@ -40,22 +40,18 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public class FluidBuyerBE extends FluidHandlerBlockEntity implements BuyerMachine {
+public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerMachine {
     private String ownerUUID;
     private Pair<String, Integer> account;
     private ShopItem targetShopItem = null;
     private int tickCounter = 0;
-    private final int buySize = 4000;
-    private final int tankCapacity = 64000;
+    private static final int MAX_BUY_SIZE = 4000;
+    private static final int TANK_CAPACITY = 64000;
 
     public FluidBuyerBE(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.FLUID_BUYER.get(), pWorldPosition, pBlockState);
-        this.tank = new ExtractOnlyTank(tankCapacity, this::sendUpdates);
-    }
-
-    // Secure method for internal fluid insertion
-    private int secureFill(FluidStack resource, IFluidHandler.FluidAction action) {
-        return ((ExtractOnlyTank) this.tank).secureFill(resource, action);
+//        this.tank = new ExtractOnlyTank(TANK_CAPACITY, this::sendUpdates);
+        this.tank = new FluidTank(TANK_CAPACITY);
     }
 
     public void setOwnerUUID(String ownerUUID) {
@@ -114,12 +110,12 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements BuyerMachin
                 pBlockEntity.tickCounter = 0;
                 // Send buy fluid transaction
                 assert pLevel instanceof ServerLevel;
-                buyerTransaction(pPos, (ServerLevel) pLevel, pBlockEntity, pBlockEntity.buySize);
+                buyerTransaction(pPos, (ServerLevel) pLevel, pBlockEntity);
             }
         }
     }
 
-    public static void buyerTransaction(BlockPos pos, ServerLevel level, FluidBuyerBE buyerEntity, final int buySize) {
+    public static void buyerTransaction(BlockPos pos, ServerLevel level, FluidBuyerBE buyerEntity) {
         // fluid logic
         // Attempt to insert the fluids, and only perform transaction on what can fit
         MoneyManager moneyManager = MoneyManager.get(level);
@@ -140,15 +136,15 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements BuyerMachin
         }
 
         FluidStack toInsert = shopItem.getFluid().copy();
-        toInsert.setAmount(buySize);
+        toInsert.setAmount(MAX_BUY_SIZE);
         LazyOptional<IFluidHandler> lazyFluidHandler = buyerEntity.getCapability(ForgeCapabilities.FLUID_HANDLER);
         if (!lazyFluidHandler.isPresent()) {
             AdminShop.LOGGER.debug("FluidBuyer has no FluidHandler!");
             return;
         }
         lazyFluidHandler.ifPresent(fluidHandler -> {
-            int canFill = buyerEntity.secureFill(toInsert, IFluidHandler.FluidAction.SIMULATE);
-            if(canFill == 0) {
+            int canFill = fluidHandler.fill(toInsert, IFluidHandler.FluidAction.SIMULATE);
+            if (canFill == 0) {
                 return;
             }
             long itemCost = shopItem.getPrice();
@@ -185,16 +181,15 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements BuyerMachin
                     return;
                 }
                 // Find max amount he can buy
-                int maxBuySize = Math.min((int) (balance / itemCost), buySize);
+                int maxBuySize = Math.min((int) (balance / itemCost), MAX_BUY_SIZE);
                 price = (long) maxBuySize * itemCost;
                 toInsert.setAmount(maxBuySize);
             }
 //            AdminShop.LOGGER.debug("Removing "+price+" from account for "+toInsert.getAmount()+"mb");
             boolean success = moneyManager.subtractBalance(accOwner, accID, price);
             if (success) {
-                int filled = buyerEntity.secureFill(toInsert, IFluidHandler.FluidAction.EXECUTE);
+                int filled = fluidHandler.fill(toInsert, IFluidHandler.FluidAction.EXECUTE);
 //                AdminShop.LOGGER.debug("Successfully filled "+filled+"mb");
-//                AdminShop.LOGGER.debug("Tank is now "+buyerEntity.tank.getFluid().getAmount()+"mb "+buyerEntity.tank.getFluid().getDisplayName().getString());
             } else {
                 AdminShop.LOGGER.debug("Error buying fluid.");
                 return;

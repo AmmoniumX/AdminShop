@@ -3,12 +3,8 @@ package com.ammonium.adminshop.shop;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.client.jei.ShopBuyWrapper;
 import com.ammonium.adminshop.client.jei.ShopSellWrapper;
-import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSource;
-import net.minecraft.commands.arguments.item.ItemParser;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
@@ -36,8 +32,7 @@ import static com.ammonium.adminshop.AdminShop.LOGGER;
 
 /**
  * Loads and stores the shop contents from a csv file. Is a singleton.
- * TODO refactor from kjs-style NBT to /give-style NBT
- * TODO refactor from csv into datapack format
+ * TODO refactor from csv into datapack format (with recipe serializer)
  */
 public class Shop {
     private static final Path SHOP_FILE_PATH = FMLPaths.CONFIGDIR.get().resolve("adminshop/shop.csv");
@@ -60,27 +55,6 @@ public class Shop {
     private final Map<TagKey<Fluid>, ShopItem> shopSellFluidTagMap;
     private final Map<ItemStack, ShopItem> shopBuyItemNBTMap;
     public List<String> errors;
-
-    private static Optional<ItemParser.ItemResult> parseItem(String pattern) {
-
-        // Check for empty or null pattern
-        if (pattern == null || pattern.isEmpty()) {
-            LOGGER.debug("Pattern is null or empty");
-            return Optional.empty();
-        }
-        StringReader reader = new StringReader(pattern);
-
-        // Get the item lookup
-        HolderLookup<Item> itemLookup = new HolderLookup.RegistryLookup<>(Registry.ITEM);
-        try {
-            ItemParser.ItemResult result = ItemParser.parseForItem(itemLookup, reader);
-            return Optional.of(result);
-
-        } catch (CommandSyntaxException e) {
-            LOGGER.debug("Failed to parse item: {}", pattern);
-            return Optional.empty();
-        }
-    }
 
     public static Shop get(){
         if(instance == null)

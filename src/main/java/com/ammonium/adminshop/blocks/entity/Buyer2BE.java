@@ -1,8 +1,8 @@
 package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.BuyerMachine;
-import com.ammonium.adminshop.blocks.ItemShopMachine;
+import com.ammonium.adminshop.blocks.ItemBuyerMachine;
+import com.ammonium.adminshop.blocks.ShopMachine;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
 import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
@@ -49,7 +49,7 @@ import java.util.UUID;
 
 import static java.lang.Math.ceil;
 
-public class Buyer2BE extends BlockEntity implements BuyerMachine, ItemShopMachine {
+public class Buyer2BE extends BlockEntity implements ItemBuyerMachine, ShopMachine {
     private String ownerUUID;
     private Pair<String, Integer> account;
     private boolean hasNBT = false;

@@ -3,6 +3,7 @@ package com.ammonium.adminshop;
 import com.ammonium.adminshop.blocks.ModBlocks;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
 import com.ammonium.adminshop.item.ModItems;
+import com.ammonium.adminshop.recipes.ModRecipes;
 import com.ammonium.adminshop.screen.ModMenuTypes;
 import com.ammonium.adminshop.setup.ClientSetup;
 import com.ammonium.adminshop.setup.Config;
@@ -36,6 +37,7 @@ public class AdminShop {
         ModBlocks.register(eventBus);
         ModBlockEntities.register(eventBus);
         ModMenuTypes.register(eventBus);
+        ModRecipes.register(eventBus);
 
     }
 
