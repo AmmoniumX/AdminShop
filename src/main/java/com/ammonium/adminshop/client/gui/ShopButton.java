@@ -1,7 +1,10 @@
 package com.ammonium.adminshop.client.gui;
 
+import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.money.MoneyFormat;
-import com.ammonium.adminshop.shop.ShopItem;
+import com.ammonium.adminshop.recipes.interfaces.FluidRecipe;
+import com.ammonium.adminshop.recipes.interfaces.ItemRecipe;
+import com.ammonium.adminshop.recipes.interfaces.ShopRecipe;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
@@ -19,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -26,20 +30,20 @@ import java.util.function.Function;
  */
 public class ShopButton extends Button {
 
-    private final ShopItem item;
+    private final ShopRecipe recipe;
     private final ItemRenderer itemRenderer;
     private TextureAtlasSprite fluidTexture;
     private float fluidColorR, fluidColorG, fluidColorB, fluidColorA;
     public boolean isMouseOn = false;
 
-    public ShopButton(ShopItem item, int x, int y, ItemRenderer renderer, OnPress listener) {
+    public ShopButton(ShopRecipe recipe, int x, int y, ItemRenderer renderer, OnPress listener) {
         super(x, y, 16, 16, Component.literal(" "), listener);
         this.itemRenderer = renderer;
-        this.item = item;
-        if(!item.isItem()) {
+        this.recipe = recipe;
+        if(recipe instanceof FluidRecipe fluidRecipe) {
             Function<ResourceLocation, TextureAtlasSprite> spriteAtlas = Minecraft.getInstance()
                     .getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
-            IClientFluidTypeExtensions properties = IClientFluidTypeExtensions.of(item.getFluid().getFluid());
+            IClientFluidTypeExtensions properties = IClientFluidTypeExtensions.of(fluidRecipe.getFluid().getFluid());
             ResourceLocation resource = properties.getStillTexture();
             fluidTexture = spriteAtlas.apply(resource);
             int fcol = properties.getTintColor();
@@ -58,8 +62,8 @@ public class ShopButton extends Button {
         matrix.pushPose();
 
         //Draw item or fluid
-        if(item.isItem()) {
-            itemRenderer.renderGuiItem(item.getItem(), x, y);
+        if(recipe instanceof ItemRecipe itemRecipe) {
+            itemRenderer.renderGuiItem(itemRecipe.getItem(), x, y);
         } else { // Render Fluid
             // Set render for fluid
 //            enableScissor(x, y, x + width, y + height);
@@ -86,10 +90,12 @@ public class ShopButton extends Button {
         matrix.translate(0, 0, itemRenderer.blitOffset+101);
         matrix.scale(.5f, .5f, 1);
         Font font = Minecraft.getInstance().font;
-        drawString(matrix, font, getQuantity()+"", 2*(x+16)- font.width(getQuantity()+""), 2*(y)+24, 0xFFFFFF);
-        if(item.isTag()) {
-            drawString(matrix, font, "#", 2 * x + width * 2 - font.width("#") - 1, 2 * y + 1, 0xFFC921);
-        } else if (item.hasNBT()) {
+        int numItems = getNumItems();
+        drawString(matrix, font, numItems+"", 2*(x+16)- font.width(numItems+""), 2*(y)+24, 0xFFFFFF);
+//        if(recipe.isTag()) {
+//            drawString(matrix, font, "#", 2 * x + width * 2 - font.width("#") - 1, 2 * y + 1, 0xFFC921);
+//        }
+        if (recipe instanceof ItemRecipe itemRecipe && itemRecipe.getItem().hasTag()) {
             drawString(matrix, font, "+NBT", 2 * x + width * 2 - font.width("+NBT") - 1, 2 * y + 1, 0xFF55FF);
         }
         matrix.popPose();
@@ -97,30 +103,52 @@ public class ShopButton extends Button {
         matrix.popPose();
     }
 
+    private int getNumItems() {
+        if (recipe instanceof ItemRecipe itemRecipe) {
+            return itemRecipe.getItem().getCount() * getQuantity();
+        } else if (recipe instanceof FluidRecipe fluidRecipe) {
+            return fluidRecipe.getFluid().getAmount() * getQuantity();
+        } else {
+            AdminShop.LOGGER.error("ShopButton: Unknown recipe type: {}", recipe.getClass());
+            return -1;
+        }
+    }
+
     public int getQuantity(){
-        if(Screen.hasControlDown() && Screen.hasShiftDown())
-            return item.isItem() ? 64 : 1000;
-        else if(Screen.hasControlDown() || Screen.hasShiftDown())
-            return item.isItem() ? 16 : 100;
-        else
+        if (recipe instanceof ItemRecipe itemRecipe) {
+            int maxFits = itemRecipe.getItem().getMaxStackSize() / itemRecipe.getItem().getCount();
+            if (Screen.hasControlDown()) {
+                return maxFits;
+            }
+            if (Screen.hasShiftDown()) {
+                return Math.max(maxFits / 2, 1);
+            }
             return 1;
+        } else if (recipe instanceof FluidRecipe fluidRecipe) {
+            return 1;
+        } else {
+            AdminShop.LOGGER.error("ShopButton: Unknown recipe type: {}", recipe.getClass());
+            return 0;
+        }
     }
 
     public List<Component> getTooltipContent(){
-        long price = item.getPrice() * getQuantity();
+        int quantity = getQuantity();
+        int numItems = getNumItems();
+        long price = recipe.getPrice() * quantity;
         List<Component> tooltip = new ArrayList<>();
         String priceFormatted = Screen.hasAltDown() ? MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.RAW) :
                 MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.SHORT);
         String description = priceFormatted+
-                " "+getQuantity()+((item.isItem()) ? "x " : "mb ")+item;
+                " "+ numItems +((recipe instanceof ItemRecipe) ? "x " : "mb ")+ recipe.getName();
         tooltip.add(Component.literal(description));
-        if (item.getPermitTier() != 0) {
-            tooltip.add(Component.literal("Requires Permit Tier: "+item.getPermitTier()));
+        if (!Objects.equals(recipe.getPermit(), "0") && !recipe.getPermit().isEmpty()) {
+            tooltip.add(Component.literal("Requires Permit Tier: "+ recipe.getPermit()));
         }
         return tooltip;
     }
 
-    public ShopItem getShopItem(){
-        return item;
+    public ShopRecipe getRecipe(){
+        return recipe;
     }
 }

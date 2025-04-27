@@ -392,8 +392,7 @@ public class MoneyManager extends SavedData {
 
 
     private void syncChanges(BankAccount account) {
-        // Sync account data
-        AdminShop.LOGGER.debug("Syncing money with clients");
+//        AdminShop.LOGGER.debug("Syncing money with clients");
 
         // Sync money with bank account's members
         account.getMembers().forEach(memberUUID -> {

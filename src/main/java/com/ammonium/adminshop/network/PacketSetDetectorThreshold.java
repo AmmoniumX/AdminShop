@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.network;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.Detector;
+import com.ammonium.adminshop.blocks.interfaces.Detector;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;

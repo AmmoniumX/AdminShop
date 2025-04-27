@@ -1,6 +1,6 @@
 package com.ammonium.adminshop.network;
 
-import com.ammonium.adminshop.blocks.ShopMachine;
+import com.ammonium.adminshop.blocks.interfaces.ShopMachine;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;

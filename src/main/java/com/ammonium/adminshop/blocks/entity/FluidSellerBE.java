@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.FluidSellerMachine;
+import com.ammonium.adminshop.blocks.interfaces.FluidSellerMachine;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.recipes.SellFluidRecipe;
 import com.ammonium.adminshop.screen.FluidSellerMenu;
@@ -92,10 +92,7 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
 
         // Check for valid recipe
         SellFluidRecipe recipe = RecipeManager.checkForSellFluidRecipe((ServerLevel) level, sellerBE).orElse(null);
-        if (recipe == null) {
-            AdminShop.LOGGER.debug("No recipe found for sellerBE");
-            return;
-        }
+        if (recipe == null) { return; }
 
         // Buy the fluid
         IFluidHandler handler = sellerBE.getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);

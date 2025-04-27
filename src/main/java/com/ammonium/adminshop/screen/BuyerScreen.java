@@ -172,8 +172,8 @@ public class BuyerScreen extends AbstractContainerScreen<BuyerMenu> {
                 }
                 // Set buyer target
                 // Check if account has permit to buy item
-                if (getBankAccount().hasPermit(Integer.parseInt(recipe.getPermit()))) {
-                    this.buyerEntity.setRecipe(this.recipe.getId());
+                if (getBankAccount().hasPermit(recipe.getPermit())) {
+                    this.buyerEntity.setRecipe(recipe.getId());
                     this.recipe = recipe;
                     Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, this.recipe.getId()));
                     return false;

@@ -26,21 +26,21 @@ public class ModBlocks {
     public static final RegistryObject<Block> SHOP = registerLoreBlock("shop",
             ShopBlock::new, ModSetup.ITEM_GROUP, "Buy and Sell Items!");
     public static final RegistryObject<Block> BUYER_1 = registerLoreBlock("buyer_1",
-            BuyerBlock::new, ModSetup.ITEM_GROUP, "Automatically buys up to 4 items/second");
+            BuyerBlock::new, ModSetup.ITEM_GROUP, "Automatically buys once every 40 ticks");
 
     public static final RegistryObject<Block> BUYER_2 = registerLoreBlock("buyer_2",
-            Buyer2Block::new, ModSetup.ITEM_GROUP, "Automatically buys up to 16 items/second");
+            Buyer2Block::new, ModSetup.ITEM_GROUP, "Automatically buys once every 20 ticks");
     public static final RegistryObject<Block> BUYER_3 = registerLoreBlock("buyer_3",
-            Buyer3Block::new, ModSetup.ITEM_GROUP, "Automatically buys up to 64 items/second");
+            Buyer3Block::new, ModSetup.ITEM_GROUP, "Automatically buys once every 10 ticks");
 
     public static final RegistryObject<Block> SELLER = registerLoreBlock("seller",
-            SellerBlock::new, ModSetup.ITEM_GROUP, "Automatically sells up to 64 items/second");
+            SellerBlock::new, ModSetup.ITEM_GROUP, "Automatically sells once every 20 ticks");
 
     public static final RegistryObject<Block> FLUID_BUYER = registerLoreBlock("fluid_buyer",
-            FluidBuyerBlock::new, ModSetup.ITEM_GROUP, "Automatically buys up to 4000mb/second");
+            FluidBuyerBlock::new, ModSetup.ITEM_GROUP, "Automatically buys once every 20 ticks");
 
     public static final RegistryObject<Block> FLUID_SELLER = registerLoreBlock("fluid_seller",
-            FluidSellerBlock::new, ModSetup.ITEM_GROUP, "Automatically sells up to 64000mb/second");
+            FluidSellerBlock::new, ModSetup.ITEM_GROUP, "Automatically sells once every 20 ticks");
 
     public static final RegistryObject<Block> DETECTOR = registerLoreBlock("detector",
             BasicDetector::new, ModSetup.ITEM_GROUP, "Outputs full redstone signal if greater than threshold");

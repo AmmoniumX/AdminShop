@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.ItemBuyerMachine;
+import com.ammonium.adminshop.blocks.interfaces.ItemBuyerMachine;
 import com.ammonium.adminshop.recipes.BuyItemRecipe;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.screen.BuyerMenu;
@@ -38,6 +38,7 @@ import java.util.Optional;
 
 public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachine, WorldlyContainer {
     private static final int slotSize = 1;
+    public static final int TICK_COOLDOWN = 40;
 
     private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
     private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
@@ -155,24 +156,24 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
         if (level.isClientSide) { return; }
         assert level instanceof ServerLevel;
 
-        // Only run every 20 ticks
+        // Only run every TICK_COOLDOWN ticks
         buyerBE.tickCounter++;
-        if (buyerBE.tickCounter <= 20) { return; }
+        if (buyerBE.tickCounter <= TICK_COOLDOWN) { return; }
         buyerBE.tickCounter = 0;
 
         // Check for valid recipe
         BuyItemRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
-        if (recipe == null) {
-            AdminShop.LOGGER.debug("Buyer has no recipe");
+        if (recipe == null) { return; }
+        boolean isValid = RecipeManager.checkForBuyItemRecipe((ServerLevel) level, buyerBE, recipe);
+        if (!isValid) {
+            AdminShop.LOGGER.debug("Buyer recipe is not valid");
             return;
         }
-        boolean isValid = RecipeManager.checkForBuyItemRecipe((ServerLevel) level, buyerBE, recipe);
-        if (!isValid) { return; }
 
         // Check for space
         IItemHandler handler = buyerBE.getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(NullPointerException::new);
         ItemStack simulated = ItemHandlerHelper.insertItemStacked(handler, recipe.getItem().copy(), true);
-        if (!simulated.isEmpty()) {
+        if (simulated.isEmpty()) {
 
             // Buy the item and add to inventory
             ItemStack item = recipe.buy((ServerLevel) level, buyerBE);

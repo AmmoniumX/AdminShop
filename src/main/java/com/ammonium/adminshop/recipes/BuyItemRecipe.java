@@ -1,9 +1,11 @@
 package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.ItemBuyerMachine;
+import com.ammonium.adminshop.blocks.interfaces.ItemBuyerMachine;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
+import com.ammonium.adminshop.recipes.interfaces.ItemRecipe;
 import com.google.gson.JsonObject;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -11,7 +13,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.ShapedRecipe;
@@ -19,7 +20,7 @@ import net.minecraft.world.level.Level;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
-public class BuyItemRecipe implements Recipe<Container> {
+public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
     private final ResourceLocation id;
     private final long price;
     private final String permit;
@@ -33,7 +34,6 @@ public class BuyItemRecipe implements Recipe<Container> {
     }
 
     public boolean matches(BankAccount account, ItemBuyerMachine machine) {
-
         // Check permit status
         if ((!permit.isEmpty()) && (!account.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
@@ -44,7 +44,6 @@ public class BuyItemRecipe implements Recipe<Container> {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have enough money");
             return false;
         }
-
         return true;
     }
 
@@ -52,8 +51,16 @@ public class BuyItemRecipe implements Recipe<Container> {
         return result.copy();
     }
 
+    public long getPrice() {
+        return price;
+    }
+
     public String getPermit() {
         return permit;
+    }
+
+    public String getName() {
+        return result.getDisplayName().getString();
     }
 
     public ItemStack buy(ServerLevel level, ItemBuyerMachine machine) {
@@ -105,6 +112,10 @@ public class BuyItemRecipe implements Recipe<Container> {
         public @NotNull BuyItemRecipe fromJson(@NotNull ResourceLocation id, @NotNull JsonObject json) {
             long price = GsonHelper.getAsLong(json, "price");
             ItemStack item = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
+            if (item.getCount() > item.getMaxStackSize()) {
+                AdminShop.LOGGER.warn("ItemStack count {} exceeds max stack size {} for item {}", item.getCount(), item.getMaxStackSize(), item.getItem());
+                item.setCount(item.getMaxStackSize());
+            }
             String permit = GsonHelper.getAsString(json, "permit", "");
             return new BuyItemRecipe(id, price, item, permit);
         }

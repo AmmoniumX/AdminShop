@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.*;
+import com.ammonium.adminshop.blocks.interfaces.*;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
 import net.minecraft.resources.ResourceLocation;
@@ -36,7 +36,7 @@ public class RecipeManager {
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get());
     }
 
-    private static boolean searchMatches(ItemStack item, ItemStack recipeItem) {
+    public static boolean matches(ItemStack item, ItemStack recipeItem) {
         if (item.isEmpty() || recipeItem.isEmpty()) { return false; }
         if (item.getItem() != recipeItem.getItem()) { return false; }
         if (recipeItem.hasTag()) {
@@ -49,7 +49,7 @@ public class RecipeManager {
     public static Optional<BuyItemRecipe> isBuyItemRecipe(Level level, ItemStack item) {
         List<BuyItemRecipe> candidates = level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get())
                 .stream()
-                .filter(recipe -> searchMatches(item, recipe.getItem()))
+                .filter(recipe -> matches(item, recipe.getItem()))
                 .toList();
         Optional<BuyItemRecipe> firstWithNBT = candidates
                 .stream()
@@ -72,6 +72,18 @@ public class RecipeManager {
         return recipe != null && recipe.matches(getAccount(level, machine), machine);
     }
 
+    public static Optional<SellItemRecipe> isSellItemRecipe(Level level, ItemStack item) {
+        List<SellItemRecipe> candidates = level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get())
+                .stream()
+                .filter(recipe -> matches(item, recipe.getItem()))
+                .toList();
+        Optional<SellItemRecipe> firstWithNBT = candidates
+                .stream()
+                .filter(recipe -> recipe.getItem().hasTag())
+                .findFirst();
+        return firstWithNBT.or(() -> candidates.stream().findFirst());
+    }
+
     public static Optional<SellItemRecipe> checkForSellItemRecipe(ServerLevel level, ItemSellerMachine machine) {
         BankAccount account = getAccount(level, machine);
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get())
@@ -80,15 +92,16 @@ public class RecipeManager {
                 .findFirst();
     }
 
-    public static boolean searchMatches(FluidStack fluid, FluidStack recipeFluid) {
+    public static boolean matches(FluidStack fluid, FluidStack recipeFluid) {
         if (fluid.isEmpty() || recipeFluid.isEmpty()) { return false; }
         return fluid.getFluid() == recipeFluid.getFluid();
     }
 
     public static Optional<BuyFluidRecipe> isBuyFluidRecipe(Level level, FluidStack fluid) {
+        AdminShop.LOGGER.debug("ShopRecipeManager.isBuyFluidRecipe: checking for recipe for fluid {}", fluid);
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_FLUID.get())
                 .stream()
-                .filter(recipe -> searchMatches(fluid, recipe.getFluid()))
+                .filter(recipe -> matches(fluid, recipe.getFluid()))
                 .findFirst();
     }
 
@@ -101,6 +114,13 @@ public class RecipeManager {
 
     public static boolean checkForBuyFluidRecipe(ServerLevel level, FluidBuyerMachine machine, BuyFluidRecipe recipe) {
         return recipe != null && recipe.matches(getAccount(level, machine), machine);
+    }
+
+    public static Optional<SellFluidRecipe> isSellFluidRecipe(Level level, FluidStack fluid) {
+        return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get())
+                .stream()
+                .filter(recipe -> matches(fluid, recipe.getFluid()))
+                .findFirst();
     }
 
     public static Optional<SellFluidRecipe> checkForSellFluidRecipe(ServerLevel level, FluidSellerMachine machine) {

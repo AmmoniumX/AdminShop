@@ -1,4 +1,4 @@
-package com.ammonium.adminshop.blocks;
+package com.ammonium.adminshop.blocks.interfaces;
 
 import net.minecraft.world.Container;
 

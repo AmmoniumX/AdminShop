@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.FluidBuyerMachine;
+import com.ammonium.adminshop.blocks.interfaces.FluidBuyerMachine;
 import com.ammonium.adminshop.recipes.BuyFluidRecipe;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.screen.FluidBuyerMenu;
@@ -107,10 +107,7 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerM
 
         // Check for valid recipe
         BuyFluidRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
-        if (recipe == null) {
-            AdminShop.LOGGER.debug("Buyer has no recipe");
-            return;
-        }
+        if (recipe == null) { return; }
         boolean isValid = RecipeManager.checkForBuyFluidRecipe((ServerLevel) level, buyerBE, recipe);
         if (!isValid) { return; }
 
@@ -122,12 +119,15 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerM
         }
         FluidStack simulate = recipe.getFluid();
         int filled = handler.fill(simulate, IFluidHandler.FluidAction.SIMULATE);
+        AdminShop.LOGGER.debug("Filled: " + filled + " / " + simulate.getAmount());
         if (filled == simulate.getAmount()) {
 
             // Buy the fluid
             FluidStack buy = recipe.buy((ServerLevel) level, buyerBE);
             assert buy != null && !buy.isEmpty();
             handler.fill(buy, IFluidHandler.FluidAction.EXECUTE);
+            buyerBE.setChanged();
+            buyerBE.sendUpdates();
             return;
         }
     }

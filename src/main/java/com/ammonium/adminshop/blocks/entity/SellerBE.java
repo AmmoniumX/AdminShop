@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.ItemSellerMachine;
+import com.ammonium.adminshop.blocks.interfaces.ItemSellerMachine;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.screen.SellerMenu;
@@ -149,10 +149,7 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
 
         // Check for valid recipe
         SellItemRecipe recipe = RecipeManager.checkForSellItemRecipe((ServerLevel) level, sellerBE).orElse(null);
-        if (recipe == null) {
-            AdminShop.LOGGER.debug("No recipe found for sellerBE");
-            return;
-        }
+        if (recipe == null) { return; }
 
         // Sell the item
         IItemHandler handler = sellerBE.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);

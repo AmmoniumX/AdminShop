@@ -6,6 +6,7 @@ import com.ammonium.adminshop.client.gui.BuySellButton;
 import com.ammonium.adminshop.client.gui.ChangeAccountButton;
 import com.ammonium.adminshop.client.gui.SetDefaultAccountButton;
 import com.ammonium.adminshop.client.gui.ShopButton;
+import com.ammonium.adminshop.item.ModItems;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.ClientLocalData;
 import com.ammonium.adminshop.money.MoneyFormat;
@@ -13,10 +14,12 @@ import com.ammonium.adminshop.network.MojangAPI;
 import com.ammonium.adminshop.network.PacketAccountAddPermit;
 import com.ammonium.adminshop.network.PacketBuyRequest;
 import com.ammonium.adminshop.network.PacketSellRequest;
+import com.ammonium.adminshop.recipes.*;
+import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
+import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
+import com.ammonium.adminshop.recipes.interfaces.ShopRecipe;
 import com.ammonium.adminshop.setup.ClientConfig;
 import com.ammonium.adminshop.setup.Messages;
-import com.ammonium.adminshop.shop.Shop;
-import com.ammonium.adminshop.shop.ShopItem;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
@@ -27,17 +30,13 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.tags.IReverseTag;
-import net.minecraftforge.registries.tags.ITagManager;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
@@ -59,7 +58,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private final ShopMenu shopMenu;
     private final List<ShopButton> buyButtons;
     private final List<ShopButton> sellButtons;
-    private List<ShopItem> searchResults;
+    private List<ShopRecipe> searchResults = new ArrayList<>();
     private boolean isBuy; //Whether the Buy option is currently selected
     private Map<Pair<String, Integer>, BankAccount> accountMap;
     private final List<Pair<String, Integer>> usableAccounts = new ArrayList<>();
@@ -269,23 +268,28 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         Slot slot = this.getSlotUnderMouse();
         if (slot != null && Screen.hasShiftDown()) {
             ItemStack itemStack = slot.getItem();
+            AdminShop.LOGGER.debug("Clicked on item: {}", itemStack);
             if (!itemStack.isEmpty()) {
                 // Get item clicked on
                 Item item = itemStack.getItem();
-//                System.out.println("Item clicked on: "+ ForgeRegistries.ITEMS.getKey(item));
                 // Check if item is trade permit
-                if (ForgeRegistries.ITEMS.getKey(item).toString().equals("adminshop:permit")) {
+                  if (itemStack.is(ModItems.PERMIT.get())) {
                     // Check if it has a “key” value
                     if (itemStack.hasTag()) {
                         CompoundTag compoundTag = itemStack.getTag();
+                        if (compoundTag == null || !compoundTag.contains("key")) {
+                            AdminShop.LOGGER.error("Trade permit has no key!");
+                            return false;
+                        }
                         int key = compoundTag.getInt("key");
                         System.out.println("Key: "+key);
                         // check if key is valid
-                        if (key == 0) {
+                        if (key <= 0) {
                             AdminShop.LOGGER.error("Trade permit has invalid key!");
+                            return false;
                         }
                         // Add permit tier to bank account
-                        AdminShop.LOGGER.info("Adding permit "+key+" to account");
+                        AdminShop.LOGGER.info("Adding permit to account: {}", key);
 //                        Minecraft.getInstance().player.sendSystemMessage(Component.literal("Adding permit "+key+" to account"),
 //                                Minecraft.getInstance().player.getUUID());
 //                        Minecraft.getInstance().player.playSound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
@@ -295,43 +299,44 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                     }
                 }
                 // Check if item is fluid container
-                itemStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).ifPresent(fluidHandler -> {
-                    FluidStack fluidStack = fluidHandler.getFluidInTank(0);
-                    // Return if container is empty
-                    if (fluidStack.isEmpty()) {return;}
-                    Fluid fluid = fluidHandler.getFluidInTank(0).getFluid();
-                    // Check if fluid is in fluid shop map
-                    if (Shop.get().hasSellShopFluid(fluid)) {
-                        AdminShop.LOGGER.debug("ShopItem: "+fluidStack.getDisplayName().getString());
-                        Messages.sendToServer(new PacketSellRequest(getBankAccount(), slot.getSlotIndex(), fluidStack.getAmount()));
-                        return;
+                boolean isFluidContainer = itemStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent();
+                AdminShop.LOGGER.debug("Item is fluid container: {}", isFluidContainer);
+                if (isFluidContainer) {
+                    IFluidHandlerItem fluidHandler = itemStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).orElse(null);
+                    // Check if fluid is in recipes
+                    for (int i = 0; i < fluidHandler.getTanks(); i++) {
+                        FluidStack fluidStack = fluidHandler.getFluidInTank(i);
+                        // Return if container is empty
+                        if (fluidStack.isEmpty()) {
+                            continue;
+                        }
+                        // Check if fluid is in recipes
+                        SellFluidRecipe fluidRecipe = RecipeManager.isSellFluidRecipe(Minecraft.getInstance().level, fluidStack).orElse(null);
+                        if (fluidRecipe != null) {
+                            // Attempt to sell
+                            AdminShop.LOGGER.debug("Found recipe: {}", fluidRecipe.getId());
+                            if (fluidStack.getAmount() < fluidRecipe.getFluid().getAmount()) {
+                                AdminShop.LOGGER.debug("Not enough fluid to sell");
+                                return false;
+                            }
+                            Messages.sendToServer(new PacketSellRequest(getBankAccount(), fluidRecipe.getId(), slot.getSlotIndex(), 1));
+                            return false;
+                        }
                     }
-                    // Check if fluid tags are in fluid tag map
-                    ITagManager<Fluid> fluidTagManager = ForgeRegistries.FLUIDS.tags();
-                    Optional<IReverseTag<Fluid>> oFluidReverseTag = fluidTagManager.getReverseTag(fluid);
-                    if (oFluidReverseTag.isEmpty()) {return;}
-                    IReverseTag<Fluid> fluidReverseTag = oFluidReverseTag.get();
-                    Optional<TagKey<Fluid>> oFluidTag = fluidReverseTag.getTagKeys().filter(fluidTag -> Shop.get().hasSellShopFluidTag(fluidTag)).findFirst();
-                    if (oFluidTag.isPresent()) {
-                        // Attempt to sell tag
-                        AdminShop.LOGGER.debug("ShopItem: "+oFluidTag.get().location());
-                        Messages.sendToServer(new PacketSellRequest(getBankAccount(), slot.getSlotIndex(), fluidStack.getAmount()));
-                    }
-                });
-                // Check if item is in sell item map
-                if (Shop.get().hasSellShopItem(item)) {
-                    ShopItem shopItem = Shop.get().getShopSellItemMap().get(item);
-                    // Attempt to sell it
-                    AdminShop.LOGGER.debug("ShopItem: "+shopItem.getItem().getDisplayName().getString());
-                    Messages.sendToServer(new PacketSellRequest(getBankAccount(), slot.getSlotIndex(), itemStack.getCount()));
-                    return false;
                 }
-                // Check if any of item's tags is in sell item tag map
-                Optional<TagKey<Item>> searchTag = itemStack.getTags().filter(itemTag -> Shop.get().hasSellShopItemTag(itemTag)).findFirst();
-                if (searchTag.isPresent()) {
-                    // Attempt to sell tag
-                    AdminShop.LOGGER.debug("ShopItem: "+searchTag.get().location());
-                    Messages.sendToServer(new PacketSellRequest(getBankAccount(), slot.getSlotIndex(), itemStack.getCount()));
+
+                // Check if item is in sell item map
+                SellItemRecipe itemRecipe = RecipeManager.isSellItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
+                if (itemRecipe != null) {
+                    // Attempt to sell it
+                    AdminShop.LOGGER.debug("Found recipe: {}", itemRecipe.getId());
+                    int maxFit = itemStack.getCount() / itemRecipe.getItem().getCount();
+                    if (maxFit < 1) {
+                        AdminShop.LOGGER.debug("Not enough items to sell");
+                        return false;
+                    }
+                    Messages.sendToServer(new PacketSellRequest(getBankAccount(), itemRecipe.getId(), slot.getSlotIndex(),
+                            maxFit));
                     return false;
                 }
             }
@@ -364,22 +369,57 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
 
     private void createShopButtons(boolean isBuy, int x, int y){
-        List<ShopItem> shopItems = isBuy ? Shop.get().getShopStockBuy() : Shop.get().getShopStockSell();
-        // Filter by search if it is set
-        if (!this.search.equals("")) {
-            shopItems = shopItems.stream().filter(shopItem -> shopItem.getItem().getDisplayName().getString()
-                    .toLowerCase().strip().contains(this.search.toLowerCase().strip())).toList();
+        searchResults.clear();
+        if (isBuy) {
+            searchResults.addAll(RecipeManager.getAllBuyItemRecipes(Minecraft.getInstance().level)
+                    .stream()
+                    .map(recipe -> (ShopRecipe) recipe)
+                    .toList());
+            searchResults.addAll(RecipeManager.getAllBuyFluidRecipes(Minecraft.getInstance().level)
+                    .stream()
+                    .map(recipe -> (ShopRecipe) recipe)
+                    .toList());
+        } else {
+            searchResults.addAll(RecipeManager.getAllSellItemRecipes(Minecraft.getInstance().level)
+                    .stream()
+                    .map(recipe -> (ShopRecipe) recipe)
+                    .toList());
+            searchResults.addAll(RecipeManager.getAllSellFluidRecipes(Minecraft.getInstance().level)
+                    .stream()
+                    .map(recipe -> (ShopRecipe) recipe)
+                    .toList());
         }
-        // Save to search results even if no search is done
-        searchResults = shopItems;
+        // Filter by search if it is set
+        if (!this.search.isEmpty()) {
+//            shopItems = shopItems.stream().filter(shopItem -> shopItem.getItem().getDisplayName().getString()
+//                    .toLowerCase().strip().contains(this.search.toLowerCase().strip())).toList();
+            searchResults = searchResults.stream().filter(recipe -> {
+                if (recipe instanceof BuyItemRecipe) {
+                    return ((BuyItemRecipe) recipe).getItem().getDisplayName().getString()
+                            .toLowerCase().strip().contains(this.search.toLowerCase().strip());
+                } else if (recipe instanceof SellItemRecipe) {
+                    return ((SellItemRecipe) recipe).getItem().getDisplayName().getString()
+                            .toLowerCase().strip().contains(this.search.toLowerCase().strip());
+                } else if (recipe instanceof BuyFluidRecipe) {
+                    return ((BuyFluidRecipe) recipe).getFluid().getDisplayName().getString()
+                            .toLowerCase().strip().contains(this.search.toLowerCase().strip());
+                } else if (recipe instanceof SellFluidRecipe) {
+                    return ((SellFluidRecipe) recipe).getFluid().getDisplayName().getString()
+                            .toLowerCase().strip().contains(this.search.toLowerCase().strip());
+                }
+                return false;
+            }).toList();
+        }
         List<ShopButton> shopButtons = isBuy ? buyButtons : sellButtons;
         //Clear shop buttons if they already exist
         shopButtons.forEach(this::removeWidget);
         shopButtons.clear();
+
+        // Create new shop buttons
         // Skip rows scrolled past
+        List<ShopRecipe> shopItems = new ArrayList<>(searchResults);
         int numPassed = rows_passed*NUM_COLS;
-//        shopItems = shopItems.subList(numPassed, Math.min(numPassed+NUM_ROWS*NUM_COLS, shopItems.size()));
-        if (numPassed < shopItems.size()) {
+        if (numPassed < searchResults.size()) {
             shopItems = shopItems.subList(numPassed, Math.min(numPassed+NUM_ROWS*NUM_COLS, shopItems.size()));
         } else {
             AdminShop.LOGGER.debug("Scrolled farther down that should've!");
@@ -388,12 +428,12 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         // Add buttons
         for(int j = 0; j < shopItems.size(); j++){
             final int j2 = j;
-            List<ShopItem> finalShopItems = shopItems;
+            List<ShopRecipe> finalShopItems = shopItems;
             ShopButton button = new ShopButton(shopItems.get(j),
                     x+SHOP_BUTTON_X+SHOP_BUTTON_SIZE*(j%NUM_COLS),
                     y+SHOP_BUTTON_Y+SHOP_BUTTON_SIZE*((j/NUM_COLS)%NUM_ROWS), itemRenderer, (b) -> {
                 int quantity = ((ShopButton)b).getQuantity();
-                attemptTransaction(getBankAccount(), isBuy, finalShopItems.get(j2), quantity);
+                attemptTransaction(getBankAccount(), finalShopItems.get(j2), quantity);
             });
             shopButtons.add(button);
             button.visible = isBuy;
@@ -506,12 +546,12 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         return super.mouseScrolled(pMouseX, pMouseY, pDelta);
     }
 
-    private void attemptTransaction(BankAccount bankAccount, boolean isBuy, ShopItem item, int quantity){
+    private void attemptTransaction(BankAccount bankAccount, ShopRecipe recipe, int quantity){
         Pair<String, Integer> accountInfo = Pair.of(bankAccount.getOwner(), bankAccount.getId());
-        if (isBuy) {
-            Messages.sendToServer(new PacketBuyRequest(accountInfo, item, quantity));
-        } else {
-            Messages.sendToServer(new PacketSellRequest(accountInfo, item, quantity));
+        if (recipe instanceof BuyRecipe buyRecipe) {
+            Messages.sendToServer(new PacketBuyRequest(accountInfo, buyRecipe.getId(), quantity));
+        } else if (recipe instanceof SellRecipe sellRecipe) {
+            Messages.sendToServer(new PacketSellRequest(accountInfo, sellRecipe.getId(), -1, quantity));
         }
         // Refresh account map
         this.accountMap = ClientLocalData.getAccountMap();

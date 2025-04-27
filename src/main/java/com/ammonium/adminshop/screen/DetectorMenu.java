@@ -1,6 +1,6 @@
 package com.ammonium.adminshop.screen;
 
-import com.ammonium.adminshop.blocks.Detector;
+import com.ammonium.adminshop.blocks.interfaces.Detector;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;

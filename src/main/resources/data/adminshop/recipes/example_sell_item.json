@@ -1,0 +1,8 @@
+{
+  "type": "adminshop:item_selling",
+  "price": 100,
+  "item": {
+    "item": "minecraft:cobblestone",
+    "count": 32
+  }
+}

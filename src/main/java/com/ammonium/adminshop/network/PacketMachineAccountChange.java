@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.network;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.ShopMachine;
+import com.ammonium.adminshop.blocks.interfaces.ShopMachine;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
 import net.minecraft.core.BlockPos;

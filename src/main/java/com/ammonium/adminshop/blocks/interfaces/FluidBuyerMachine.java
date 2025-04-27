@@ -1,4 +1,4 @@
-package com.ammonium.adminshop.blocks;
+package com.ammonium.adminshop.blocks.interfaces;
 
 import com.ammonium.adminshop.recipes.BuyFluidRecipe;
 import net.minecraft.resources.ResourceLocation;

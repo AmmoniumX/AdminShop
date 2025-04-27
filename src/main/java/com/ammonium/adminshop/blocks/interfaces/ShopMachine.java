@@ -1,4 +1,4 @@
-package com.ammonium.adminshop.blocks;
+package com.ammonium.adminshop.blocks.interfaces;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.MenuProvider;

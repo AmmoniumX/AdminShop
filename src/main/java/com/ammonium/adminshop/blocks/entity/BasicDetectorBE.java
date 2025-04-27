@@ -2,7 +2,7 @@ package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.BasicDetector;
-import com.ammonium.adminshop.blocks.Detector;
+import com.ammonium.adminshop.blocks.interfaces.Detector;
 import com.ammonium.adminshop.money.MoneyManager;
 import com.ammonium.adminshop.screen.BasicDetectorMenu;
 import net.minecraft.core.BlockPos;

@@ -19,13 +19,13 @@ public class ModRecipeTypes {
         };
     }
 
-    public static final RegistryObject<RecipeType<BuyItemRecipe>> SHOP_BUY_ITEM = RECIPE_TYPES.register("shop_buy_item", () -> registerRecipeType("shop_buy_item"));
+    public static final RegistryObject<RecipeType<BuyItemRecipe>> SHOP_BUY_ITEM = RECIPE_TYPES.register("item_buying", () -> registerRecipeType("item_buying"));
 
-    public static final RegistryObject<RecipeType<SellItemRecipe>> SHOP_SELL_ITEM = RECIPE_TYPES.register("shop_sell_item", () -> registerRecipeType("shop_sell_item"));
+    public static final RegistryObject<RecipeType<SellItemRecipe>> SHOP_SELL_ITEM = RECIPE_TYPES.register("item_selling", () -> registerRecipeType("item_selling"));
 
-    public static final RegistryObject<RecipeType<BuyFluidRecipe>> SHOP_BUY_FLUID = RECIPE_TYPES.register("shop_buy_fluid", () -> registerRecipeType("shop_buy_fluid"));
+    public static final RegistryObject<RecipeType<BuyFluidRecipe>> SHOP_BUY_FLUID = RECIPE_TYPES.register("fluid_buying", () -> registerRecipeType("fluid_buying"));
 
-    public static final RegistryObject<RecipeType<SellFluidRecipe>> SHOP_SELL_FLUID = RECIPE_TYPES.register("shop_sell_fluid", () -> registerRecipeType("shop_sell_fluid"));
+    public static final RegistryObject<RecipeType<SellFluidRecipe>> SHOP_SELL_FLUID = RECIPE_TYPES.register("fluid_selling", () -> registerRecipeType("fluid_selling"));
 
     public static void register(IEventBus eventBus) {
         RECIPE_TYPES.register(eventBus);

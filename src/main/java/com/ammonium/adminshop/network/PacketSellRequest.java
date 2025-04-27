@@ -3,122 +3,67 @@ package com.ammonium.adminshop.network;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
-import com.ammonium.adminshop.setup.Messages;
-import com.ammonium.adminshop.shop.Shop;
-import com.ammonium.adminshop.shop.ShopItem;
-import net.minecraft.nbt.CompoundTag;
+import com.ammonium.adminshop.recipes.RecipeManager;
+import com.ammonium.adminshop.recipes.SellFluidRecipe;
+import com.ammonium.adminshop.recipes.SellItemRecipe;
+import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.item.crafting.Recipe;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.tags.ITag;
-import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class PacketSellRequest {
-    private final int quantity;
+    private int quantity;
     private final String accOwner;
     private final int accID;
-    private final boolean sellBySlot;
-    private int slotIndex; // final
-    private ShopItem shopItem;
+    private int slotIndex;
+    private final ResourceLocation recipeId;
 
-    public PacketSellRequest(BankAccount bankAccount, int slotIndex, int quantity){
-        this.accOwner = bankAccount.getOwner();
-        this.accID = bankAccount.getId();
-        this.sellBySlot = true;
+    public PacketSellRequest(BankAccount account, ResourceLocation recipeId, int slotIndex, int quantity){
+        this.accOwner = account.getOwner();
+        this.accID = account.getId();
         this.slotIndex = slotIndex;
-        this.shopItem = null;
+        this.recipeId = recipeId;
         this.quantity = quantity;
     }
 
-    public PacketSellRequest(BankAccount bankAccount, ShopItem item, int quantity){
-        this.accOwner = bankAccount.getOwner();
-        this.accID = bankAccount.getId();
-        this.sellBySlot = false;
-        this.slotIndex = -1;
-        this.shopItem = item;
-        this.quantity = quantity;
-    }
-
-    public PacketSellRequest(Pair<String, Integer> bankAccount, int slotIndex, int quantity){
-        this.accOwner = bankAccount.getKey();
-        this.accID = bankAccount.getValue();
-        this.sellBySlot = true;
+    public PacketSellRequest(Pair<String, Integer> account, ResourceLocation recipeId, int slotIndex, int quantity){
+        this.accOwner = account.getKey();
+        this.accID = account.getValue();
         this.slotIndex = slotIndex;
-        this.shopItem = null;
-        this.quantity = quantity;
-    }
-    public PacketSellRequest(Pair<String, Integer> bankAccount, ShopItem item, int quantity){
-        this.accOwner = bankAccount.getKey();
-        this.accID = bankAccount.getValue();
-        this.sellBySlot = false;
-        this.slotIndex = -1;
-        this.shopItem = item;
-        this.quantity = quantity;
-    }
-
-    public PacketSellRequest(String owner, int ownerId, int slotIndex, int quantity){
-        this.accOwner = owner;
-        this.accID = ownerId;
-        this.sellBySlot = true;
-        this.slotIndex = slotIndex;
-        this.shopItem = null;
-        this.quantity = quantity;
-    }
-    public PacketSellRequest(String owner, int ownerId, ShopItem item, int quantity){
-        this.accOwner = owner;
-        this.accID = ownerId;
-        this.sellBySlot = false;
-        this.slotIndex = -1;
-        this.shopItem = item;
+        this.recipeId = recipeId;
         this.quantity = quantity;
     }
 
     public PacketSellRequest(FriendlyByteBuf buf){
         this.accOwner = buf.readUtf();
         this.accID = buf.readInt();
-        this.sellBySlot = buf.readBoolean();
-        if (this.sellBySlot) {
-            this.slotIndex = buf.readInt();
-            this.shopItem = null;
-        } else {
-            this.slotIndex = -1;
-            int shopItemIndex = buf.readInt();
-            List<ShopItem> shopItemList = Shop.get().getShopStockSell();
-            this.shopItem = shopItemList.get(shopItemIndex);
-        }
+        this.slotIndex = buf.readInt();
+        this.recipeId = buf.readResourceLocation();
         this.quantity = buf.readInt();
     }
 
     public void toBytes(FriendlyByteBuf buf){
         buf.writeUtf(accOwner);
         buf.writeInt(accID);
-        buf.writeBoolean(sellBySlot);
-        if (sellBySlot) {
-            buf.writeInt(slotIndex);
-        } else {
-            List<ShopItem> shopItemList = Shop.get().getShopStockSell();
-            buf.writeInt(shopItemList.indexOf(shopItem));
-        }
+        buf.writeInt(slotIndex);
+        buf.writeResourceLocation(recipeId);
         buf.writeInt(quantity);
     }
 
@@ -127,405 +72,235 @@ public class PacketSellRequest {
         ctx.enqueueWork(() -> {
             //Client side accessed here
             //Do NOT call client-only code though, since server needs to access this too
-            AdminShop.LOGGER.debug("Performing sell transaction, sellBySlot="+sellBySlot);
+//            AdminShop.LOGGER.debug("Performing sell transaction: {}, {}, {}", recipeId, slotIndex, quantity);
             ServerPlayer player = ctx.getSender();
+            ServerLevel level = ctx.getSender().getLevel();
             // Get item handler
             assert player != null;
             Inventory playerInventory = player.getInventory();
-            LazyOptional<IItemHandler> mainInventoryHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory));
-            mainInventoryHandler.ifPresent(iItemHandler -> {
+            IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
+            if (itemHandler == null) {
+                AdminShop.LOGGER.debug("Item handler is null");
+                return;
+            }
+            Optional<? extends Recipe<?>> recipeOptional = level.getRecipeManager().byKey(recipeId);
+            if (recipeOptional.isEmpty() || !(recipeOptional.get() instanceof SellRecipe recipe)) {
+                AdminShop.LOGGER.debug("Recipe is not a SellRecipe");
+                return;
+            }
+            if (recipe instanceof SellItemRecipe itemRecipe) {
+                // Search for a valid sell stack
                 ItemStack sellStack = ItemStack.EMPTY;
-                if (sellBySlot) {
-                    sellStack = iItemHandler.getStackInSlot(slotIndex);
-                    // Check if sellStack is container
-                    boolean isContainer = sellStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent();
-                    AtomicReference<FluidStack> sellFluid = new AtomicReference<>(FluidStack.EMPTY);
-                    sellStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).ifPresent(iFluidHandlerItem -> {
-                        sellFluid.set(iFluidHandlerItem.getFluidInTank(0));
-                    });
-                    // Search for valid ShopItem, be it item or fluid
-                    List<ShopItem> sellList = Shop.get().getShopStockSell();
-                    for (ShopItem sItem: sellList) {
-                        // Search for valid fluid, either by tag or not
-                        if (!sItem.isItem() && isContainer && !sellFluid.get().isEmpty()) {
-                            // Search by fluid tag
-                            if (sItem.isTag()) {
-                                ITag<Fluid> fluidTagManager = ForgeRegistries.FLUIDS.tags().getTag(sItem.getFluidTag());
-                                if (fluidTagManager.contains(sellFluid.get().getFluid())) {
-                                    shopItem = sItem;
-                                    break;
-                                }
-                                // Search by Fluid
-                            } else {
-                                if(sellFluid.get().getFluid().equals(sItem.getFluid().getFluid())) {
-                                    shopItem = sItem;
-                                    break;
-                                }
-                            }
-                            // Search by item tag
-                        }
-                        // Search for valid item, either by tag or not
-                        if (sItem.isItem()) {
-                            if (sItem.isTag()) {
-                                ITag<Item> itemTagManager = ForgeRegistries.ITEMS.tags().getTag(sItem.getItemTag());
-                                if (itemTagManager.contains(sellStack.getItem())) {
-                                    shopItem = sItem;
-                                    break;
-                                }
-                            } else {
-                                if (sellStack.getItem().equals(sItem.getItem().getItem())) {
-                                    shopItem = sItem;
-                                    break;
-                                }
-                            }
+                // Check if we were given the item index
+                if (slotIndex != -1) {
+                    sellStack = itemHandler.getStackInSlot(slotIndex);
+
+                    // Check if items match
+                    if (!RecipeManager.matches(sellStack, itemRecipe.getItem())) {
+                        AdminShop.LOGGER.debug("Item doesn't match recipe");
+                        return;
+                    }
+
+                } else {
+                    // Check if item is in inventory
+                    int targetCount = (quantity > 0) ? itemRecipe.getItem().getCount() * quantity
+                            : itemRecipe.getItem().getCount();
+                    for (int i = 0; i < itemHandler.getSlots(); i++) {
+                        ItemStack currentStack = itemHandler.getStackInSlot(i);
+                        if (RecipeManager.matches(currentStack, itemRecipe.getItem())
+                                && currentStack.getCount() >= targetCount) {
+                            AdminShop.LOGGER.debug("Found item in slot {}: {}", i, currentStack);
+                            slotIndex = i;
+                            sellStack = currentStack;
+                            break;
                         }
                     }
-                }
-                if (sellBySlot && shopItem == null) {
-                    AdminShop.LOGGER.debug("Could not find a valid ShopItem for the ItemStack of "+sellStack.getDisplayName().getString());
-                    return;
-                }
-                
-                if (shopItem.isItem() && !shopItem.isTag()) {
-                    AdminShop.LOGGER.debug("Item: "+shopItem.getItem().getDisplayName().getString());
-                } else if (shopItem.isItem() && shopItem.isTag()) {
-                    AdminShop.LOGGER.debug("Item tag: "+shopItem.getItemTag().location());
-                } else if (!shopItem.isItem() && !shopItem.isTag()) {
-                    AdminShop.LOGGER.debug("Fluid: "+shopItem.getFluid().getDisplayName().getString());
-                } else if (!shopItem.isItem() && shopItem.isTag()) {
-                    AdminShop.LOGGER.debug("Fluid tag: "+shopItem.getFluidTag().location());
+                    if (sellStack.isEmpty()) {
+                        AdminShop.LOGGER.debug("Could not find item");
+                        return;
+                    }
                 }
 
-                MoneyManager moneyManager = MoneyManager.get(player.getLevel());
-                // Check if account has permit requirement
-                BankAccount bankAccount = moneyManager.getBankAccount(this.accOwner, this.accID);
-                if (!bankAccount.hasPermit(shopItem.getPermitTier())) {
-                    AdminShop.LOGGER.info("Account "+accOwner+":"+accID+" does not have permit tier "+ shopItem.getPermitTier());
-                    player.sendSystemMessage(Component.literal( MojangAPI.getUsernameByUUID(accOwner)+":"+accID+" does not " +
-                            "have permit tier "+ shopItem.getPermitTier()));
+                // Check if we found a valid item
+                if (sellStack.isEmpty() || slotIndex == -1) {
+                    AdminShop.LOGGER.debug("Could not find item in inventory");
                     return;
                 }
-                if (sellBySlot) {
-                    if (shopItem.isItem()){
-                        sellItemTransaction(supplier, slotIndex, shopItem, quantity);
-                    } else {
-                        sellFluidTransaction(supplier, slotIndex, shopItem, quantity);
+
+                // Check if quantities match
+                if (quantity > 0) {
+                    if (sellStack.getCount() < itemRecipe.getItem().getCount() * quantity) {
+                        AdminShop.LOGGER.debug("Not enough items to sell");
+                        return;
                     }
                 } else {
-                    if (shopItem.isItem()){
-                        sellItemTransaction(supplier, shopItem, quantity);
-                    } else {
-                        sellFluidTransaction(supplier, shopItem, quantity);
+                    // If quantity is not provided, we want to sell as many items as we can in one "batch"
+                    quantity = sellStack.getCount() / itemRecipe.getItem().getCount();
+                }
+
+                // Execute the sell
+                AdminShop.LOGGER.debug("Selling item: {} x{}", sellStack.getDisplayName().getString(), itemRecipe.getItem().getCount() * quantity);
+                sellItem(supplier, slotIndex, itemRecipe, quantity);
+
+            } else if (recipe instanceof SellFluidRecipe fluidRecipe) {
+                // Search for a valid sell stack
+                ItemStack sellStack = ItemStack.EMPTY;
+                // Check if we were given the item index
+                if (slotIndex != -1) {
+                    sellStack = itemHandler.getStackInSlot(slotIndex);
+
+                    // Check if fluid container
+                    boolean isFluidContainer = sellStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent();
+                    AdminShop.LOGGER.debug("Is fluid container: {}", isFluidContainer);
+                    if (!isFluidContainer) {
+                        return;
+                    }
+
+                    // Check if fluid matches
+                    IFluidHandlerItem fluidHandler = sellStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).orElse(null);
+                    int targetAmount = (quantity > 0) ? fluidRecipe.getFluid().getAmount() * quantity : fluidRecipe.getFluid().getAmount();
+                    boolean found = false;
+                    for (int j = 0; j < fluidHandler.getTanks(); j++) {
+                        FluidStack fluidStack = fluidHandler.getFluidInTank(j);
+                        if (fluidStack.isEmpty()) { continue; }
+                        // Check if the fluid matches
+                        if (RecipeManager.matches(fluidStack, fluidRecipe.getFluid()) &&
+                                fluidStack.getAmount() >= targetAmount) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    AdminShop.LOGGER.debug("Found matching fluid: {}", found);
+                    if (!found) {
+                        return;
+                    }
+
+                } else {
+                    // Check if we have a valid fluid container with the fluid
+                    int targetAmount = (quantity > 0) ? fluidRecipe.getFluid().getAmount() * quantity
+                            : fluidRecipe.getFluid().getAmount();
+                    for (int i = 0; i < itemHandler.getSlots(); i++) {
+                        ItemStack currentStack = itemHandler.getStackInSlot(i);
+                        LazyOptional<IFluidHandlerItem> lazyFluidHandler = currentStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM);
+                        if (!lazyFluidHandler.isPresent()) { continue; }
+                        IFluidHandlerItem fluidHandler = currentStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).orElse(null);
+                        for (int j = 0; j < fluidHandler.getTanks(); j++) {
+                            FluidStack fluidStack = fluidHandler.getFluidInTank(j);
+                            if (fluidStack.isEmpty()) { continue; }
+                            // Check if the fluid matches
+                            if (RecipeManager.matches(fluidStack, fluidRecipe.getFluid()) &&
+                                fluidStack.getAmount() >= targetAmount) {
+                                AdminShop.LOGGER.debug("Found matching fluid in slot {}: {}", i, currentStack);
+                                slotIndex = i;
+                                sellStack = currentStack;
+                                break;
+                            }
+                        }
+                        if (!sellStack.isEmpty()) { break; }
                     }
                 }
 
-                // Sync money with affected clients
-                AdminShop.LOGGER.debug("Syncing money with clients");
-                // Get current bank account
-                BankAccount currentAccount = moneyManager.getBankAccount(this.accOwner, this.accID);
+                // Check if we found a valid item
+                if (sellStack.isEmpty() || slotIndex == -1) {
+                    AdminShop.LOGGER.debug("Could not find fluid in inventory");
+                    return;
+                }
 
-                // Sync money with bank account's members
-                assert currentAccount.getMembers().contains(this.accOwner);
-                currentAccount.getMembers().forEach(memberUUID -> {
-                    List<BankAccount> usableAccounts = moneyManager.getSharedAccounts().get(memberUUID);
-                    ServerPlayer serverPlayer = (ServerPlayer) player.getLevel()
-                            .getPlayerByUUID(UUID.fromString(memberUUID));
-                    if (serverPlayer == null) return;
-                    AdminShop.LOGGER.debug("Syncyng money with "+serverPlayer.getName().getString());
-                    Messages.sendToPlayer(new PacketSyncMoneyToClient(usableAccounts), serverPlayer);
-                });
-            });
+                int tankNumber = -1;
+                IFluidHandlerItem fluidHandler = sellStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).orElse(null);
+                assert fluidHandler != null; // It should be false at this point
+                if (quantity > 0) {
+                    // Make sure quantities match
+                    int targetAmount = fluidRecipe.getFluid().getAmount() * quantity;
+                    for (int i = 0; i < fluidHandler.getTanks(); i++) {
+                        FluidStack fluidStack = fluidHandler.getFluidInTank(i);
+                        if (fluidStack.isEmpty()) { continue; }
+                        // Check if the fluid matches
+                        if (RecipeManager.matches(fluidStack, fluidRecipe.getFluid()) &&
+                                fluidStack.getAmount() >= targetAmount) {
+                            tankNumber = i;
+                            break;
+                        }
+                    }
+                } else {
+                    // Find first tank with enough fluid
+                    int targetAmount = fluidRecipe.getFluid().getAmount();
+                    for (int i = 0; i < fluidHandler.getTanks(); i++) {
+                        FluidStack fluidStack = fluidHandler.getFluidInTank(i);
+                        if (fluidStack.isEmpty()) { continue; }
+                        // Check if the fluid matches
+                        if (RecipeManager.matches(fluidStack, fluidRecipe.getFluid()) &&
+                                fluidStack.getAmount() >= targetAmount) {
+                            tankNumber = i;
+                            break;
+                        }
+                    }
+                    quantity = 1;
+                }
+
+                if (tankNumber == -1) {
+                    AdminShop.LOGGER.debug("Not enough fluid to sell");
+                    return;
+                }
+
+                // Execute the sell
+                AdminShop.LOGGER.debug("Selling fluid: {} x{}", sellStack.getDisplayName().getString(), fluidRecipe.getFluid().getAmount() * quantity);
+                sellFluid(supplier, slotIndex, fluidRecipe, quantity);
+            } else {
+                AdminShop.LOGGER.debug("Recipe is not a SellItemRecipe");
+                return;
+            }
         });
         return true;
     }
 
-    private void sellItemTransaction(Supplier<NetworkEvent.Context> supplier, int slotIndex, ShopItem item, int quantity) {
-        assert(item.isItem() && !item.isBuy());
+    private void sellItem(Supplier<NetworkEvent.Context> supplier, int slotIndex, SellItemRecipe recipe, int quantity) {
+        // Assumes all checks have been done before calling this
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
         assert player != null;
         Inventory playerInventory = player.getInventory();
-        LazyOptional<IItemHandler> mainInventoryHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory));
-        mainInventoryHandler.ifPresent(iItemHandler -> {
-            // Check that we are doing a valid extraction
-            ItemStack toExtract = iItemHandler.getStackInSlot(slotIndex);
-            if (!item.isTag() && !toExtract.getItem().equals(item.getItem().getItem())) {
-                AdminShop.LOGGER.debug("Invalid extraction: non-tag item and Items don't match: "+
-                        item.getItem().getDisplayName().getString()+", "+toExtract.getDisplayName().getString());
-                return;
-            }
-            if (item.isTag()) {
-                ITag<Item> itemTagManager = ForgeRegistries.ITEMS.tags().getTag(item.getItemTag());
-                if (!itemTagManager.contains(toExtract.getItem())) {
-                    AdminShop.LOGGER.debug("Invalid extraction: item doesn't have tag: "+
-                            toExtract.getDisplayName().getString()+", "+item.getItemTag().location());
-                }
-            }
-            int numSold = iItemHandler.extractItem(slotIndex, quantity, false).getCount();
-            long itemCost = item.getPrice();
-            long price = (long) numSold * itemCost;
-            if (numSold == 0) {
-                player.sendSystemMessage(Component.literal("No valid item found."));
-                AdminShop.LOGGER.debug("No valid item found.");
-                return;
-            }
-
-            boolean success = MoneyManager.get(player.getLevel()).addBalance(accOwner, accID, price);
-            if (success) {
-                AdminShop.LOGGER.debug("Sold item.");
-            } else {
-                AdminShop.LOGGER.debug("Error selling item.");
-            }
-        });
+        IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
+        int toSell = recipe.getItem().getCount() * quantity;
+        int numSold = itemHandler.extractItem(slotIndex, toSell, false).getCount();
+        long price = quantity * recipe.getPrice();
+        if (numSold != toSell) {
+            AdminShop.LOGGER.debug("Target quantity and extracted value don't match: {}, {}", toSell, numSold);
+            return;
+        }
+        MoneyManager.get(player.getLevel()).addBalance(accOwner, accID, price);
     }
-    private void sellItemTransaction(Supplier<NetworkEvent.Context> supplier, ShopItem item, int quantity) {
-        assert(item.isItem() && !item.isBuy());
+
+    private void sellFluid(Supplier<NetworkEvent.Context> supplier, int slotIndex, SellFluidRecipe recipe, int quantity) {
+        // Assumes all checks have been done before calling this
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
         assert player != null;
         Inventory playerInventory = player.getInventory();
-        LazyOptional<IItemHandler> mainInventoryHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory));
-        mainInventoryHandler.ifPresent(iItemHandler -> {
-            // Check that we are doing a valid extraction
-            ItemStack toExtract = ItemStack.EMPTY;
+        IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
+        ItemStack toExtract = itemHandler.getStackInSlot(slotIndex);
+        IFluidHandlerItem fluidHandler = toExtract.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).orElse(null);
+        int toSell = recipe.getFluid().getAmount() * quantity;
+        FluidStack toDrain = recipe.getFluid().copy();
+        toDrain.setAmount(toSell);
+        FluidStack drained = fluidHandler.drain(toDrain, IFluidHandler.FluidAction.EXECUTE);
+        long price = quantity * recipe.getPrice();
+        if (drained.getAmount() != toSell) {
+            AdminShop.LOGGER.debug("Target quantity and extracted value don't match: {}, {}", toSell, drained.getAmount());
+            return;
+        }
 
-            if (item.isTag()) {
-                // If tag, search inventory for matching tag
-                ITag<Item> itemTag = ForgeRegistries.ITEMS.tags().getTag(item.getItemTag());
-                for (int i = 0; i < iItemHandler.getSlots(); i++) {
-                    ItemStack currentStack = iItemHandler.getStackInSlot(i);
-                    if (itemTag.contains(currentStack.getItem())) {
-                        toExtract = currentStack.copy();
-                        break;
-                    }
-                }
-            } else {
-                // If not tag, get item from ShopItem
-                toExtract = item.getItem().copy();
-            }
-            if (toExtract.isEmpty()) {
-                AdminShop.LOGGER.debug("Could not find item tag: "+item.getItemTag().location());
-                return;
-            }
-            toExtract.setCount(quantity);
-            if (!item.isTag() && !toExtract.getItem().equals(item.getItem().getItem())) {
-                AdminShop.LOGGER.debug("Invalid extraction: non-tag item and Items don't match: "+
-                        item.getItem().getDisplayName().getString()+", "+toExtract.getDisplayName().getString());
-                return;
-            }
-            int numSold = removeItemsFromInventory(iItemHandler, toExtract);
-            long itemCost = item.getPrice();
-            long price = (long) numSold * itemCost;
-            if (numSold == 0) {
-                player.sendSystemMessage(Component.literal("No matching item found."));
-                AdminShop.LOGGER.debug("No matching item found.");
-                return;
-            }
-            boolean success = MoneyManager.get(player.getLevel()).addBalance(accOwner, accID, price);
-            if (success) {
-                AdminShop.LOGGER.debug("Sold item.");
-            } else {
-                AdminShop.LOGGER.debug("Error selling item.");
-            }
-        });
-    }
-    private void sellFluidTransaction(Supplier<NetworkEvent.Context> supplier, int slotIndex, ShopItem item, int quantity) {
-        assert(!item.isItem() && !item.isBuy());
-        NetworkEvent.Context ctx = supplier.get();
-        ServerPlayer player = ctx.getSender();
-        assert player != null;
-        Inventory playerInventory = player.getInventory();
-        LazyOptional<IItemHandler> mainInventoryHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory));
-        mainInventoryHandler.ifPresent(itemHandler -> {
-            // Check that we are doing a valid extraction
-            ItemStack toExtract = itemHandler.getStackInSlot(slotIndex);
-            if (!toExtract.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent()) {
-                AdminShop.LOGGER.debug("Item isn't a fluid handler");
-                return;
-            }
-            toExtract.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).ifPresent(fluidHanlder -> {
-                FluidStack toSellFluid = fluidHanlder.getFluidInTank(0);
-                if (!item.isTag() && !toSellFluid.getFluid().equals(item.getFluid().getFluid())) {
-                    AdminShop.LOGGER.debug("Invalid extraction: fluids don't match: "+
-                            toSellFluid.getDisplayName().getString()+", "+item.getFluid().getDisplayName().getString());
-                    return;
-                }
-                if (item.isTag()) {
-                    ITag<Fluid> fluidTagManager = ForgeRegistries.FLUIDS.tags().getTag(item.getFluidTag());
-                    if (!fluidTagManager.contains(toSellFluid.getFluid())) {
-                        AdminShop.LOGGER.debug("Invalid extraction: fluid doesn't have tag: "+
-                                toSellFluid.getDisplayName().getString()+", "+item.getFluidTag().location());
-                    }
-                }
-                FluidStack trySellFluid = toSellFluid.copy();
-                trySellFluid.setAmount(quantity);
-                int numSold = fluidHanlder.drain(trySellFluid, IFluidHandler.FluidAction.EXECUTE).getAmount();
-                long itemCost = item.getPrice();
-                long price = (long) numSold * itemCost;
-                if (numSold == 0) {
-                    player.sendSystemMessage(Component.literal("No valid fluid found."));
-                    AdminShop.LOGGER.debug("No valid fluid found.");
-                    return;
-                }
-
-                // Replace item
-                ItemStack returned = fluidHanlder.getContainer();
-                if (!returned.equals(toExtract)) {
-                    itemHandler.extractItem(slotIndex, 1, false);
-                    ItemStack inserted = ItemHandlerHelper.insertItemStacked(itemHandler, returned, false);
-                    if (inserted.getCount() != 0) {
-                        player.sendSystemMessage(Component.literal("Error inserting fluid container, this shouldn't happen!"));
-                        AdminShop.LOGGER.debug("Error inserting fluid container, this shouldn't happen! "+inserted.getCount());
-                    }
-                }
-
-                boolean success = MoneyManager.get(player.getLevel()).addBalance(accOwner, accID, price);
-                if (success) {
-                    AdminShop.LOGGER.debug("Sold fluid.");
-                } else {
-                    AdminShop.LOGGER.debug("Error selling fluid.");
-                }
-            });
-        });
-    }
-    private void sellFluidTransaction(Supplier<NetworkEvent.Context> supplier, ShopItem item, int quantity) {
-        assert(!item.isItem() && !item.isBuy());
-        NetworkEvent.Context ctx = supplier.get();
-        ServerPlayer player = ctx.getSender();
-        assert player != null;
-        Inventory playerInventory = player.getInventory();
-        LazyOptional<IItemHandler> mainInventoryHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory));
-        mainInventoryHandler.ifPresent(itemHandler -> {
-            AdminShop.LOGGER.debug("Searching for valid extraction");
-            // Check that we are doing a valid extraction
-            MutableObject<ItemStack> toExtract = new MutableObject<>(ItemStack.EMPTY);
-            ITag<Fluid> fluidTag = item.isTag() ? ForgeRegistries.FLUIDS.tags().getTag(item.getFluidTag()) : null;
-            MutableBoolean found = new MutableBoolean(false);
-            for (int i = 0; i < itemHandler.getSlots(); i++) {
-                if (found.getValue()) break;
-                ItemStack currentStack = itemHandler.getStackInSlot(i);
-                int finalI = i;
-                currentStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).ifPresent(fluidHandler -> {
-                    if (found.getValue()) return;
-
-                    if (item.isTag()) {
-                        // If tag, search for matching tag
-                        assert fluidTag != null;
-                        if (fluidTag.contains(fluidHandler.getFluidInTank(0).getFluid())) {
-                            AdminShop.LOGGER.debug("Found valid container: "+currentStack.getDisplayName().getString()+" and tag: "+fluidTag.getKey().location());
-                            toExtract.setValue(currentStack);
-                            slotIndex = finalI;
-                            found.setValue(true);
-                        }
-                    } else {
-                        // If not tag, match with fluid from ShopItem
-                        if (fluidHandler.getFluidInTank(0).getFluid().equals(item.getFluid().getFluid())) {
-                            AdminShop.LOGGER.debug("Found valid container: "+currentStack.getDisplayName().getString()+" and fluid: "+item.getFluid().getDisplayName().getString());
-                            toExtract.setValue(currentStack);
-                            slotIndex = finalI;
-                            found.setValue(true);
-                        }
-                    }
-                });
-            }
-            if (toExtract.getValue().isEmpty()) {
-                AdminShop.LOGGER.debug("Could not find fluid handler item with ShopItem");
-                return;
-            }
-            if (!toExtract.getValue().getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent()) {
-                AdminShop.LOGGER.debug("Item isn't a fluid handler");
-                return;
-            }
-            toExtract.getValue().getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).ifPresent(fluidHanlder -> {
-                AdminShop.LOGGER.debug("Item is fluid handler");
-                if (fluidHanlder.getTanks() < 1) {
-                    AdminShop.LOGGER.debug("Fluid handler has no tanks");
-                    return;
-                }
-                FluidStack toSellFluid = fluidHanlder.getFluidInTank(0);
-                if (!item.isTag() && !toSellFluid.getFluid().equals(item.getFluid().getFluid())) {
-                    AdminShop.LOGGER.debug("Invalid extraction: fluids don't match: "+
-                            toSellFluid.getDisplayName().getString()+", "+item.getFluid().getDisplayName().getString());
-                    return;
-                }
-                if (item.isTag()) {
-                    ITag<Fluid> fluidTagManager = ForgeRegistries.FLUIDS.tags().getTag(item.getFluidTag());
-                    if (!fluidTagManager.contains(toSellFluid.getFluid())) {
-                        AdminShop.LOGGER.debug("Invalid extraction: fluid doesn't have tag: "+
-                                toSellFluid.getDisplayName().getString()+", "+item.getFluidTag().location());
-                    }
-                }
-                FluidStack trySellFluid = toSellFluid.copy();
-                trySellFluid.setAmount(quantity);
-                int numSold = fluidHanlder.drain(trySellFluid, IFluidHandler.FluidAction.EXECUTE).getAmount();
-                AdminShop.LOGGER.debug("Drained "+numSold+"mb");
-                long itemCost = item.getPrice();
-                long price = (long) numSold * itemCost;
-                if (numSold == 0) {
-                    player.sendSystemMessage(Component.literal("No valid fluid found."));
-                    AdminShop.LOGGER.debug("No valid fluid found.");
-                    return;
-                }
-
-                // Replace item
-                ItemStack returned = fluidHanlder.getContainer();
-                if (!returned.equals(toExtract.getValue())) {
-                    itemHandler.extractItem(slotIndex, 1, false);
-                    ItemStack inserted = ItemHandlerHelper.insertItemStacked(itemHandler, returned, false);
-                    if (inserted.getCount() != 0) {
-                        player.sendSystemMessage(Component.literal("Error inserting fluid container, this shouldn't happen!"));
-                        AdminShop.LOGGER.debug("Error inserting fluid container, this shouldn't happen! "+inserted.getCount());
-                    }
-                }
-
-                boolean success = MoneyManager.get(player.getLevel()).addBalance(accOwner, accID, price);
-                if (success) {
-                    AdminShop.LOGGER.debug("Sold fluid.");
-                } else {
-                    AdminShop.LOGGER.debug("Error selling fluid.");
-                }
-            });
-        });
-    }
-
-    private boolean itemstacksEqual(ItemStack a, ItemStack b){
-        if(a.getItem() == b.getItem() && a.getDamageValue() == b.getDamageValue()) {
-            CompoundTag atag = a.getOrCreateTag();
-            CompoundTag btag = b.getOrCreateTag();
-            if(atag == btag) {
-                return true;
-            } else {
-                return a.getOrCreateTag().equals(b.getOrCreateTag());
+        // Replace item
+        ItemStack returned = fluidHandler.getContainer();
+        if (!returned.equals(toExtract)) {
+            itemHandler.extractItem(slotIndex, 1, false);
+            ItemStack inserted = ItemHandlerHelper.insertItemStacked(itemHandler, returned, false);
+            if (inserted.getCount() != 0) {
+                AdminShop.LOGGER.debug("Error inserting fluid container: {}, inserted {}", inserted, inserted.getCount());
             }
         }
-        return false;
+
+        MoneyManager.get(player.getLevel()).addBalance(accOwner, accID, price);
     }
 
-    /**
-     * Removes the equivalent parameter itemstack from the inventory (item and count)
-     * @param inv Inventory to remove from
-     * @param item ItemStack that represents what is to be removed. item.count() = number of items to be removed
-     * @return Number of items actually removed.
-     */
-    private int removeItemsFromInventory(IItemHandler inv, ItemStack item) {
-        int count = item.getCount();
-        System.out.println("Removing items from inventory! # to remove: "+count);
-        for(int i = 0; i < inv.getSlots(); i++){
-            ItemStack comp = inv.getStackInSlot(i);
-            if(itemstacksEqual(comp, item)){ //Found items we can remove
-                System.out.println("Found item at slot "+i);
-                if(count > comp.getCount()){ //Remove entirety of this stack
-                    count -= comp.getCount();
-                    inv.extractItem(i, comp.getCount(), false);
-                }else{ //Remove what is left of stack, return number removed
-                    inv.extractItem(i, count, false);
-                    System.out.println("Removed count: "+item.getCount());
-                    return item.getCount();
-                }
-            }
-        }
-        //Removed as much as possible, return count
-//        System.out.println("Removed count: "+(item.getCount() - count));
-        return item.getCount() - count;
-    }
 }

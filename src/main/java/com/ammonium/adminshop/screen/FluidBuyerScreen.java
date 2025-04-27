@@ -196,7 +196,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
                     }
                     // Set buyer target
                     // Check if account has permit to buy item
-                    if (getBankAccount().hasPermit(Integer.parseInt(recipe.getPermit()))) {
+                    if (getBankAccount().hasPermit(recipe.getPermit())) {
                         this.buyerEntity.setRecipe(recipe.getId());
                         this.recipe = recipe;
                         Messages.sendToServer(new PacketSetFluidBuyerRecipe(this.blockPos, this.recipe.getId()));

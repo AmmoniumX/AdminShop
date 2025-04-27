@@ -1,4 +1,4 @@
-package com.ammonium.adminshop.blocks;
+package com.ammonium.adminshop.blocks.interfaces;
 
 public interface Detector extends ShopMachine {
     void setThreshold(long threshold);

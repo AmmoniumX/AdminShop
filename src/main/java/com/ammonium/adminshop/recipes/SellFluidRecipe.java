@@ -1,9 +1,11 @@
 package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.FluidSellerMachine;
+import com.ammonium.adminshop.blocks.interfaces.FluidSellerMachine;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.recipes.interfaces.FluidRecipe;
+import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import com.google.gson.JsonObject;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -11,7 +13,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
@@ -24,7 +25,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
-public class SellFluidRecipe implements Recipe<Container> {
+public class SellFluidRecipe implements SellRecipe, FluidRecipe {
     private final ResourceLocation id;
     private final long price;
     private final FluidStack fluid;
@@ -66,6 +67,18 @@ public class SellFluidRecipe implements Recipe<Container> {
 
     public FluidStack getFluid() {
         return fluid;
+    }
+
+    public long getPrice() {
+        return price;
+    }
+
+    public String getPermit() {
+        return permit;
+    }
+
+    public String getName() {
+        return fluid.getDisplayName().getString();
     }
 
     public void sell(ServerLevel level, FluidSellerMachine machine) {
@@ -115,8 +128,9 @@ public class SellFluidRecipe implements Recipe<Container> {
 
         public SellFluidRecipe fromJson(ResourceLocation id, JsonObject json) {
             long price = GsonHelper.getAsLong(json, "price");
-            ResourceLocation fluidId = new ResourceLocation(GsonHelper.getAsString(json, "fluid"));
-            int amount = GsonHelper.getAsInt(json, "amount", 1000);
+            JsonObject fluidJson = GsonHelper.getAsJsonObject(json, "fluid");
+            ResourceLocation fluidId = new ResourceLocation(GsonHelper.getAsString(fluidJson, "fluid"));
+            int amount = GsonHelper.getAsInt(fluidJson, "amount", 1000);
             String permit = GsonHelper.getAsString(json, "permit", "");
 
             Fluid fluid = ForgeRegistries.FLUIDS.getValue(fluidId);

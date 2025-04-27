@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.Detector;
+import com.ammonium.adminshop.blocks.interfaces.Detector;
 import com.ammonium.adminshop.client.gui.ChangeAccountButton;
 import com.ammonium.adminshop.client.gui.TextConfirmButton;
 import com.ammonium.adminshop.money.BankAccount;

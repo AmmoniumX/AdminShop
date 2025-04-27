@@ -1,8 +1,7 @@
 package com.ammonium.adminshop.network;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.FluidBuyerMachine;
-import com.ammonium.adminshop.blocks.ItemBuyerMachine;
+import com.ammonium.adminshop.blocks.interfaces.FluidBuyerMachine;
 import com.ammonium.adminshop.money.MoneyManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;

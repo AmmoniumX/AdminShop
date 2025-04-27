@@ -143,6 +143,10 @@ public class BankAccount {
         if (permit == 0) { return true; }
         return this.permits.contains(permit);
     }
+    public boolean hasPermit(String permit) {
+        if (permit.equals("0") || permit.isEmpty()) { return true; }
+        return this.permits.contains(Integer.parseInt(permit));
+    }
     public boolean addMember(String newMember) {
         if (id == 1) {
             AdminShop.LOGGER.error("Can't add members to personal account!");
