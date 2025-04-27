@@ -9,9 +9,9 @@ import com.ammonium.adminshop.network.MojangAPI;
 import com.ammonium.adminshop.network.PacketMachineAccountChange;
 import com.ammonium.adminshop.network.PacketSetItemBuyerRecipe;
 import com.ammonium.adminshop.network.PacketUpdateRequest;
+import com.ammonium.adminshop.recipes.BuyItemRecipe;
+import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.setup.Messages;
-import com.ammonium.adminshop.shop.Shop;
-import com.ammonium.adminshop.shop.ShopItem;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
@@ -29,6 +29,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
@@ -42,7 +43,7 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
     private Buyer2BE buyerEntity;
     private String ownerUUID;
     private Pair<String, Integer> account;
-    private ShopItem shopTarget;
+    private BuyItemRecipe recipe;
     private ChangeAccountButton changeAccountButton;
     private final List<Pair<String, Integer>> usableAccounts = new ArrayList<>();
     // -1 if bankAccount is not in usableAccounts
@@ -124,7 +125,7 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
         this.usableAccounts.clear();
         ClientLocalData.getUsableAccounts().forEach(account -> this.usableAccounts.add(Pair.of(account.getOwner(),
                 account.getId())));
-        if (this.usableAccounts.size() < 1) {
+        if (this.usableAccounts.isEmpty()) {
             AdminShop.LOGGER.warn("No usable accounts found!");
         }
         this.usableAccountsIndex = 0;
@@ -136,10 +137,10 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
         Messages.sendToServer(new PacketUpdateRequest(this.blockPos));
     }
 
-    private void updateInformation() {
+    private void updateInformation(Level level) {
         this.ownerUUID = this.buyerEntity.getOwnerUUID();
         this.account = this.buyerEntity.getAccountId();
-        this.shopTarget = this.buyerEntity.getTargetShopItem();
+        this.recipe = this.buyerEntity.getRecipe(level).orElse(null);
 
         this.usableAccounts.clear();
         ClientLocalData.getUsableAccounts().forEach(account -> this.usableAccounts.add(Pair.of(account.getOwner(),
@@ -164,32 +165,19 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
                     .getTeInventoryFirstSlotIndex() + this.menu.getTeInventorySlotCount();
             if (!itemStack.isEmpty() && !isMachineSlot) {
                 // Get item clicked on
-                AdminShop.LOGGER.debug("Clicked on item "+itemStack.getDisplayName().getString());
-                // Check if item with NBT is in buy map
-                ItemStack singleStack = itemStack.copy();
-                itemStack.setCount(1);
-                boolean isShopItem = Shop.get().hasBuyShopItemNBT(singleStack);
-                ShopItem shopItem = null;
-                if (isShopItem) {
-                    shopItem = Shop.get().getShopBuyItemNBT(singleStack);
-                } else {
-                    // Check if item w/o NBT is in buy map
-                    isShopItem = Shop.get().hasBuyShopItem(itemStack.getItem());
-                    if (isShopItem) {
-                        shopItem = Shop.get().getBuyShopItem(itemStack.getItem());
-                    }
-                }
+                AdminShop.LOGGER.debug("Clicked on item {}", itemStack.getDisplayName().getString());
+                BuyItemRecipe recipe = RecipeManager.isItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
                 // Return super if not in buy map
-                if (!isShopItem || shopItem == null) {
-                    AdminShop.LOGGER.debug("Item not in buy map: "+itemStack.getDisplayName().getString());
+                if (recipe == null) {
+                    AdminShop.LOGGER.debug("Item not in buy recipes: "+itemStack.getDisplayName().getString());
                     return super.mouseClicked(mouseX, mouseY, button);
                 }
                 // Set buyer target
                 // Check if account has permit to buy item
-                if (getBankAccount().hasPermit(shopItem.getPermitTier())) {
-                    this.buyerEntity.setRecipe(this.shopTarget);
-                    this.shopTarget = shopItem;
-                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, this.shopTarget));
+                if (getBankAccount().hasPermit(Integer.parseInt(recipe.getPermit()))) {
+                    this.buyerEntity.setRecipe(this.recipe.getId());
+                    this.recipe = recipe;
+                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, this.recipe.getId()));
                     return false;
                 } else {
                     LocalPlayer player = Minecraft.getInstance().player;
@@ -203,25 +191,25 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
     }
 
     @Override
-    protected void renderBg(PoseStack pPoseStack, float pPartialTicks, int pMouseX, int pMouseY) {
+    protected void renderBg(PoseStack poseStack, float partialTicks, int mouseX, int mouseY) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, TEXTURE);
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
 
-        blit(pPoseStack, x, y, 0, 0, imageWidth, imageHeight);
-        if (this.shopTarget != null) {
-            renderItem(pPoseStack, this.shopTarget.getItem().getItem(), x+104, y+14);
-            if (this.shopTarget.hasNBT()) {
-                drawString(pPoseStack, font, "+NBT", x+104-font.width("+NBT")-1, y+14, 0xFF55FF);
+        blit(poseStack, x, y, 0, 0, imageWidth, imageHeight);
+        if (this.recipe != null) {
+            renderItem(poseStack, this.recipe.getItem().getItem(), x+104, y+14);
+            if (this.recipe.getItem().hasTag()) {
+                drawString(poseStack, font, "+NBT", x+104-font.width("+NBT")-1, y+14, 0xFF55FF);
             }
         }
     }
 
     @Override
-    protected void renderLabels(PoseStack pPoseStack, int pMouseX, int pMouseY) {
-        super.renderLabels(pPoseStack, pMouseX, pMouseY);
+    protected void renderLabels(PoseStack poseStack, int mouseX, int mouseY) {
+        super.renderLabels(poseStack, mouseX, mouseY);
         if (this.usableAccounts == null || this.usableAccountsIndex == -1 || this.usableAccountsIndex >=
                 this.usableAccounts.size()) {
             return;
@@ -230,33 +218,33 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
         boolean accAvailable = this.usableAccountsIndex != -1 && ClientLocalData.accountAvailable(account.getKey(),
                 account.getValue());
         int color = accAvailable ? 0xffffff : 0xff0000;
-        drawString(pPoseStack, font, this.username+":"+ account.getValue(),
+        drawString(poseStack, font, this.username+":"+ account.getValue(),
                 7,62,color);
     }
 
     @Override
-    public void render(PoseStack pPoseStack, int mouseX, int mouseY, float delta) {
-        renderBackground(pPoseStack);
-        super.render(pPoseStack, mouseX, mouseY, delta);
-        renderTooltip(pPoseStack, mouseX, mouseY);
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float delta) {
+        renderBackground(poseStack);
+        super.render(poseStack, mouseX, mouseY, delta);
+        renderTooltip(poseStack, mouseX, mouseY);
 
         // Get data from BlockEntity
         this.buyerEntity = this.getMenu().getBlockEntity();
 
         String buyerOwnerUUID = this.buyerEntity.getOwnerUUID();
         Pair<String, Integer> buyerAccount = this.buyerEntity.getAccountId();
-        ShopItem buyerShopTarget = this.buyerEntity.getTargetShopItem();
+        BuyItemRecipe recipe = this.buyerEntity.getRecipe(Minecraft.getInstance().level).orElse(null);
 
         boolean shouldUpdateDueToNulls = (this.ownerUUID == null && buyerOwnerUUID != null) ||
                 (this.account == null && buyerAccount != null) ||
-                (this.shopTarget == null && buyerShopTarget != null);
+                (this.recipe == null && recipe != null);
 
         boolean shouldUpdateDueToDifferences = (this.ownerUUID != null && !this.ownerUUID.equals(buyerOwnerUUID)) ||
                 (this.account != null && !this.account.equals(buyerAccount)) ||
-                (this.shopTarget != buyerShopTarget);
+                (this.recipe != recipe);
 
         if (shouldUpdateDueToNulls || shouldUpdateDueToDifferences) {
-            updateInformation();
+            updateInformation(Minecraft.getInstance().level);
         }
     }
 

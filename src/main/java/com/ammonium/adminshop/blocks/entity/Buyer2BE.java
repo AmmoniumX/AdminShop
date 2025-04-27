@@ -2,8 +2,8 @@ package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.ItemBuyerMachine;
-import com.ammonium.adminshop.recipes.ShopBuyItemRecipe;
-import com.ammonium.adminshop.recipes.ShopRecipeManager;
+import com.ammonium.adminshop.recipes.BuyItemRecipe;
+import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.screen.Buyer2Menu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -77,9 +77,8 @@ public class Buyer2BE extends BaseContainerBlockEntity implements ItemBuyerMachi
         this.sendUpdates();
     }
 
-    public Optional<ShopBuyItemRecipe> getRecipe(ServerLevel level) {
-        if (recipeId == null) { return Optional.empty(); }
-        return ShopRecipeManager.getShopBuyItemRecipe(level, recipeId);
+    public Optional<BuyItemRecipe> getRecipe(Level level) {
+        return RecipeManager.getShopBuyItemRecipe(level, recipeId);
     }
 
     @Override
@@ -162,12 +161,12 @@ public class Buyer2BE extends BaseContainerBlockEntity implements ItemBuyerMachi
         buyerBE.tickCounter = 0;
 
         // Check for valid recipe
-        ShopBuyItemRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
+        BuyItemRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
         if (recipe == null) {
             AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             return;
         }
-        boolean isValid = ShopRecipeManager.checkForBuyItemRecipe((ServerLevel) level, buyerBE, recipe);
+        boolean isValid = RecipeManager.checkForBuyItemRecipe((ServerLevel) level, buyerBE, recipe);
         if (!isValid) { return; }
 
         // Check for space

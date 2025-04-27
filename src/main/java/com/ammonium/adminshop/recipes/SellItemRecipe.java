@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.ItemBuyerMachine;
+import com.ammonium.adminshop.blocks.ItemSellerMachine;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
 import com.google.gson.JsonObject;
@@ -16,49 +16,58 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.items.IItemHandler;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
-public class ShopBuyItemRecipe implements Recipe<Container> {
+public class SellItemRecipe implements Recipe<Container> {
     private final ResourceLocation id;
-    private final long price;
     private final String permit;
-    private final ItemStack result;
+    private final ItemStack item;
+    private final long price;
 
-    public ShopBuyItemRecipe(ResourceLocation id, long price, ItemStack result, String permit) {
+    public SellItemRecipe(ResourceLocation id, long price, ItemStack item, String permit) {
         this.id = id;
         this.price = price;
-        this.result = result;
+        this.item = item;
         this.permit = permit != null ? permit : "";
     }
 
-    public boolean matches(BankAccount account, ItemBuyerMachine machine) {
+    public ItemStack getItem() {
+        return item;
+    }
+
+    public boolean matches(BankAccount account, ItemSellerMachine machine) {
 
         // Check permit status
         if ((!permit.isEmpty()) && (!account.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }
-        // Check account balance
-        if (account.getBalance() < price) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have enough money");
+
+        // Check if machine contains at least said number of items
+        IItemHandler handler = machine.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
+        if (handler == null) {
+            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: handler is null");
             return false;
         }
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            ItemStack simulatedResult = handler.extractItem(slot, item.getCount(), true);
+            if (!simulatedResult.isEmpty() && simulatedResult.getCount() == item.getCount()) {
+                return true;
+            }
+        }
 
-        return true;
+        return false;
     }
 
-    public ItemStack getItem() {
-        return result.copy();
-    }
-
-    public ItemStack buy(ServerLevel level, ItemBuyerMachine machine) {
+    public void sell(ServerLevel level, ItemSellerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds
         MoneyManager manager = MoneyManager.get(level);
         Pair<String, Integer> account = machine.getAccountId();
-        manager.subtractBalance(account, price);
-        return result.copy();
+        manager.addBalance(account, price);
     }
 
     @Override
@@ -88,35 +97,34 @@ public class ShopBuyItemRecipe implements Recipe<Container> {
 
     @Override
     public RecipeSerializer<?> getSerializer() {
-        return ModRecipeSerializers.SHOP_BUY_ITEM_SERIALIZER.get();
+        return ModRecipeSerializers.SHOP_SELL_ITEM_SERIALIZER.get();
     }
 
     @Override
     public RecipeType<?> getType() {
-        return ModRecipeTypes.SHOP_BUY_ITEM.get();
+        return ModRecipeTypes.SHOP_SELL_ITEM.get();
     }
 
-    public static class Serializer implements RecipeSerializer<ShopBuyItemRecipe> {
+    public static class Serializer implements RecipeSerializer<SellItemRecipe> {
 
-        public @NotNull ShopBuyItemRecipe fromJson(@NotNull ResourceLocation id, @NotNull JsonObject json) {
+        public @NotNull SellItemRecipe fromJson(@NotNull ResourceLocation id, @NotNull JsonObject json) {
             long price = GsonHelper.getAsLong(json, "price");
-            ItemStack item = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
+            ItemStack item = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "item"));
             String permit = GsonHelper.getAsString(json, "permit", "");
-            return new ShopBuyItemRecipe(id, price, item, permit);
+            return new SellItemRecipe(id, price, item, permit);
         }
 
-        public ShopBuyItemRecipe fromNetwork(@NotNull ResourceLocation id, FriendlyByteBuf buffer) {
+        public SellItemRecipe fromNetwork(@NotNull ResourceLocation id, FriendlyByteBuf buffer) {
             long price = buffer.readLong();
             ItemStack result = buffer.readItem();
             String permit = buffer.readUtf();
-            return new ShopBuyItemRecipe(id, price, result, permit);
+            return new SellItemRecipe(id, price, result, permit);
         }
 
-        public void toNetwork(FriendlyByteBuf buffer, ShopBuyItemRecipe pRecipe) {
+        public void toNetwork(FriendlyByteBuf buffer, SellItemRecipe pRecipe) {
             buffer.writeLong(pRecipe.price);
-            buffer.writeItem(pRecipe.result);
+            buffer.writeItem(pRecipe.item);
             buffer.writeUtf(pRecipe.permit);
         }
     }
-
 }

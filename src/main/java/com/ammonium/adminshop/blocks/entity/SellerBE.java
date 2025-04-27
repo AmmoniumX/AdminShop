@@ -2,8 +2,8 @@ package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.ItemSellerMachine;
-import com.ammonium.adminshop.recipes.ShopRecipeManager;
-import com.ammonium.adminshop.recipes.ShopSellItemRecipe;
+import com.ammonium.adminshop.recipes.RecipeManager;
+import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.screen.SellerMenu;
 import com.ammonium.adminshop.shop.Shop;
 import net.minecraft.core.BlockPos;
@@ -148,7 +148,7 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
         sellerBE.tickCounter = 0;
 
         // Check for valid recipe
-        ShopSellItemRecipe recipe = ShopRecipeManager.checkForSellItemRecipe((ServerLevel) level, sellerBE).orElse(null);
+        SellItemRecipe recipe = RecipeManager.checkForSellItemRecipe((ServerLevel) level, sellerBE).orElse(null);
         if (recipe == null) {
             AdminShop.LOGGER.debug("No recipe found for sellerBE");
             return;

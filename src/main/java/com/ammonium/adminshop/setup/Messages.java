@@ -60,6 +60,11 @@ public class Messages {
                 .encoder(PacketSetItemBuyerRecipe::toBytes)
                 .consumerMainThread(PacketSetItemBuyerRecipe::handle)
                 .add();
+        net.messageBuilder(PacketSetFluidBuyerRecipe.class, id(), NetworkDirection.PLAY_TO_SERVER)
+                .decoder(PacketSetFluidBuyerRecipe::new)
+                .encoder(PacketSetFluidBuyerRecipe::toBytes)
+                .consumerMainThread(PacketSetFluidBuyerRecipe::handle)
+                .add();
         net.messageBuilder(PacketAccountAddPermit.class, id(), NetworkDirection.PLAY_TO_SERVER)
                 .decoder(PacketAccountAddPermit::new)
                 .encoder(PacketAccountAddPermit::toBytes)

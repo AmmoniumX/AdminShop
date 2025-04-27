@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.FluidBuyerMachine;
+import com.ammonium.adminshop.blocks.FluidSellerMachine;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
 import com.google.gson.JsonObject;
@@ -16,37 +16,51 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
-public class ShopBuyFluidRecipe implements Recipe<Container> {
+public class SellFluidRecipe implements Recipe<Container> {
     private final ResourceLocation id;
     private final long price;
     private final FluidStack fluid;
     private final String permit;
 
-    public ShopBuyFluidRecipe(ResourceLocation id, long price, FluidStack fluid, String permit) {
+    public SellFluidRecipe(ResourceLocation id, long price, FluidStack fluid, String permit) {
         this.id = id;
         this.price = price;
         this.fluid = fluid;
         this.permit = permit != null ? permit : "";
     }
 
-    public boolean matches(BankAccount account, FluidBuyerMachine machine) {
+    public boolean matches(BankAccount account, FluidSellerMachine machine) {
 
         // Check permit status
         if ((!permit.isEmpty()) && (!account.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
-            AdminShop.LOGGER.debug("ShopBuyFluidRecipe: account does not have permit {}", permit);
+            AdminShop.LOGGER.debug("ShopSellFluidRecipe: account does not have permit {}", permit);
             return false;
         }
         // Check account balance
         if (account.getBalance() < price) {
-            AdminShop.LOGGER.debug("ShopBuyFluidRecipe: account does not have enough money");
+            AdminShop.LOGGER.debug("ShopSellFluidRecipe: account does not have enough money");
             return false;
         }
 
+        // Check if machine contains fluid
+        LazyOptional<IFluidHandler> lazyHandler = machine.getCapability(ForgeCapabilities.FLUID_HANDLER);
+        if (!lazyHandler.isPresent()) {
+            AdminShop.LOGGER.debug("ShopSellFluidRecipe: machine does not have fluid handler");
+            return false;
+        }
+        IFluidHandler handler = lazyHandler.orElseThrow(IllegalStateException::new);
+        if (handler.drain(fluid, IFluidHandler.FluidAction.SIMULATE).getAmount() < fluid.getAmount()) {
+            AdminShop.LOGGER.debug("ShopSellFluidRecipe: machine does not have enough fluid");
+            return false;
+        }
         return true;
     }
 
@@ -54,13 +68,12 @@ public class ShopBuyFluidRecipe implements Recipe<Container> {
         return fluid.copy();
     }
 
-    public FluidStack buy(ServerLevel level, FluidBuyerMachine machine) {
+    public void sell(ServerLevel level, FluidSellerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds
         MoneyManager manager = MoneyManager.get(level);
         Pair<String, Integer> account = machine.getAccountId();
-        manager.subtractBalance(account, price);
-        return fluid.copy();
+        manager.addBalance(account, price);
     }
 
     @Override
@@ -90,19 +103,19 @@ public class ShopBuyFluidRecipe implements Recipe<Container> {
 
     @Override
     public RecipeSerializer<?> getSerializer() {
-        return ModRecipeSerializers.SHOP_BUY_FLUID_SERIALIZER.get();
+        return ModRecipeSerializers.SHOP_SELL_FLUID_SERIALIZER.get();
     }
 
     @Override
     public RecipeType<?> getType() {
-        return ModRecipeTypes.SHOP_BUY_FLUID.get();
+        return ModRecipeTypes.SHOP_SELL_FLUID.get();
     }
 
-    public static class Serializer implements RecipeSerializer<ShopBuyFluidRecipe> {
+    public static class Serializer implements RecipeSerializer<SellFluidRecipe> {
 
-        public ShopBuyFluidRecipe fromJson(ResourceLocation id, JsonObject json) {
+        public SellFluidRecipe fromJson(ResourceLocation id, JsonObject json) {
             long price = GsonHelper.getAsLong(json, "price");
-            ResourceLocation fluidId = new ResourceLocation(GsonHelper.getAsString(json, "result"));
+            ResourceLocation fluidId = new ResourceLocation(GsonHelper.getAsString(json, "fluid"));
             int amount = GsonHelper.getAsInt(json, "amount", 1000);
             String permit = GsonHelper.getAsString(json, "permit", "");
 
@@ -110,10 +123,10 @@ public class ShopBuyFluidRecipe implements Recipe<Container> {
             if (fluid == null) { throw new IllegalArgumentException("Unknown fluid: " + fluidId); }
             FluidStack result = new FluidStack(fluid, amount);
 
-            return new ShopBuyFluidRecipe(id, price, result, permit);
+            return new SellFluidRecipe(id, price, result, permit);
         }
 
-        public ShopBuyFluidRecipe fromNetwork(ResourceLocation id, FriendlyByteBuf buffer) {
+        public SellFluidRecipe fromNetwork(ResourceLocation id, FriendlyByteBuf buffer) {
             long price = buffer.readLong();
             ResourceLocation fluidId = buffer.readResourceLocation();
             int amount = buffer.readInt();
@@ -123,10 +136,10 @@ public class ShopBuyFluidRecipe implements Recipe<Container> {
             if (fluid == null) { throw new IllegalArgumentException("Unknown fluid: " + fluidId); }
             FluidStack result = new FluidStack(fluid, amount);
 
-            return new ShopBuyFluidRecipe(id, price, result, permit);
+            return new SellFluidRecipe(id, price, result, permit);
         }
 
-        public void toNetwork(FriendlyByteBuf buffer, ShopBuyFluidRecipe recipe) {
+        public void toNetwork(FriendlyByteBuf buffer, SellFluidRecipe recipe) {
             buffer.writeLong(recipe.price);
             ResourceLocation fluidId = ForgeRegistries.FLUIDS.getKey(recipe.fluid.getFluid());
             if (fluidId == null) { throw new IllegalArgumentException("Unknown fluid: " + recipe.fluid.getFluid()); }

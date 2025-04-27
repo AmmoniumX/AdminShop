@@ -2,8 +2,8 @@ package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.FluidBuyerMachine;
-import com.ammonium.adminshop.recipes.ShopBuyFluidRecipe;
-import com.ammonium.adminshop.recipes.ShopRecipeManager;
+import com.ammonium.adminshop.recipes.BuyFluidRecipe;
+import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.screen.FluidBuyerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -71,9 +71,8 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerM
     }
 
     @Override
-    public Optional<ShopBuyFluidRecipe> getRecipe(ServerLevel level) {
-        if (recipeId == null) { return Optional.empty(); }
-        return ShopRecipeManager.getShopBuyFluidRecipe(level, recipeId);
+    public Optional<BuyFluidRecipe> getRecipe(Level level) {
+        return RecipeManager.getShopBuyFluidRecipe(level, recipeId);
     }
 
     @Override
@@ -107,12 +106,12 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerM
         buyerBE.tickCounter = 0;
 
         // Check for valid recipe
-        ShopBuyFluidRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
+        BuyFluidRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
         if (recipe == null) {
             AdminShop.LOGGER.debug("Buyer has no recipe");
             return;
         }
-        boolean isValid = ShopRecipeManager.checkForBuyFluidRecipe((ServerLevel) level, buyerBE, recipe);
+        boolean isValid = RecipeManager.checkForBuyFluidRecipe((ServerLevel) level, buyerBE, recipe);
         if (!isValid) { return; }
 
         // Check for space
