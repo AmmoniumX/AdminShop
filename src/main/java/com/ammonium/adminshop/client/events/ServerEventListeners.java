@@ -7,9 +7,7 @@ import com.ammonium.adminshop.commands.ShopAccountsCommand;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
 import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
-import com.ammonium.adminshop.network.PacketSyncShopToClient;
 import com.ammonium.adminshop.setup.Messages;
-import com.ammonium.adminshop.shop.Shop;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,21 +25,14 @@ import java.util.Map;
 @Mod.EventBusSubscriber(modid = AdminShop.MODID)
 public class ServerEventListeners {
 
-    private static boolean startupCompleted = false;
-
-
-    public static boolean getStartupCompleted() {
-        return startupCompleted;
-    }
-
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event){
-        Shop shop = Shop.get();
-        if(shop.errors.size() > 0)
-            shop.printErrors(event.getEntity());
         ServerPlayer player = (ServerPlayer) event.getEntity();
-        AdminShop.LOGGER.debug("Calling SyncShop from onPlayerLogin");
-        Messages.sendToPlayer(new PacketSyncShopToClient(Shop.get().shopTextRaw), player);
+//        Shop shop = Shop.get();
+//        if(shop.errors.size() > 0)
+//            shop.printErrors(event.getEntity());
+//        AdminShop.LOGGER.debug("Calling SyncShop from onPlayerLogin");
+//        Messages.sendToPlayer(new PacketSyncShopToClient(Shop.get().shopTextRaw), player);
         MoneyManager moneyManager = MoneyManager.get(event.getEntity().getLevel());
         Map<String, List<BankAccount>> sharedAccounts = moneyManager.getSharedAccounts();
         List<BankAccount> usableAccounts;
@@ -70,11 +61,11 @@ public class ServerEventListeners {
     @SubscribeEvent
     public static void onServerStarting(ServerStartingEvent event) {
         // Do something when the server starts
-        AdminShop.LOGGER.info("Loading Shop from server start");
-        Shop shop = Shop.get();
-        shop.printErrors(null);
-
-        startupCompleted = true;
+//        AdminShop.LOGGER.info("Loading Shop from server start");
+//        Shop shop = Shop.get();
+//        shop.printErrors(null);
+//
+//        startupCompleted = true;
     }
 
     @SubscribeEvent

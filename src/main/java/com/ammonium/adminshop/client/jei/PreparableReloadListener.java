@@ -1,19 +1,10 @@
 package com.ammonium.adminshop.client.jei;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.client.events.ServerEventListeners;
-import com.ammonium.adminshop.network.PacketSyncShopToClient;
-import com.ammonium.adminshop.setup.Messages;
-import com.ammonium.adminshop.shop.Shop;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -49,23 +40,23 @@ public class PreparableReloadListener extends SimplePreparableReloadListener<Str
 
     @Override
     protected void apply(String shopTextRaw, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
-        if (!ServerEventListeners.getStartupCompleted()) {
-            AdminShop.LOGGER.debug("Startup hasn't completed, cancelling adminshop reload");
-            return;
-        }
-        AdminShop.LOGGER.debug("Reloading shop...");
-        AdminShop.LOGGER.debug("shopTextRaw length: "+shopTextRaw.length());
-        // Ensure we are on the server side
-        if (FMLEnvironment.dist == Dist.DEDICATED_SERVER || FMLEnvironment.dist == Dist.CLIENT) {
-            MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-            Shop.get().loadFromFile(shopTextRaw);
-            if (server != null) {
-                AdminShop.LOGGER.debug("Sending PacketSyncShopToClient to players from reload event listener...");
-                // Iterate over all online players and send the packet
-                for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                    Messages.sendToPlayer(new PacketSyncShopToClient(shopTextRaw), player);
-                }
-            }
-        }
+//        if (!ServerEventListeners.getStartupCompleted()) {
+//            AdminShop.LOGGER.debug("Startup hasn't completed, cancelling adminshop reload");
+//            return;
+//        }
+//        AdminShop.LOGGER.debug("Reloading shop...");
+//        AdminShop.LOGGER.debug("shopTextRaw length: "+shopTextRaw.length());
+//        // Ensure we are on the server side
+//        if (FMLEnvironment.dist == Dist.DEDICATED_SERVER || FMLEnvironment.dist == Dist.CLIENT) {
+//            MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+//            Shop.get().loadFromFile(shopTextRaw);
+//            if (server != null) {
+//                AdminShop.LOGGER.debug("Sending PacketSyncShopToClient to players from reload event listener...");
+//                // Iterate over all online players and send the packet
+//                for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+//                    Messages.sendToPlayer(new PacketSyncShopToClient(shopTextRaw), player);
+//                }
+//            }
+//        }
     }
 }

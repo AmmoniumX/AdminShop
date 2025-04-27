@@ -40,11 +40,11 @@ public class Messages {
                 .encoder(PacketSellRequest::toBytes)
                 .consumerMainThread(PacketSellRequest::handle)
                 .add();
-        net.messageBuilder(PacketSyncShopToClient.class, id(), NetworkDirection.PLAY_TO_CLIENT)
-                .decoder(PacketSyncShopToClient::new)
-                .encoder(PacketSyncShopToClient::toBytes)
-                .consumerMainThread(PacketSyncShopToClient::handle)
-                .add();
+//        net.messageBuilder(PacketSyncShopToClient.class, id(), NetworkDirection.PLAY_TO_CLIENT)
+//                .decoder(PacketSyncShopToClient::new)
+//                .encoder(PacketSyncShopToClient::toBytes)
+//                .consumerMainThread(PacketSyncShopToClient::handle)
+//                .add();
         net.messageBuilder(PacketMachineAccountChange.class, id(), NetworkDirection.PLAY_TO_SERVER)
                 .decoder(PacketMachineAccountChange::new)
                 .encoder(PacketMachineAccountChange::toBytes)

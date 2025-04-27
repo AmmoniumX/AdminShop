@@ -3,7 +3,7 @@ package com.ammonium.adminshop.screen;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.ModBlocks;
 import com.ammonium.adminshop.blocks.entity.Buyer2BE;
-import com.ammonium.adminshop.screen.slot.ModResultSlot;
+import com.ammonium.adminshop.screen.slot.ResultSlot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
@@ -35,9 +35,9 @@ public class Buyer2Menu extends AbstractContainerMenu {
         addPlayerHotbar(inv);
 
         this.blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).ifPresent(handler -> {
-            this.addSlot(new ModResultSlot(handler, 0, 62, 42));
-            this.addSlot(new ModResultSlot(handler, 1, 80, 42));
-            this.addSlot(new ModResultSlot(handler, 2, 98, 42));
+            this.addSlot(new ResultSlot(handler, 0, 62, 42));
+            this.addSlot(new ResultSlot(handler, 1, 80, 42));
+            this.addSlot(new ResultSlot(handler, 2, 98, 42));
         });
     }
 

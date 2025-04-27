@@ -5,7 +5,7 @@ import com.ammonium.adminshop.blocks.interfaces.ItemSellerMachine;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.screen.SellerMenu;
-import com.ammonium.adminshop.shop.Shop;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -262,11 +262,7 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
     public boolean canPlaceItem(int i, ItemStack itemStack) {
         boolean fits = super.canPlaceItem(i, itemStack);
         if (!fits) { return false; }
-        boolean isInItemMap = Shop.get().getShopSellItemMap().containsKey(itemStack.getItem());
-        if (isInItemMap) { return true; }
-        boolean isInTags = itemStack.getTags().anyMatch(itemTag -> Shop.get().hasSellShopItemTag(itemTag));
-        if (isInTags) { return true; }
-        return false;
+        return RecipeManager.isSellItemRecipe(Minecraft.getInstance().level, itemStack).isPresent();
     }
 
     @Override

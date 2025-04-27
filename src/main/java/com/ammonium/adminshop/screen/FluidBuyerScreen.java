@@ -13,7 +13,6 @@ import com.ammonium.adminshop.network.PacketUpdateRequest;
 import com.ammonium.adminshop.recipes.BuyFluidRecipe;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.setup.Messages;
-import com.ammonium.adminshop.shop.ShopItem;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
@@ -180,8 +179,6 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
                 // Check if item is container and has fluid
                 // Check if item is fluid container
                 itemStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).ifPresent(fluidHandler -> {
-                    boolean isShopItem = false;
-                    ShopItem shopItem = null;
                     FluidStack fluid = fluidHandler.getFluidInTank(0);
                     // Return if container is empty
                     if (fluid.isEmpty()) {
