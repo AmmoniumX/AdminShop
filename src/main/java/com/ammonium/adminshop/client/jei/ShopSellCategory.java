@@ -3,6 +3,9 @@ package com.ammonium.adminshop.client.jei;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.ModBlocks;
 import com.ammonium.adminshop.money.MoneyFormat;
+import com.ammonium.adminshop.recipes.SellFluidRecipe;
+import com.ammonium.adminshop.recipes.SellItemRecipe;
+import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
@@ -18,9 +21,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
-public class ShopSellCategory implements IRecipeCategory<ShopSellWrapper>{
-    public static final RecipeType<ShopSellWrapper> SHOP_RECIPE_TYPE =
-            new RecipeType<>(new ResourceLocation(AdminShop.MODID, "sell_recipe_type"), ShopSellWrapper.class);
+public class ShopSellCategory implements IRecipeCategory<SellRecipe>{
+    public static final RecipeType<SellRecipe> SHOP_RECIPE_TYPE =
+            new RecipeType<>(new ResourceLocation(AdminShop.MODID, "jei_sell_recipe"), SellRecipe.class);
     private final ResourceLocation GUI = new ResourceLocation(AdminShop.MODID, "textures/gui/jei_sell_category.png");
     private final IDrawable background;
     private final IDrawable icon;
@@ -31,7 +34,7 @@ public class ShopSellCategory implements IRecipeCategory<ShopSellWrapper>{
     }
 
     @Override
-    public @NotNull RecipeType<ShopSellWrapper> getRecipeType() {
+    public @NotNull RecipeType<SellRecipe> getRecipeType() {
         return SHOP_RECIPE_TYPE;
     }
 
@@ -51,7 +54,7 @@ public class ShopSellCategory implements IRecipeCategory<ShopSellWrapper>{
     }
 
     @Override
-    public void draw(ShopSellWrapper recipe, IRecipeSlotsView recipeSlotsView, PoseStack stack, double mouseX, double mouseY) {
+    public void draw(SellRecipe recipe, IRecipeSlotsView recipeSlotsView, PoseStack stack, double mouseX, double mouseY) {
         IRecipeCategory.super.draw(recipe, recipeSlotsView, stack, mouseX, mouseY);
         int priceX = 8;
         int priceY = 60;
@@ -64,17 +67,19 @@ public class ShopSellCategory implements IRecipeCategory<ShopSellWrapper>{
         Minecraft.getInstance().font.draw(stack, priceText, priceX, priceY, 0xFF555555);
 
         // Draw the required tier
-        String tierText = "Requires Tier: "+((recipe.getRequiresTier() == 0) ? "None" : recipe.getRequiresTier());
+        String tierText = "Requires Tier: "+((recipe.getPermit().equals("0") || recipe.getPermit().isEmpty()) ? "None" : recipe.getPermit());
         Minecraft.getInstance().font.draw(stack, tierText, tierX, tierY, 0xFF555555);
     }
 
     @Override
-    public void setRecipe(IRecipeLayoutBuilder builder, ShopSellWrapper recipe, IFocusGroup focuses) {
+    public void setRecipe(IRecipeLayoutBuilder builder, SellRecipe recipe, IFocusGroup focuses) {
         IRecipeSlotBuilder slotBuilder = builder.addSlot(RecipeIngredientRole.INPUT, 24, 5);
-        if (recipe.isItem()) {
-            slotBuilder.addItemStack(recipe.getSellItem());
+        if (recipe instanceof SellItemRecipe itemRecipe) {
+            slotBuilder.addItemStack(itemRecipe.getItem());
+        } else if (recipe instanceof SellFluidRecipe fluidRecipe) {
+            slotBuilder.addFluidStack(fluidRecipe.getFluid().getFluid(), fluidRecipe.getFluid().getAmount());
         } else {
-            slotBuilder.addFluidStack(recipe.getSellFluid(), 1000);
+            AdminShop.LOGGER.error("ShopSellCategory: Unknown recipe type: {}", recipe.getClass());
         }
     }
 }

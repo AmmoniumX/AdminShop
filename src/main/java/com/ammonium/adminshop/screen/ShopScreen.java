@@ -371,23 +371,15 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private void createShopButtons(boolean isBuy, int x, int y){
         searchResults.clear();
         if (isBuy) {
-            searchResults.addAll(RecipeManager.getAllBuyItemRecipes(Minecraft.getInstance().level)
-                    .stream()
-                    .map(recipe -> (ShopRecipe) recipe)
-                    .toList());
-            searchResults.addAll(RecipeManager.getAllBuyFluidRecipes(Minecraft.getInstance().level)
-                    .stream()
-                    .map(recipe -> (ShopRecipe) recipe)
-                    .toList());
+            searchResults.addAll(RecipeManager.getAllBuyRecipes(Minecraft.getInstance().level)
+                .stream()
+                .map(recipe -> (ShopRecipe) recipe)
+                .toList());
         } else {
-            searchResults.addAll(RecipeManager.getAllSellItemRecipes(Minecraft.getInstance().level)
-                    .stream()
-                    .map(recipe -> (ShopRecipe) recipe)
-                    .toList());
-            searchResults.addAll(RecipeManager.getAllSellFluidRecipes(Minecraft.getInstance().level)
-                    .stream()
-                    .map(recipe -> (ShopRecipe) recipe)
-                    .toList());
+            searchResults.addAll(RecipeManager.getAllSellRecipes(Minecraft.getInstance().level)
+                .stream()
+                .map(recipe -> (ShopRecipe) recipe)
+                .toList());
         }
         // Filter by search if it is set
         if (!this.search.isEmpty()) {

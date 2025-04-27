@@ -4,6 +4,8 @@ import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.interfaces.*;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
+import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
@@ -11,6 +13,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.fluids.FluidStack;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,16 +27,40 @@ public class RecipeManager {
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get());
     }
 
-    public static List<SellItemRecipe> getAllSellItemRecipes(Level level) {
-        return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get());
-    }
-
     public static List<BuyFluidRecipe> getAllBuyFluidRecipes(Level level) {
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_FLUID.get());
     }
 
+    public static List<BuyRecipe> getAllBuyRecipes(Level level) {
+        List<BuyRecipe> recipes = new ArrayList<>(level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get())
+                .stream()
+                .map(recipe -> (BuyRecipe) recipe)
+                .toList());
+        recipes.addAll(level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_FLUID.get())
+                .stream()
+                .map(recipe -> (BuyRecipe) recipe)
+                .toList());
+        return recipes;
+    }
+
+    public static List<SellItemRecipe> getAllSellItemRecipes(Level level) {
+        return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get());
+    }
+
     public static List<SellFluidRecipe> getAllSellFluidRecipes(Level level) {
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get());
+    }
+
+    public static List<SellRecipe> getAllSellRecipes(Level level) {
+        List<SellRecipe> recipes = new ArrayList<>(level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get())
+                .stream()
+                .map(recipe -> (SellRecipe) recipe)
+                .toList());
+        recipes.addAll(level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get())
+                .stream()
+                .map(recipe -> (SellRecipe) recipe)
+                .toList());
+        return recipes;
     }
 
     public static boolean matches(ItemStack item, ItemStack recipeItem) {

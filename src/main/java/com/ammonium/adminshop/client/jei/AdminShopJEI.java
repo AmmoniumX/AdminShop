@@ -1,12 +1,13 @@
 package com.ammonium.adminshop.client.jei;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.shop.Shop;
+import com.ammonium.adminshop.recipes.RecipeManager;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 
 @JeiPlugin
@@ -25,7 +26,7 @@ public class AdminShopJEI implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        registration.addRecipes(ShopBuyCategory.SHOP_RECIPE_TYPE, Shop.get().getBuyRecipes());
-        registration.addRecipes(ShopSellCategory.SHOP_RECIPE_TYPE, Shop.get().getSellRecipes());
+        registration.addRecipes(ShopBuyCategory.SHOP_RECIPE_TYPE, RecipeManager.getAllBuyRecipes(Minecraft.getInstance().level));
+        registration.addRecipes(ShopSellCategory.SHOP_RECIPE_TYPE, RecipeManager.getAllSellRecipes(Minecraft.getInstance().level));
     }
 }
