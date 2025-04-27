@@ -205,7 +205,7 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
     }
     private void updateInformation() {
         this.ownerUUID = this.detectorBE.getOwnerUUID();
-        this.account = this.detectorBE.getAccount();
+        this.account = this.detectorBE.getAccountId();
         this.threshold = this.detectorBE.getThreshold();
 
         this.usableAccounts.clear();
@@ -258,7 +258,7 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
         this.detectorBE = this.detectorClass.cast(this.getMenu().getBlockEntity());
 
         String detectorOwnerUUID = this.detectorBE.getOwnerUUID();
-        Pair<String, Integer> detectorAccount = this.detectorBE.getAccount();
+        Pair<String, Integer> detectorAccount = this.detectorBE.getAccountId();
         long detectorThreshold = this.detectorBE.getThreshold();
 
         boolean shouldUpdateDueToNulls = (this.ownerUUID == null && detectorOwnerUUID != null) ||

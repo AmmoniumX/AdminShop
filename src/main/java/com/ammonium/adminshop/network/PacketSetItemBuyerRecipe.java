@@ -3,10 +3,9 @@ package com.ammonium.adminshop.network;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.ItemBuyerMachine;
 import com.ammonium.adminshop.money.MoneyManager;
-import com.ammonium.adminshop.shop.Shop;
-import com.ammonium.adminshop.shop.ShopItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -14,23 +13,23 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
-public class PacketSetBuyerTarget {
+public class PacketSetItemBuyerRecipe {
     private final BlockPos pos;
-    private final ShopItem targetItem;
+    private final ResourceLocation recipeId;
 
-    public PacketSetBuyerTarget(BlockPos pos, ShopItem targetItem) {
+    public PacketSetItemBuyerRecipe(BlockPos pos, ResourceLocation recipeId) {
         this.pos = pos;
-        this.targetItem = targetItem;
+        this.recipeId = recipeId;
     }
 
-    public PacketSetBuyerTarget(FriendlyByteBuf buf) {
+    public PacketSetItemBuyerRecipe(FriendlyByteBuf buf) {
         this.pos = buf.readBlockPos();
-        this.targetItem = Shop.get().getShopStockBuy().get(buf.readInt());
+        this.recipeId = buf.readResourceLocation();
     }
 
     public void toBytes(FriendlyByteBuf buf) {
         buf.writeBlockPos(this.pos);
-        buf.writeInt(Shop.get().getShopStockBuy().indexOf(this.targetItem));
+        buf.writeResourceLocation(this.recipeId);
     }
 
     public boolean handle(Supplier<NetworkEvent.Context> supplier){
@@ -43,8 +42,7 @@ public class PacketSetBuyerTarget {
             ServerPlayer player = ctx.getSender();
 
             if (player != null) {
-                System.out.println("Setting buyer target for "+this.pos+" to "+this.targetItem.toString());
-                // Get IBuyerBE
+                System.out.println("Setting buyer recipe for "+this.pos+" to "+this.recipeId);
                 Level level = player.level;
                 BlockEntity blockEntity = level.getBlockEntity(this.pos);
                 if (!(blockEntity instanceof ItemBuyerMachine buyerEntity)) {
@@ -56,16 +54,12 @@ public class PacketSetBuyerTarget {
 
                 // Check if player has access to the machine's account
                 MoneyManager moneyManager = MoneyManager.get(player.getLevel());
-                if (!moneyManager.getBankAccount(buyerEntity.getAccount()).containsMember(player.getStringUUID())) {
+                if (!moneyManager.getBankAccount(buyerEntity.getAccountId()).containsMember(player.getStringUUID())) {
                     AdminShop.LOGGER.error("Player does not have access to this machine's account");
                     return;
                 }
-                System.out.println("Saving machine account information.");
                 // Apply changes to buyerEntity
-                buyerEntity.setTargetShopItem(this.targetItem);
-                // Handled inside setTargetShopItem() now
-//                blockEntity.setChanged();
-//                buyerEntity.sendUpdates();
+                buyerEntity.setRecipe(this.recipeId);
             }
         });
         return true;

@@ -123,7 +123,7 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
     }
     private void updateInformation() {
         this.ownerUUID = this.sellerEntity.getOwnerUUID();
-        this.account = this.sellerEntity.getAccount();
+        this.account = this.sellerEntity.getAccountId();
 
         this.usableAccounts.clear();
         ClientLocalData.getUsableAccounts().forEach(account -> this.usableAccounts.add(Pair.of(account.getOwner(),
@@ -175,12 +175,12 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
         this.sellerEntity = this.getMenu().getBlockEntity();
 
         if (this.ownerUUID == null || this.account == null) {
-            if (this.sellerEntity.getOwnerUUID() != null || this.sellerEntity.getAccount() != null) {
+            if (this.sellerEntity.getOwnerUUID() != null || this.sellerEntity.getAccountId() != null) {
                 updateInformation();
             }
         }
         if (this.ownerUUID != null && this.account != null && (!this.ownerUUID.equals(this.sellerEntity.getOwnerUUID())
-                || !this.account.equals(this.sellerEntity.getAccount()))) {
+                || !this.account.equals(this.sellerEntity.getAccountId()))) {
             updateInformation();
         }
     }

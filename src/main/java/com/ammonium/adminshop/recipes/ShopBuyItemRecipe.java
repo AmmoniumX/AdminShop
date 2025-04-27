@@ -16,9 +16,6 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemHandlerHelper;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,54 +32,33 @@ public class ShopBuyItemRecipe implements Recipe<Container> {
         this.permit = permit != null ? permit : "";
     }
 
-    public boolean matches(ServerLevel level, ItemBuyerMachine machine) {
-
-        // Get account information from server side
-        Pair<String, Integer> account = machine.getAccount();
-        if (account == null) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account is null");
-            return false;
-        }
-        BankAccount bankAccount = MoneyManager.get(level).getBankAccount(account);
-        if (bankAccount == null) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: bankAccount is null");
-            return false;
-        }
+    public boolean matches(BankAccount account, ItemBuyerMachine machine) {
 
         // Check permit status
-        if ((!permit.isEmpty()) && (!bankAccount.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
+        if ((!permit.isEmpty()) && (!account.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }
         // Check account balance
-        if (bankAccount.getBalance() < price) {
+        if (account.getBalance() < price) {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have enough money");
             return false;
         }
 
-        // Check if machine can hold result item
-//        ItemStackHandler handler = machine.getItemHandler();
-        IItemHandler handler = machine.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
-        if (handler == null) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: handler is null");
-            return false;
-        }
-        if (ItemHandlerHelper.insertItemStacked(handler, result, true).isEmpty()) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: machine cannot hold result item");
-            return false;
-        }
         return true;
+    }
+
+    public ItemStack getItem() {
+        return result.copy();
     }
 
     public ItemStack buy(ServerLevel level, ItemBuyerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds
         MoneyManager manager = MoneyManager.get(level);
-        Pair<String, Integer> account = machine.getAccount();
+        Pair<String, Integer> account = machine.getAccountId();
         manager.subtractBalance(account, price);
-        IItemHandler handler = machine.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
-        ItemStack output = ItemHandlerHelper.insertItemStacked(handler, result.copy(), false);
-        return output;
+        return result.copy();
     }
 
     @Override
@@ -111,13 +87,13 @@ public class ShopBuyItemRecipe implements Recipe<Container> {
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() { // TODO
-        return null;
+    public RecipeSerializer<?> getSerializer() {
+        return ModRecipeSerializers.SHOP_BUY_ITEM_SERIALIZER.get();
     }
 
     @Override
-    public RecipeType<?> getType() { // TODO
-        return null;
+    public RecipeType<?> getType() {
+        return ModRecipeTypes.SHOP_BUY_ITEM.get();
     }
 
     public static class Serializer implements RecipeSerializer<ShopBuyItemRecipe> {

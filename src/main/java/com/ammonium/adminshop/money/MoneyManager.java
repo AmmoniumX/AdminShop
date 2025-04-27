@@ -1,10 +1,13 @@
 package com.ammonium.adminshop.money;
 
 import com.ammonium.adminshop.AdminShop;
+import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
+import com.ammonium.adminshop.setup.Messages;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
@@ -18,8 +21,8 @@ public class MoneyManager extends SavedData {
 
     private static final String COMPOUND_TAG_NAME = "adminshop_ledger";
     private static final String DEFAULT_ACCOUNTS_TAG = "adminshop_defaultaccs";
-
     private static final int MAX_ACCOUNTS = 8;
+    private static ServerLevel level = null;
 
     // SORTED SETS AND MAPS
     // The set of all BankAccounts
@@ -170,12 +173,11 @@ public class MoneyManager extends SavedData {
 
     //"Singleton" getter
     public static MoneyManager get(Level checkLevel){
-        if(checkLevel.isClientSide()){
-            throw new RuntimeException("Don't access this client-side!");
-        }
+        assert checkLevel instanceof ServerLevel : "MoneyManager can only be used on server side";
         MinecraftServer serv = ServerLifecycleHooks.getCurrentServer();
         ServerLevel level = serv.getLevel(Level.OVERWORLD);
         assert level != null;
+        MoneyManager.level = level;
         DimensionDataStorage storage = level.getDataStorage();
         return storage.computeIfAbsent(MoneyManager::new, MoneyManager::new, "moneymanager");
     }
@@ -251,10 +253,10 @@ public class MoneyManager extends SavedData {
      */
     public boolean existsBankAccount(String owner, int id) {
         if (!sortedAccountMap.containsKey(owner)) {
-            AdminShop.LOGGER.warn("Could not find account map for owner "+owner);
+            AdminShop.LOGGER.warn("Could not find account map for owner {}", owner);
             return false;
         } else if (!sortedAccountMap.get(owner).containsKey(id)) {
-            AdminShop.LOGGER.info("Could not find account id "+id+" for "+owner);
+            AdminShop.LOGGER.info("Could not find account id {} for {}", id, owner);
             return false;
         } else {
             return true;
@@ -389,39 +391,86 @@ public class MoneyManager extends SavedData {
     }
 
 
+    private void syncChanges(BankAccount account) {
+        // Sync account data
+        AdminShop.LOGGER.debug("Syncing money with clients");
+
+        // Sync money with bank account's members
+        account.getMembers().forEach(memberUUID -> {
+            List<BankAccount> usableAccounts = getSharedAccounts().get(memberUUID);
+            ServerPlayer playerByUUID = (ServerPlayer) level.getPlayerByUUID(UUID.fromString(memberUUID));
+            if (playerByUUID == null) return;
+            Messages.sendToPlayer(new PacketSyncMoneyToClient(usableAccounts), playerByUUID);
+
+        });
+    }
+
+
     @Deprecated
-    public boolean addBalance(String player, long amount){
-        setDirty();
-        return getBankAccount(player, 1).addBalance(amount);
+    public boolean addBalance(String owner, long amount){
+        BankAccount account = getBankAccount(owner, 1);
+        boolean success = account.addBalance(amount);
+        if (success) {
+            setDirty();
+            syncChanges(account);
+        }
+        return success;
     }
-    public boolean addBalance(String player, int id, long amount){
-        setDirty();
-        return getBankAccount(player, id).addBalance(amount);
+    public boolean addBalance(String owner, int id, long amount){
+        BankAccount account = getBankAccount(owner, id);
+        boolean success = account.addBalance(amount);
+        if (success) {
+            setDirty();
+            syncChanges(account);
+        }
+        return success;
     }
-    public boolean addBalance(Pair<String, Integer> account, long amount){
-        setDirty();
-        return getBankAccount(account).addBalance(amount);
+    public boolean addBalance(Pair<String, Integer> accountId, long amount){
+        BankAccount account = getBankAccount(accountId);
+        boolean success = account.addBalance(amount);
+        if (success) {
+            setDirty();
+            syncChanges(account);
+        }
+        return success;
     }
 
     @Deprecated
     public boolean subtractBalance(String player, long amount){
-        setDirty();
-        return getBankAccount(player, 1).subtractBalance(amount);
+        BankAccount account = getBankAccount(player, 1);
+        boolean success = account.subtractBalance(amount);
+        if (success) {
+            setDirty();
+            syncChanges(account);
+        }
+        return success;
     }
-    public boolean subtractBalance(String player, int id, long amount){
-        setDirty();
-        return getBankAccount(player, id).subtractBalance(amount);
+    public boolean subtractBalance(String owner, int id, long amount){
+        BankAccount account = getBankAccount(owner, id);
+        boolean success = account.subtractBalance(amount);
+        if (success) {
+            setDirty();
+            syncChanges(account);
+        }
+        return success;
     }
-    public boolean subtractBalance(Pair<String, Integer> account, long amount){
-        setDirty();
-        return getBankAccount(account).subtractBalance(amount);
+    public boolean subtractBalance(Pair<String, Integer> accountId, long amount){
+        BankAccount account = getBankAccount(accountId);
+        boolean success = account.subtractBalance(amount);
+        if (success) {
+            setDirty();
+            syncChanges(account);
+        }
+        return success;
     }
 
     @Deprecated
     public boolean setBalance(String player, long amount){
         if(amount < 0) return false;
-        getBankAccount(player, 1).setBalance(amount);
+        BankAccount account = getBankAccount(player, 1);
+        account.setBalance(amount);
         setDirty();
+        syncChanges(account);
         return true;
     }
 
@@ -448,29 +497,29 @@ public class MoneyManager extends SavedData {
             sortedAccountMap.clear();
             sharedAccounts.clear();
             ledger.forEach((accountTag) -> {
-                BankAccount bankAccount = BankAccount.deserializeTag((CompoundTag) accountTag);
-                AdminShop.LOGGER.debug("Read "+bankAccount.getOwner()+":"+bankAccount.getId());
-                accountSet.add(bankAccount);
+                BankAccount account = BankAccount.deserializeTag((CompoundTag) accountTag);
+                AdminShop.LOGGER.debug("Read {}:{}", account.getOwner(), account.getId());
+                accountSet.add(account);
 
                 // add to sorted accounts maps
-                String owner = bankAccount.getOwner();
-                int id = bankAccount.getId();
+                String owner = account.getOwner();
+                int id = account.getId();
                 if (accountsOwned.containsKey(owner)) {
-                    accountsOwned.put(bankAccount.getOwner(), accountsOwned.get(owner) + 1);
+                    accountsOwned.put(account.getOwner(), accountsOwned.get(owner) + 1);
                 } else {
                     accountsOwned.put(owner, 1);
                 }
 
                 if (sortedAccountMap.containsKey(owner)) {
-                    sortedAccountMap.get(owner).put(id, bankAccount);
+                    sortedAccountMap.get(owner).put(id, account);
                 } else {
                     HashMap<Integer, BankAccount> newPlayerMap = new HashMap<>();
-                    newPlayerMap.put(id, bankAccount);
+                    newPlayerMap.put(id, account);
                     sortedAccountMap.put(owner, newPlayerMap);
                 }
 
                 // create shared accounts list
-                bankAccount.getMembers().forEach(member -> {
+                account.getMembers().forEach(member -> {
                     List<BankAccount> sharedAccountsList;
                     if (!sharedAccounts.containsKey(member)) {
                         sharedAccountsList = new ArrayList<>();
@@ -478,7 +527,7 @@ public class MoneyManager extends SavedData {
                     } else {
                         sharedAccountsList = sharedAccounts.get(member);
                     }
-                    sharedAccountsList.add(bankAccount);
+                    sharedAccountsList.add(account);
                     sharedAccounts.put(member, sharedAccountsList);
                 });
             });
@@ -490,7 +539,7 @@ public class MoneyManager extends SavedData {
         AdminShop.LOGGER.info("Saving MoneyManager...");
         ListTag defaultsLedger = new ListTag();
         defaultAccounts.forEach((player, account) -> {
-            AdminShop.LOGGER.debug("Saving default account "+player+" -> "+account.getKey()+":"+account.getValue());
+            AdminShop.LOGGER.debug("Saving default account {} -> {}:{}", player, account.getKey(), account.getValue());
             CompoundTag defaultTag = new CompoundTag();
             defaultTag.putString("player", player);
             defaultTag.putString("accOwner", account.getKey());
@@ -502,7 +551,7 @@ public class MoneyManager extends SavedData {
         ListTag ledger = new ListTag();
 
         accountSet.forEach(account -> {
-            AdminShop.LOGGER.debug("Saving "+account.getOwner()+":"+account.getId());
+            AdminShop.LOGGER.debug("Saving {}:{}", account.getOwner(), account.getId());
             CompoundTag bankAccountTag = account.serializeTag();
             ledger.add(bankAccountTag);
         });

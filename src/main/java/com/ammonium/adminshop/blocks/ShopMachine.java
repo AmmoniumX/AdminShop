@@ -9,7 +9,7 @@ public interface ShopMachine extends MenuProvider, IForgeBlockEntity {
     void setOwnerUUID(String ownerUUID);
     String getOwnerUUID();
     void setAccount(Pair<String, Integer> account);
-    Pair<String, Integer> getAccount();
+    Pair<String, Integer> getAccountId();
     void sendUpdates();
 
     BlockPos getBlockPos();

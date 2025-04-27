@@ -34,22 +34,14 @@ public class ShopSellItemRecipe implements Recipe<Container> {
         this.permit = permit != null ? permit : "";
     }
 
-    public boolean matches(ServerLevel level, ItemSellerMachine machine) {
+    public ItemStack getItem() {
+        return item;
+    }
 
-        // Get account information from server side
-        Pair<String, Integer> account = machine.getAccount();
-        if (account == null) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account is null");
-            return false;
-        }
-        BankAccount bankAccount = MoneyManager.get(level).getBankAccount(account);
-        if (bankAccount == null) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: bankAccount is null");
-            return false;
-        }
+    public boolean matches(BankAccount account, ItemSellerMachine machine) {
 
         // Check permit status
-        if ((!permit.isEmpty()) && (!bankAccount.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
+        if ((!permit.isEmpty()) && (!account.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }
@@ -60,30 +52,22 @@ public class ShopSellItemRecipe implements Recipe<Container> {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: handler is null");
             return false;
         }
-        boolean hasItem = false;
         for (int slot = 0; slot < handler.getSlots(); slot++) {
-            if (!handler.extractItem(slot, item.getCount(), true).isEmpty()) {
-                hasItem = true;
-                break;
+            ItemStack simulatedResult = handler.extractItem(slot, item.getCount(), true);
+            if (!simulatedResult.isEmpty() && simulatedResult.getCount() == item.getCount()) {
+                return true;
             }
         }
-        return true;
+
+        return false;
     }
 
     public void sell(ServerLevel level, ItemSellerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds
         MoneyManager manager = MoneyManager.get(level);
-        Pair<String, Integer> account = machine.getAccount();
-        IItemHandler handler = machine.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
-
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            if (!handler.extractItem(slot, item.getCount(), false).isEmpty()) {
-                manager.addBalance(account, price);
-                break;
-            }
-        }
-        throw new IllegalStateException("ShopSellItemRecipe.sell: item not found in machine after matches");
+        Pair<String, Integer> account = machine.getAccountId();
+        manager.addBalance(account, price);
     }
 
     @Override
@@ -112,13 +96,13 @@ public class ShopSellItemRecipe implements Recipe<Container> {
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() { // TODO
-        return null;
+    public RecipeSerializer<?> getSerializer() {
+        return ModRecipeSerializers.SHOP_SELL_ITEM_SERIALIZER.get();
     }
 
     @Override
-    public RecipeType<?> getType() { // TODO
-        return null;
+    public RecipeType<?> getType() {
+        return ModRecipeTypes.SHOP_SELL_ITEM.get();
     }
 
     public static class Serializer implements RecipeSerializer<ShopSellItemRecipe> {

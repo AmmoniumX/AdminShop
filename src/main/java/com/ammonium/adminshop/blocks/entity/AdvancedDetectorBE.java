@@ -71,7 +71,7 @@ public class AdvancedDetectorBE extends BlockEntity implements Detector {
         this.sendUpdates();
     }
 
-    public Pair<String, Integer> getAccount() {
+    public Pair<String, Integer> getAccountId() {
         return account;
     }
 

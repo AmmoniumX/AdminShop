@@ -8,7 +8,7 @@ import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.ClientLocalData;
 import com.ammonium.adminshop.network.MojangAPI;
 import com.ammonium.adminshop.network.PacketMachineAccountChange;
-import com.ammonium.adminshop.network.PacketSetBuyerTarget;
+import com.ammonium.adminshop.network.PacketSetItemBuyerRecipe;
 import com.ammonium.adminshop.network.PacketUpdateRequest;
 import com.ammonium.adminshop.setup.Messages;
 import com.ammonium.adminshop.shop.Shop;
@@ -147,7 +147,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     }
     private void updateInformation() {
         this.ownerUUID = this.buyerEntity.getOwnerUUID();
-        this.account = this.buyerEntity.getAccount();
+        this.account = this.buyerEntity.getAccountId();
         this.shopTarget = this.buyerEntity.getTargetShopItem();
         this.tankGauge.setTank(this.buyerEntity.getTank());
         if (this.shopTarget != null) {setFluidTexture(this.shopTarget.getFluid().getFluid());}
@@ -205,7 +205,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
                     if (getBankAccount().hasPermit(shopItem.getPermitTier())) {
                         this.buyerEntity.setTargetShopItem(this.shopTarget);
                         this.shopTarget = shopItem;
-                        Messages.sendToServer(new PacketSetBuyerTarget(this.blockPos, this.shopTarget));
+                        Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, this.shopTarget));
                         override.set(true);
                     } else {
                         LocalPlayer player = Minecraft.getInstance().player;
@@ -267,7 +267,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         this.buyerEntity = this.getMenu().getBlockEntity();
 
         String buyerOwnerUUID = this.buyerEntity.getOwnerUUID();
-        Pair<String, Integer> buyerAccount = this.buyerEntity.getAccount();
+        Pair<String, Integer> buyerAccount = this.buyerEntity.getAccountId();
         ShopItem buyerShopTarget = this.buyerEntity.getTargetShopItem();
         FluidTank buyerTank = this.buyerEntity.getTank();
 

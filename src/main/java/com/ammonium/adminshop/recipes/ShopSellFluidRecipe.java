@@ -37,26 +37,15 @@ public class ShopSellFluidRecipe implements Recipe<Container> {
         this.permit = permit != null ? permit : "";
     }
 
-    public boolean matches(ServerLevel level, FluidSellerMachine machine) {
-        // Get account information from server side
-        Pair<String, Integer> account = machine.getAccount();
-        if (account == null) {
-            AdminShop.LOGGER.debug("ShopSellFluidRecipe: account is null");
-            return false;
-        }
-        BankAccount bankAccount = MoneyManager.get(level).getBankAccount(account);
-        if (bankAccount == null) {
-            AdminShop.LOGGER.debug("ShopSellFluidRecipe: bankAccount is null");
-            return false;
-        }
+    public boolean matches(BankAccount account, FluidSellerMachine machine) {
 
         // Check permit status
-        if ((!permit.isEmpty()) && (!bankAccount.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
+        if ((!permit.isEmpty()) && (!account.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
             AdminShop.LOGGER.debug("ShopSellFluidRecipe: account does not have permit {}", permit);
             return false;
         }
         // Check account balance
-        if (bankAccount.getBalance() < price) {
+        if (account.getBalance() < price) {
             AdminShop.LOGGER.debug("ShopSellFluidRecipe: account does not have enough money");
             return false;
         }
@@ -79,10 +68,7 @@ public class ShopSellFluidRecipe implements Recipe<Container> {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds
         MoneyManager manager = MoneyManager.get(level);
-        Pair<String, Integer> account = machine.getAccount();
-        IFluidHandler handler = machine.getCapability(ForgeCapabilities.FLUID_HANDLER)
-                .orElseThrow(IllegalStateException::new);
-        handler.drain(fluid, IFluidHandler.FluidAction.EXECUTE);
+        Pair<String, Integer> account = machine.getAccountId();
         manager.addBalance(account, price);
     }
 
@@ -113,12 +99,12 @@ public class ShopSellFluidRecipe implements Recipe<Container> {
 
     @Override
     public RecipeSerializer<?> getSerializer() {
-        return null;
+        return ModRecipeSerializers.SHOP_SELL_FLUID_SERIALIZER.get();
     }
 
     @Override
     public RecipeType<?> getType() {
-        return null;
+        return ModRecipeTypes.SHOP_SELL_FLUID.get();
     }
 
     public static class Serializer implements RecipeSerializer<ShopSellFluidRecipe> {

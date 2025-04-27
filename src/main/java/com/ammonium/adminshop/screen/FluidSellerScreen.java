@@ -129,7 +129,7 @@ public class FluidSellerScreen extends AbstractContainerScreen<FluidSellerMenu> 
     }
     private void updateInformation() {
         this.ownerUUID = this.sellerEntity.getOwnerUUID();
-        this.account = this.sellerEntity.getAccount();
+        this.account = this.sellerEntity.getAccountId();
         this.tankGauge.setTank(this.sellerEntity.getTank());
 
         this.usableAccounts.clear();
@@ -192,7 +192,7 @@ public class FluidSellerScreen extends AbstractContainerScreen<FluidSellerMenu> 
         this.sellerEntity = this.getMenu().getBlockEntity();
 
         String buyerOwnerUUID = this.sellerEntity.getOwnerUUID();
-        Pair<String, Integer> buyerAccount = this.sellerEntity.getAccount();
+        Pair<String, Integer> buyerAccount = this.sellerEntity.getAccountId();
         FluidTank buyerTank = this.sellerEntity.getTank();
 
         boolean shouldUpdateDueToNulls =

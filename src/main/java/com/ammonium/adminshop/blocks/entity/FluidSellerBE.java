@@ -71,7 +71,7 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
         this.sendUpdates();
     }
 
-    public Pair<String, Integer> getAccount() {
+    public Pair<String, Integer> getAccountId() {
         return account;
     }
 

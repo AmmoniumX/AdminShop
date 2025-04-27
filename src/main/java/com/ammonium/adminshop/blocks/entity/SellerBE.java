@@ -2,13 +2,10 @@ package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.ItemSellerMachine;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.MoneyManager;
-import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
+import com.ammonium.adminshop.recipes.ShopRecipeManager;
+import com.ammonium.adminshop.recipes.ShopSellItemRecipe;
 import com.ammonium.adminshop.screen.SellerMenu;
-import com.ammonium.adminshop.setup.Messages;
 import com.ammonium.adminshop.shop.Shop;
-import com.ammonium.adminshop.shop.ShopItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -19,61 +16,33 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Containers;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 
 public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMachine, WorldlyContainer {
-    private String ownerUUID;
-    private Pair<String, Integer> account;
-
-    private int tickCounter = 0;
-//    private final ItemStackHandler itemHandler = new ItemStackHandler(1) {
-//        @Override
-//        protected void onContentsChanged(int slot) {
-//            setChanged();
-//        }
-//        @Override
-//        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-//            // Check if item is in item map
-//            boolean result = Shop.get().getShopSellItemMap().containsKey(stack.getItem());
-//            if (!result) {
-//                // Check if item tags are in item tags map
-//                Optional<TagKey<Item>> searchTag = stack.getTags().filter(itemTag -> Shop.get().hasSellShopItemTag(itemTag)).findFirst();
-//                result = searchTag.isPresent();
-//            }
-//            if (result) {
-//                return super.isItemValid(slot, stack);
-//            } else {
-//                return false;
-//            }
-//        }
-//    };
-
     private static final int slotSize = 1;
+
     private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
     private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
+
+    private String ownerUUID;
+    private Pair<String, Integer> account;
+    private int tickCounter = 0;
 
     public SellerBE(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.SELLER.get(), pWorldPosition, pBlockState);
@@ -95,7 +64,7 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
         this.sendUpdates();
     }
 
-    public Pair<String, Integer> getAccount() {
+    public Pair<String, Integer> getAccountId() {
         return account;
     }
 
@@ -168,94 +137,38 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
         return new SellerMenu(i, inventory, this);
     }
 
-    public static void tick(Level pLevel, BlockPos pPos, BlockState pState, SellerBE pBlockEntity) {
-        if(hasItem(pBlockEntity)) {
-            pBlockEntity.tickCounter++;
-            if (pBlockEntity.tickCounter > 20) {
-                pBlockEntity.tickCounter = 0;
-                // Send sell transaction
-                if (!pLevel.isClientSide) {
-                    assert pLevel instanceof ServerLevel;
-                    sellerTransaction(pPos, pBlockEntity, (ServerLevel) pLevel);
-                }
+    public static void tick(Level level, BlockPos pos, BlockState state, SellerBE sellerBE) {
+        // Ignore if not server side
+        if (level.isClientSide) { return; }
+        assert level instanceof ServerLevel;
+
+        // Only run every 20 ticks
+        sellerBE.tickCounter++;
+        if (sellerBE.tickCounter <= 20) { return; }
+        sellerBE.tickCounter = 0;
+
+        // Check for valid recipe
+        ShopSellItemRecipe recipe = ShopRecipeManager.checkForSellItemRecipe((ServerLevel) level, sellerBE).orElse(null);
+        if (recipe == null) {
+            AdminShop.LOGGER.debug("No recipe found for sellerBE");
+            return;
+        }
+
+        // Sell the item
+        IItemHandler handler = sellerBE.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
+        if (handler == null) {
+            AdminShop.LOGGER.debug("Handler is null");
+            return;
+        }
+        ItemStack item = recipe.getItem().copy();
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            ItemStack simulatedResult = handler.extractItem(slot, item.getCount(), true);
+            if (!simulatedResult.isEmpty() && simulatedResult.getCount() == item.getCount()) {
+                ItemStack itemResult = handler.extractItem(slot, item.getCount(), false);
+                AdminShop.LOGGER.debug("Sold item: {}", itemResult);
+                return;
             }
         }
-    }
-
-    public static void sellerTransaction(BlockPos pos, SellerBE sellerEntity, ServerLevel level) {
-        LazyOptional<IItemHandler> lazyHandler = sellerEntity.getCapability(ForgeCapabilities.ITEM_HANDLER);
-        if (!lazyHandler.isPresent()) {
-            AdminShop.LOGGER.debug("Seller item handler is not present");
-            return;
-        }
-        IItemHandler handler = lazyHandler.orElseThrow(NullPointerException::new);
-        ItemStack toSell = handler.getStackInSlot(0);
-        int count = toSell.getCount();
-        boolean isShopItem = Shop.get().hasSellShopItem(toSell.getItem());
-        ShopItem shopItem;
-        if (isShopItem) {
-            shopItem = Shop.get().getSellShopItem(toSell.getItem());
-        } else {
-            // Check if item tags are in item tags map
-            Optional<TagKey<Item>> searchTag = toSell.getTags().filter(itemTag -> Shop.get().hasSellShopItemTag(itemTag)).findFirst();
-            shopItem = searchTag.map(itemTagKey -> Shop.get().getSellShopItemTag(itemTagKey)).orElse(null);
-            isShopItem = searchTag.isPresent();
-        }
-        if (!isShopItem) {
-            AdminShop.LOGGER.debug("Item is not in shop sell map: "+toSell.getDisplayName().getString());
-            return;
-        }
-        handler.extractItem(0, count, false);
-        long itemCost = shopItem.getPrice();
-        long price = (long) count * itemCost;
-        if (count == 0) {
-            return;
-        }
-        // Get local MoneyManager and attempt transaction
-        MoneyManager moneyManager = MoneyManager.get(level);
-
-        // Check if account is set
-        if (sellerEntity.account == null) {
-            AdminShop.LOGGER.debug("Seller bankAccount is null");
-            return;
-        }
-        // Check if account still exists
-        if (!moneyManager.existsBankAccount(sellerEntity.account)) {
-            AdminShop.LOGGER.debug("Seller machine account "+sellerEntity.account.getKey()+":"+sellerEntity.account
-                    .getValue()+" does not exist");
-            return;
-        }
-        String accOwner = sellerEntity.account.getKey();
-        int accID = sellerEntity.account.getValue();
-        // Check if account has necessary trade permit
-        if (!moneyManager.getBankAccount(accOwner, accID).hasPermit(shopItem.getPermitTier())) {
-            AdminShop.LOGGER.debug("Seller machine account does not have necessary trade permit");
-            return;
-        }
-        boolean success = moneyManager.addBalance(accOwner, accID, price);
-        if (!success) {
-            AdminShop.LOGGER.debug("Error selling item.");
-            return;
-        }
-        // Sync account data
-        AdminShop.LOGGER.debug("Syncing money with clients");
-        // Get current bank account
-        BankAccount currentAccount = moneyManager.getBankAccount(accOwner, accID);
-
-        // Sync money with bank account's members
-        assert currentAccount.getMembers().contains(accOwner);
-        currentAccount.getMembers().forEach(memberUUID -> {
-            List<BankAccount> usableAccounts = moneyManager.getSharedAccounts().get(memberUUID);
-            ServerPlayer playerByUUID = (ServerPlayer) level.getPlayerByUUID(UUID.fromString(memberUUID));
-            if (playerByUUID == null) return;
-//            AdminShop.LOGGER.debug("Syncing money with "+playerByUUID.getName().getString());
-            Messages.sendToPlayer(new PacketSyncMoneyToClient(usableAccounts), playerByUUID);
-
-        });
-    }
-
-    private static boolean hasItem(SellerBE entity) {
-        return !entity.stacks.stream().allMatch(ItemStack::isEmpty);
     }
 
     @Override

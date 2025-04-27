@@ -55,10 +55,10 @@ public class Messages {
                 .encoder(PacketChangeDefaultAccount::toBytes)
                 .consumerMainThread(PacketChangeDefaultAccount::handle)
                 .add();
-        net.messageBuilder(PacketSetBuyerTarget.class, id(), NetworkDirection.PLAY_TO_SERVER)
-                .decoder(PacketSetBuyerTarget::new)
-                .encoder(PacketSetBuyerTarget::toBytes)
-                .consumerMainThread(PacketSetBuyerTarget::handle)
+        net.messageBuilder(PacketSetItemBuyerRecipe.class, id(), NetworkDirection.PLAY_TO_SERVER)
+                .decoder(PacketSetItemBuyerRecipe::new)
+                .encoder(PacketSetItemBuyerRecipe::toBytes)
+                .consumerMainThread(PacketSetItemBuyerRecipe::handle)
                 .add();
         net.messageBuilder(PacketAccountAddPermit.class, id(), NetworkDirection.PLAY_TO_SERVER)
                 .decoder(PacketAccountAddPermit::new)

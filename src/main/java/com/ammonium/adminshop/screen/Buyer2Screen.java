@@ -7,7 +7,7 @@ import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.ClientLocalData;
 import com.ammonium.adminshop.network.MojangAPI;
 import com.ammonium.adminshop.network.PacketMachineAccountChange;
-import com.ammonium.adminshop.network.PacketSetBuyerTarget;
+import com.ammonium.adminshop.network.PacketSetItemBuyerRecipe;
 import com.ammonium.adminshop.network.PacketUpdateRequest;
 import com.ammonium.adminshop.setup.Messages;
 import com.ammonium.adminshop.shop.Shop;
@@ -138,7 +138,7 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
 
     private void updateInformation() {
         this.ownerUUID = this.buyerEntity.getOwnerUUID();
-        this.account = this.buyerEntity.getAccount();
+        this.account = this.buyerEntity.getAccountId();
         this.shopTarget = this.buyerEntity.getTargetShopItem();
 
         this.usableAccounts.clear();
@@ -187,9 +187,9 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
                 // Set buyer target
                 // Check if account has permit to buy item
                 if (getBankAccount().hasPermit(shopItem.getPermitTier())) {
-                    this.buyerEntity.setTargetShopItem(this.shopTarget);
+                    this.buyerEntity.setRecipe(this.shopTarget);
                     this.shopTarget = shopItem;
-                    Messages.sendToServer(new PacketSetBuyerTarget(this.blockPos, this.shopTarget));
+                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, this.shopTarget));
                     return false;
                 } else {
                     LocalPlayer player = Minecraft.getInstance().player;
@@ -244,7 +244,7 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
         this.buyerEntity = this.getMenu().getBlockEntity();
 
         String buyerOwnerUUID = this.buyerEntity.getOwnerUUID();
-        Pair<String, Integer> buyerAccount = this.buyerEntity.getAccount();
+        Pair<String, Integer> buyerAccount = this.buyerEntity.getAccountId();
         ShopItem buyerShopTarget = this.buyerEntity.getTargetShopItem();
 
         boolean shouldUpdateDueToNulls = (this.ownerUUID == null && buyerOwnerUUID != null) ||

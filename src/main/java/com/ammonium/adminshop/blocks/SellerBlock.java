@@ -69,7 +69,7 @@ public class SellerBlock extends BaseEntityBlock {
             ServerLevel serverLevel = (ServerLevel) pLevel;
             if(pLevel.getBlockEntity(pPos) instanceof SellerBE buyerEntity) {
 //                AdminShop.LOGGER.debug("Looking for account: "+buyerEntity.getAccount().toString());
-                if (MoneyManager.get(serverLevel).getBankAccount(buyerEntity.getAccount())
+                if (MoneyManager.get(serverLevel).getBankAccount(buyerEntity.getAccountId())
                         .containsMember(pPlayer.getStringUUID())) {
 //                    AdminShop.LOGGER.debug("Found account");
                     // Open menu
