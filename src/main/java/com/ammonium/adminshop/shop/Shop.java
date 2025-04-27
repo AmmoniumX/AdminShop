@@ -1,8 +1,6 @@
 package com.ammonium.adminshop.shop;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.client.jei.ShopBuyWrapper;
-import com.ammonium.adminshop.client.jei.ShopSellWrapper;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.nbt.CompoundTag;
@@ -106,32 +104,6 @@ public class Shop {
     }
     public Map<ItemStack, ShopItem> getShopBuyItemNBTMap() {
         return shopBuyItemNBTMap;
-    }
-
-    public List<ShopBuyWrapper> getBuyRecipes() {
-        List<ShopBuyWrapper> buyRecipes = new ArrayList<>();
-        shopStockBuy.forEach(buyItem -> {
-            if (buyItem.isItem()) {
-                buyRecipes.add(new ShopBuyWrapper(buyItem.getItem(), buyItem.getPrice(), buyItem.getPermitTier()));
-            } else {
-                buyRecipes.add(new ShopBuyWrapper(buyItem.getFluid().getFluid(), buyItem.getPrice(), buyItem.getPermitTier()));
-            }
-        });
-        LOGGER.debug("Read "+buyRecipes.size()+" buy recipes");
-        return buyRecipes;
-    }
-
-    public List<ShopSellWrapper> getSellRecipes() {
-        List<ShopSellWrapper> sellRecipes = new ArrayList<>();
-        shopStockSell.forEach(sellItem -> {
-            if (sellItem.isItem()) {
-                sellRecipes.add(new ShopSellWrapper(sellItem.getItem(), sellItem.getPrice(), sellItem.getPermitTier()));
-            } else {
-                sellRecipes.add(new ShopSellWrapper(sellItem.getFluid().getFluid(), sellItem.getPrice(), sellItem.getPermitTier()));
-            }
-        });
-        LOGGER.debug("Read "+sellRecipes.size()+" sell recipes");
-        return sellRecipes;
     }
 
     public boolean hasBuyShopItem(Item item) {
