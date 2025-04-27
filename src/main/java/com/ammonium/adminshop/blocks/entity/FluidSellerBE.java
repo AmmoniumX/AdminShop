@@ -103,7 +103,7 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
             AdminShop.LOGGER.debug("Fluid handler is null");
             return;
         }
-        handler.drain(recipe.getFluid(), IFluidHandler.FluidAction.EXECUTE);
+        handler.drain(recipe.getFluid().copy(), IFluidHandler.FluidAction.EXECUTE);
         recipe.sell((ServerLevel) level, sellerBE);
         return;
     }

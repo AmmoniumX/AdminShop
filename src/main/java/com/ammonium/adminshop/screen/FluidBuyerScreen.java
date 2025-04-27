@@ -8,10 +8,11 @@ import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.ClientLocalData;
 import com.ammonium.adminshop.network.MojangAPI;
 import com.ammonium.adminshop.network.PacketMachineAccountChange;
-import com.ammonium.adminshop.network.PacketSetItemBuyerRecipe;
+import com.ammonium.adminshop.network.PacketSetFluidBuyerRecipe;
 import com.ammonium.adminshop.network.PacketUpdateRequest;
+import com.ammonium.adminshop.recipes.BuyFluidRecipe;
+import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.setup.Messages;
-import com.ammonium.adminshop.shop.Shop;
 import com.ammonium.adminshop.shop.ShopItem;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -28,6 +29,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
@@ -48,7 +50,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     private FluidBuyerBE buyerEntity;
     private String ownerUUID;
     private Pair<String, Integer> account;
-    private ShopItem shopTarget = null;
+    private BuyFluidRecipe recipe = null;
     private ChangeAccountButton changeAccountButton;
     private final List<Pair<String, Integer>> usableAccounts = new ArrayList<>();
 
@@ -133,7 +135,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         this.usableAccounts.clear();
         ClientLocalData.getUsableAccounts().forEach(account -> this.usableAccounts.add(Pair.of(account.getOwner(),
                 account.getId())));
-        if (this.usableAccounts.size() < 1) {
+        if (this.usableAccounts.isEmpty()) {
             AdminShop.LOGGER.warn("No usable accounts found!");
         }
         this.usableAccountsIndex = 0;
@@ -145,12 +147,12 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         // Request update from server
         Messages.sendToServer(new PacketUpdateRequest(this.blockPos));
     }
-    private void updateInformation() {
+    private void updateInformation(Level level) {
         this.ownerUUID = this.buyerEntity.getOwnerUUID();
         this.account = this.buyerEntity.getAccountId();
-        this.shopTarget = this.buyerEntity.getTargetShopItem();
+        this.recipe = this.buyerEntity.getRecipe(level).orElse(null);
         this.tankGauge.setTank(this.buyerEntity.getTank());
-        if (this.shopTarget != null) {setFluidTexture(this.shopTarget.getFluid().getFluid());}
+        if (this.recipe != null) {setFluidTexture(this.recipe.getFluid().getFluid());}
 
         this.usableAccounts.clear();
         ClientLocalData.getUsableAccounts().forEach(account -> this.usableAccounts.add(Pair.of(account.getOwner(),
@@ -174,38 +176,30 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
             ItemStack itemStack = slot.getItem();
             if (!itemStack.isEmpty()) {
                 // Get item clicked on
-                StringBuilder debugMessage = new StringBuilder("Clicked on ItemStack: ");
-                debugMessage.append(itemStack.getDisplayName().getString()).append(", ").append(itemStack.getCount()).append(", ");
-                if (itemStack.getTag() != null) { debugMessage.append(itemStack.getTag()); }
-                AdminShop.LOGGER.debug(debugMessage.toString());
+                AdminShop.LOGGER.debug("Clicked on item: {}", itemStack.getDisplayName().getString());
                 // Check if item is container and has fluid
                 // Check if item is fluid container
                 itemStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).ifPresent(fluidHandler -> {
                     boolean isShopItem = false;
                     ShopItem shopItem = null;
-                    FluidStack fluidStack = fluidHandler.getFluidInTank(0);
+                    FluidStack fluid = fluidHandler.getFluidInTank(0);
                     // Return if container is empty
-                    if (fluidStack.isEmpty()) {
+                    if (fluid.isEmpty()) {
                         return;
                     }
-                    Fluid fluid = fluidHandler.getFluidInTank(0).getFluid();
-                    // Check if fluid is in fluid shop map
-                    if (Shop.get().hasBuyShopFluid(fluid)) {
-                        AdminShop.LOGGER.debug("ShopItem: " + fluidStack.getDisplayName().getString());
-                        isShopItem = true;
-                        shopItem = Shop.get().getBuyShopFluid(fluid);
-                    }
+                    // Check if fluid is in recipes
+                    BuyFluidRecipe recipe = RecipeManager.isBuyFluidRecipe(Minecraft.getInstance().level, fluid).orElse(null);
                     // Return super if not in buy map
-                    if (!isShopItem || shopItem == null) {
-                        AdminShop.LOGGER.debug("Fluid not in buy map: " + fluidStack.getDisplayName().getString());
+                    if (recipe == null) {
+                        AdminShop.LOGGER.debug("Fluid not in buy recipes: {}", fluid.getDisplayName().getString());
                         return;
                     }
                     // Set buyer target
                     // Check if account has permit to buy item
-                    if (getBankAccount().hasPermit(shopItem.getPermitTier())) {
-                        this.buyerEntity.setTargetShopItem(this.shopTarget);
-                        this.shopTarget = shopItem;
-                        Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, this.shopTarget));
+                    if (getBankAccount().hasPermit(Integer.parseInt(recipe.getPermit()))) {
+                        this.buyerEntity.setRecipe(recipe.getId());
+                        this.recipe = recipe;
+                        Messages.sendToServer(new PacketSetFluidBuyerRecipe(this.blockPos, this.recipe.getId()));
                         override.set(true);
                     } else {
                         LocalPlayer player = Minecraft.getInstance().player;
@@ -219,22 +213,22 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     }
 
     @Override
-    protected void renderBg(PoseStack pPoseStack, float pPartialTicks, int pMouseX, int pMouseY) {
+    protected void renderBg(PoseStack poseStack, float partialTicks, int mouseX, int mouseY) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, TEXTURE);
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
 
-        this.blit(pPoseStack, x, y, 0, 0, imageWidth, imageHeight);
-        if (this.shopTarget != null) {
-            renderFluid(pPoseStack, this.shopTarget.getFluid().getFluid(), x+104, y+24, 16, 16);
+        this.blit(poseStack, x, y, 0, 0, imageWidth, imageHeight);
+        if (this.recipe != null) {
+            renderFluid(poseStack, this.recipe.getFluid().getFluid(), x+104, y+24, 16, 16);
         }
     }
 
     @Override
-    protected void renderLabels(PoseStack pPoseStack, int pMouseX, int pMouseY) {
-        super.renderLabels(pPoseStack, pMouseX, pMouseY);
+    protected void renderLabels(PoseStack poseStack, int mouseX, int mouseY) {
+        super.renderLabels(poseStack, mouseX, mouseY);
         if (this.usableAccounts == null || this.usableAccountsIndex == -1 || this.usableAccountsIndex >=
                 this.usableAccounts.size()) {
             return;
@@ -243,32 +237,32 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         boolean accAvailable = this.usableAccountsIndex != -1 && ClientLocalData.accountAvailable(account.getKey(),
                 account.getValue());
         int color = accAvailable ? 0xffffff : 0xff0000;
-        drawString(pPoseStack, font, this.username+":"+ account.getValue(),
+        drawString(poseStack, font, this.username+":"+ account.getValue(),
                 7,62,color);
-        pPoseStack.pushPose();
+        poseStack.pushPose();
         if (this.tankGauge == null) {
             AdminShop.LOGGER.debug("TankGauge is null!");
         }
         if (this.tankGauge != null && tankGauge.isMouseOn) {
-            renderTooltip(pPoseStack, tankGauge.getTooltipContent(),
-                    Optional.empty(), pMouseX-(this.width - this.imageWidth)/2,
-                    pMouseY-(this.height - this.imageHeight)/2);
+            renderTooltip(poseStack, tankGauge.getTooltipContent(),
+                    Optional.empty(), mouseX-(this.width - this.imageWidth)/2,
+                    mouseY-(this.height - this.imageHeight)/2);
         }
-        pPoseStack.popPose();
+        poseStack.popPose();
     }
 
     @Override
-    public void render(PoseStack pPoseStack, int mouseX, int mouseY, float delta) {
-        renderBackground(pPoseStack);
-        super.render(pPoseStack, mouseX, mouseY, delta);
-        renderTooltip(pPoseStack, mouseX, mouseY);
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float delta) {
+        renderBackground(poseStack);
+        super.render(poseStack, mouseX, mouseY, delta);
+        renderTooltip(poseStack, mouseX, mouseY);
 
         // Get data from BlockEntity
         this.buyerEntity = this.getMenu().getBlockEntity();
 
         String buyerOwnerUUID = this.buyerEntity.getOwnerUUID();
         Pair<String, Integer> buyerAccount = this.buyerEntity.getAccountId();
-        ShopItem buyerShopTarget = this.buyerEntity.getTargetShopItem();
+        BuyFluidRecipe recipe = this.buyerEntity.getRecipe(Minecraft.getInstance().level).orElse(null);
         FluidTank buyerTank = this.buyerEntity.getTank();
 
 //        AdminShop.LOGGER.debug("Buyer tank from screen render(): "+buyerTank.getFluid().getAmount()+"mb "+buyerTank.getFluid().getDisplayName().getString());
@@ -277,17 +271,17 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         boolean shouldUpdateDueToNulls =
                 (this.ownerUUID == null && buyerOwnerUUID != null) ||
                 (this.account == null && buyerAccount != null) ||
-                (this.shopTarget == null && buyerShopTarget != null) ||
+                (this.recipe == null && recipe != null) ||
                 (this.tankGauge.getTank() == null && buyerTank != null);
 
         boolean shouldUpdateDueToDifferences =
                 (this.ownerUUID != null && !this.ownerUUID.equals(buyerOwnerUUID)) ||
                 (this.account != null && !this.account.equals(buyerAccount)) ||
-                (this.shopTarget != buyerShopTarget) ||
+                (this.recipe != recipe) ||
                 (!this.tankGauge.getTank().equals(buyerTank));
 
         if (shouldUpdateDueToNulls || shouldUpdateDueToDifferences) {
-            updateInformation();
+            updateInformation(Minecraft.getInstance().level);
         }
     }
 

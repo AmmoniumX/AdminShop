@@ -166,7 +166,7 @@ public class Buyer2Screen extends AbstractContainerScreen<Buyer2Menu> {
             if (!itemStack.isEmpty() && !isMachineSlot) {
                 // Get item clicked on
                 AdminShop.LOGGER.debug("Clicked on item {}", itemStack.getDisplayName().getString());
-                BuyItemRecipe recipe = RecipeManager.isItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
+                BuyItemRecipe recipe = RecipeManager.isBuyItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
                 // Return super if not in buy map
                 if (recipe == null) {
                     AdminShop.LOGGER.debug("Item not in buy recipes: "+itemStack.getDisplayName().getString());

@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.fluids.FluidStack;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,16 +36,6 @@ public class RecipeManager {
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get());
     }
 
-    public static Optional<BuyItemRecipe> getShopBuyItemRecipe(Level level, ResourceLocation id) {
-        if (id == null) { return Optional.empty(); }
-        Optional<? extends Recipe<?>> recipe = level.getRecipeManager().byKey(id);
-        if (recipe.isEmpty() || !(recipe.get() instanceof BuyItemRecipe)) {
-            AdminShop.LOGGER.debug("ShopRecipeManager.getShopBuyItemRecipe: recipe is empty or not a ShopBuyItemRecipe: {}", id);
-            return Optional.empty();
-        }
-        return Optional.of((BuyItemRecipe) recipe.get());
-    }
-    
     private static boolean searchMatches(ItemStack item, ItemStack recipeItem) {
         if (item.isEmpty() || recipeItem.isEmpty()) { return false; }
         if (item.getItem() != recipeItem.getItem()) { return false; }
@@ -54,8 +45,8 @@ public class RecipeManager {
             return true;
         }
     }
-    
-    public static Optional<BuyItemRecipe> isItemRecipe(Level level, ItemStack item) {
+
+    public static Optional<BuyItemRecipe> isBuyItemRecipe(Level level, ItemStack item) {
         List<BuyItemRecipe> candidates = level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get())
                 .stream()
                 .filter(recipe -> searchMatches(item, recipe.getItem()))
@@ -67,6 +58,16 @@ public class RecipeManager {
         return firstWithNBT.or(() -> candidates.stream().findFirst());
     }
 
+    public static Optional<BuyItemRecipe> getShopBuyItemRecipe(Level level, ResourceLocation id) {
+        if (id == null) { return Optional.empty(); }
+        Optional<? extends Recipe<?>> recipe = level.getRecipeManager().byKey(id);
+        if (recipe.isEmpty() || !(recipe.get() instanceof BuyItemRecipe)) {
+            AdminShop.LOGGER.debug("ShopRecipeManager.getShopBuyItemRecipe: recipe is empty or not a ShopBuyItemRecipe: {}", id);
+            return Optional.empty();
+        }
+        return Optional.of((BuyItemRecipe) recipe.get());
+    }
+
     public static boolean checkForBuyItemRecipe(ServerLevel level, ItemBuyerMachine machine, BuyItemRecipe recipe) {
         return recipe != null && recipe.matches(getAccount(level, machine), machine);
     }
@@ -76,6 +77,18 @@ public class RecipeManager {
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get())
                 .stream()
                 .filter(recipe -> recipe.matches(account, machine))
+                .findFirst();
+    }
+
+    public static boolean searchMatches(FluidStack fluid, FluidStack recipeFluid) {
+        if (fluid.isEmpty() || recipeFluid.isEmpty()) { return false; }
+        return fluid.getFluid() == recipeFluid.getFluid();
+    }
+
+    public static Optional<BuyFluidRecipe> isBuyFluidRecipe(Level level, FluidStack fluid) {
+        return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_FLUID.get())
+                .stream()
+                .filter(recipe -> searchMatches(fluid, recipe.getFluid()))
                 .findFirst();
     }
 

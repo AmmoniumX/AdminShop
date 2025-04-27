@@ -1,0 +1,7 @@
+{
+  "type": "adminshop:shop_buy_item",
+  "price": 100,
+  "result": {
+    "item": "minecraft:diamond"
+  }
+}

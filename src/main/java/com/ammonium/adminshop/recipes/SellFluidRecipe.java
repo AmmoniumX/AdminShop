@@ -65,7 +65,7 @@ public class SellFluidRecipe implements Recipe<Container> {
     }
 
     public FluidStack getFluid() {
-        return fluid.copy();
+        return fluid;
     }
 
     public void sell(ServerLevel level, FluidSellerMachine machine) {
