@@ -15,8 +15,8 @@ import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.common.crafting.CraftingHelper;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
@@ -93,17 +93,17 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
     }
 
     @Override
-    public ResourceLocation getId() {
+    public @NotNull ResourceLocation getId() {
         return id;
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
+    public @NotNull RecipeSerializer<?> getSerializer() {
         return ModRecipeSerializers.SHOP_BUY_ITEM_SERIALIZER.get();
     }
 
     @Override
-    public RecipeType<?> getType() {
+    public @NotNull RecipeType<?> getType() {
         return ModRecipeTypes.SHOP_BUY_ITEM.get();
     }
 
@@ -111,7 +111,7 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
 
         public @NotNull BuyItemRecipe fromJson(@NotNull ResourceLocation id, @NotNull JsonObject json) {
             long price = GsonHelper.getAsLong(json, "price");
-            ItemStack item = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
+            ItemStack item = CraftingHelper.getItemStack(GsonHelper.getAsJsonObject(json, "item"), true, true);
             if (item.getCount() > item.getMaxStackSize()) {
                 AdminShop.LOGGER.warn("ItemStack count {} exceeds max stack size {} for item {}", item.getCount(), item.getMaxStackSize(), item.getItem());
                 item.setCount(item.getMaxStackSize());
