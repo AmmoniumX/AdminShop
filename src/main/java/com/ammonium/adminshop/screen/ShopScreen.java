@@ -330,7 +330,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                 if (itemRecipe != null) {
                     // Attempt to sell it
                     AdminShop.LOGGER.debug("Found recipe: {}", itemRecipe.getId());
-                    int maxFit = itemStack.getCount() / itemRecipe.getItem().getCount();
+                    int maxFit = itemStack.getCount() / itemRecipe.getCount();
                     if (maxFit < 1) {
                         AdminShop.LOGGER.debug("Not enough items to sell");
                         return false;
@@ -381,16 +381,15 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                 .map(recipe -> (ShopRecipe) recipe)
                 .toList());
         }
+        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size: "+searchResults.size());
         // Filter by search if it is set
         if (!this.search.isEmpty()) {
-//            shopItems = shopItems.stream().filter(shopItem -> shopItem.getItem().getDisplayName().getString()
-//                    .toLowerCase().strip().contains(this.search.toLowerCase().strip())).toList();
             searchResults = searchResults.stream().filter(recipe -> {
                 if (recipe instanceof BuyItemRecipe) {
-                    return ((BuyItemRecipe) recipe).getItem().getDisplayName().getString()
+                    return ((BuyItemRecipe) recipe).getItem().get().getDisplayName().getString()
                             .toLowerCase().strip().contains(this.search.toLowerCase().strip());
                 } else if (recipe instanceof SellItemRecipe) {
-                    return ((SellItemRecipe) recipe).getItem().getDisplayName().getString()
+                    return ((SellItemRecipe) recipe).getItem().get().getDisplayName().getString()
                             .toLowerCase().strip().contains(this.search.toLowerCase().strip());
                 } else if (recipe instanceof BuyFluidRecipe) {
                     return ((BuyFluidRecipe) recipe).getFluid().getDisplayName().getString()
@@ -402,6 +401,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                 return false;
             }).toList();
         }
+        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size after filter: "+searchResults.size());
         List<ShopButton> shopButtons = isBuy ? buyButtons : sellButtons;
         //Clear shop buttons if they already exist
         shopButtons.forEach(this::removeWidget);

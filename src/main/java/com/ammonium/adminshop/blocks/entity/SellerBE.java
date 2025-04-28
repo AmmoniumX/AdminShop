@@ -157,11 +157,11 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
             AdminShop.LOGGER.debug("Handler is null");
             return;
         }
-        ItemStack item = recipe.getItem().copy();
         for (int slot = 0; slot < handler.getSlots(); slot++) {
-            ItemStack simulatedResult = handler.extractItem(slot, item.getCount(), true);
-            if (!simulatedResult.isEmpty() && simulatedResult.getCount() == item.getCount()) {
-                ItemStack itemResult = handler.extractItem(slot, item.getCount(), false);
+            if (!recipe.isMatchingItem(handler.getStackInSlot(slot))) { continue; }
+            ItemStack simulatedResult = handler.extractItem(slot, recipe.getCount(), true);
+            if (!simulatedResult.isEmpty() && simulatedResult.getCount() == recipe.getCount()) {
+                ItemStack itemResult = handler.extractItem(slot, recipe.getCount(), false);
                 AdminShop.LOGGER.debug("Sold item: {}", itemResult);
                 return;
             }

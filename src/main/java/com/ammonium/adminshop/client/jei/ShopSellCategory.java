@@ -75,7 +75,7 @@ public class ShopSellCategory implements IRecipeCategory<SellRecipe>{
     public void setRecipe(IRecipeLayoutBuilder builder, SellRecipe recipe, IFocusGroup focuses) {
         IRecipeSlotBuilder slotBuilder = builder.addSlot(RecipeIngredientRole.INPUT, 24, 5);
         if (recipe instanceof SellItemRecipe itemRecipe) {
-            slotBuilder.addItemStack(itemRecipe.getItem());
+            slotBuilder.addItemStacks(itemRecipe.getValidItems());
         } else if (recipe instanceof SellFluidRecipe fluidRecipe) {
             slotBuilder.addFluidStack(fluidRecipe.getFluid().getFluid(), fluidRecipe.getFluid().getAmount());
         } else {

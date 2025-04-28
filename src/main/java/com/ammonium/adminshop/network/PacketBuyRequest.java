@@ -145,7 +145,7 @@ public class PacketBuyRequest {
             // item logic
             // Attempt to insert the items, and only perform transaction on what can fit
             AdminShop.LOGGER.debug("Buying Item");
-            ItemStack toInsert = recipe.getItem().copy();
+            ItemStack toInsert = recipe.getItem().get();
             toInsert.setCount(quantity);
             ItemStack returned = ItemHandlerHelper.insertItemStacked(iItemHandler, toInsert, true);
             if(returned.getCount() == quantity) {

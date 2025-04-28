@@ -1,6 +1,5 @@
 package com.ammonium.adminshop.recipes;
 
-import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.interfaces.*;
 import com.ammonium.adminshop.money.BankAccount;
 import com.ammonium.adminshop.money.MoneyManager;
@@ -63,7 +62,9 @@ public class RecipeManager {
         return recipes;
     }
 
-    public static boolean matches(ItemStack item, ItemStack recipeItem) {
+    public static boolean matches(ItemStack item, BuyItemRecipe recipe) {
+        if (recipe.getItem().isEmpty()) { return false; }
+        ItemStack recipeItem = recipe.getItem().get();
         if (item.isEmpty() || recipeItem.isEmpty()) { return false; }
         if (item.getItem() != recipeItem.getItem()) { return false; }
         if (recipeItem.hasTag()) {
@@ -76,11 +77,11 @@ public class RecipeManager {
     public static Optional<BuyItemRecipe> isBuyItemRecipe(Level level, ItemStack item) {
         List<BuyItemRecipe> candidates = level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get())
                 .stream()
-                .filter(recipe -> matches(item, recipe.getItem()))
+                .filter(recipe -> matches(item, recipe))
                 .toList();
         Optional<BuyItemRecipe> firstWithNBT = candidates
                 .stream()
-                .filter(recipe -> recipe.getItem().hasTag())
+                .filter(recipe -> recipe.getItem().get().hasTag())
                 .findFirst();
         return firstWithNBT.or(() -> candidates.stream().findFirst());
     }
@@ -89,7 +90,6 @@ public class RecipeManager {
         if (id == null) { return Optional.empty(); }
         Optional<? extends Recipe<?>> recipe = level.getRecipeManager().byKey(id);
         if (recipe.isEmpty() || !(recipe.get() instanceof BuyItemRecipe)) {
-            AdminShop.LOGGER.debug("ShopRecipeManager.getShopBuyItemRecipe: recipe is empty or not a ShopBuyItemRecipe: {}", id);
             return Optional.empty();
         }
         return Optional.of((BuyItemRecipe) recipe.get());
@@ -102,11 +102,13 @@ public class RecipeManager {
     public static Optional<SellItemRecipe> isSellItemRecipe(Level level, ItemStack item) {
         List<SellItemRecipe> candidates = level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get())
                 .stream()
-                .filter(recipe -> matches(item, recipe.getItem()))
+                .filter(recipe -> recipe.isMatchingItem(item))
                 .toList();
         Optional<SellItemRecipe> firstWithNBT = candidates
                 .stream()
-                .filter(recipe -> recipe.getItem().hasTag())
+                .filter(recipe ->
+                        (recipe.getItem().isPresent() && recipe.getItem().get().hasTag())
+                )
                 .findFirst();
         return firstWithNBT.or(() -> candidates.stream().findFirst());
     }
@@ -125,7 +127,6 @@ public class RecipeManager {
     }
 
     public static Optional<BuyFluidRecipe> isBuyFluidRecipe(Level level, FluidStack fluid) {
-        AdminShop.LOGGER.debug("ShopRecipeManager.isBuyFluidRecipe: checking for recipe for fluid {}", fluid);
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_FLUID.get())
                 .stream()
                 .filter(recipe -> matches(fluid, recipe.getFluid()))

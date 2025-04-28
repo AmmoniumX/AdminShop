@@ -172,7 +172,7 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
 
         // Check for space
         IItemHandler handler = buyerBE.getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(NullPointerException::new);
-        ItemStack simulated = ItemHandlerHelper.insertItemStacked(handler, recipe.getItem().copy(), true);
+        ItemStack simulated = ItemHandlerHelper.insertItemStacked(handler, recipe.getItem().get().copy(), true);
         if (simulated.isEmpty()) {
 
             // Buy the item and add to inventory

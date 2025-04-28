@@ -96,19 +96,19 @@ public class PacketSellRequest {
                     sellStack = itemHandler.getStackInSlot(slotIndex);
 
                     // Check if items match
-                    if (!RecipeManager.matches(sellStack, itemRecipe.getItem())) {
+                    if (!itemRecipe.isMatchingItem(sellStack)) {
                         AdminShop.LOGGER.debug("Item doesn't match recipe");
                         return;
                     }
 
                 } else {
                     // Check if item is in inventory
-                    int targetCount = (quantity > 0) ? itemRecipe.getItem().getCount() * quantity
-                            : itemRecipe.getItem().getCount();
+                    int targetCount = (quantity > 0) ? itemRecipe.getCount() * quantity
+                            : itemRecipe.getCount();
                     for (int i = 0; i < itemHandler.getSlots(); i++) {
                         ItemStack currentStack = itemHandler.getStackInSlot(i);
-                        if (RecipeManager.matches(currentStack, itemRecipe.getItem())
-                                && currentStack.getCount() >= targetCount) {
+                        AdminShop.LOGGER.debug("Checking stack {} against recipe: {}", currentStack, itemRecipe);
+                        if (itemRecipe.isMatchingItem(currentStack) && currentStack.getCount() >= targetCount) {
                             AdminShop.LOGGER.debug("Found item in slot {}: {}", i, currentStack);
                             slotIndex = i;
                             sellStack = currentStack;
@@ -129,17 +129,17 @@ public class PacketSellRequest {
 
                 // Check if quantities match
                 if (quantity > 0) {
-                    if (sellStack.getCount() < itemRecipe.getItem().getCount() * quantity) {
+                    if (sellStack.getCount() < itemRecipe.getCount() * quantity) {
                         AdminShop.LOGGER.debug("Not enough items to sell");
                         return;
                     }
                 } else {
                     // If quantity is not provided, we want to sell as many items as we can in one "batch"
-                    quantity = sellStack.getCount() / itemRecipe.getItem().getCount();
+                    quantity = sellStack.getCount() / itemRecipe.getCount();
                 }
 
                 // Execute the sell
-                AdminShop.LOGGER.debug("Selling item: {} x{}", sellStack.getDisplayName().getString(), itemRecipe.getItem().getCount() * quantity);
+                AdminShop.LOGGER.debug("Selling item: {} x{}", sellStack.getDisplayName().getString(), itemRecipe.getCount() * quantity);
                 sellItem(supplier, slotIndex, itemRecipe, quantity);
 
             } else if (recipe instanceof SellFluidRecipe fluidRecipe) {
@@ -261,7 +261,7 @@ public class PacketSellRequest {
         assert player != null;
         Inventory playerInventory = player.getInventory();
         IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
-        int toSell = recipe.getItem().getCount() * quantity;
+        int toSell = recipe.getCount() * quantity;
         int numSold = itemHandler.extractItem(slotIndex, toSell, false).getCount();
         long price = quantity * recipe.getPrice();
         if (numSold != toSell) {

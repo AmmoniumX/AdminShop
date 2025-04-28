@@ -2,6 +2,8 @@ package com.ammonium.adminshop.client.gui;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.money.MoneyFormat;
+import com.ammonium.adminshop.recipes.BuyItemRecipe;
+import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.recipes.interfaces.FluidRecipe;
 import com.ammonium.adminshop.recipes.interfaces.ItemRecipe;
 import com.ammonium.adminshop.recipes.interfaces.ShopRecipe;
@@ -63,7 +65,7 @@ public class ShopButton extends Button {
 
         //Draw item or fluid
         if(recipe instanceof ItemRecipe itemRecipe) {
-            itemRenderer.renderGuiItem(itemRecipe.getItem(), x, y);
+            itemRenderer.renderGuiItem(itemRecipe.getDisplayItem(), x, y);
         } else { // Render Fluid
             // Set render for fluid
 //            enableScissor(x, y, x + width, y + height);
@@ -92,11 +94,13 @@ public class ShopButton extends Button {
         Font font = Minecraft.getInstance().font;
         int numItems = getNumItems();
         drawString(matrix, font, numItems+"", 2*(x+16)- font.width(numItems+""), 2*(y)+24, 0xFFFFFF);
-//        if(recipe.isTag()) {
-//            drawString(matrix, font, "#", 2 * x + width * 2 - font.width("#") - 1, 2 * y + 1, 0xFFC921);
-//        }
-        if (recipe instanceof ItemRecipe itemRecipe && itemRecipe.getItem().hasTag()) {
-            drawString(matrix, font, "+NBT", 2 * x + width * 2 - font.width("+NBT") - 1, 2 * y + 1, 0xFF55FF);
+        if( recipe instanceof ItemRecipe itemRecipe) {
+            if (itemRecipe instanceof SellItemRecipe sellRecipe && sellRecipe.getSellType() == SellItemRecipe.SellTypes.TAG) {
+                drawString(matrix, font, "#", 2 * x + width * 2 - font.width("#") - 1, 2 * y + 1, 0xFFC921);
+            }
+            if (itemRecipe.getItem().isPresent() && itemRecipe.getItem().get().hasTag()) {
+                drawString(matrix, font, "+NBT", 2 * x + width * 2 - font.width("+NBT") - 1, 2 * y + 1, 0xFF55FF);
+            }
         }
         matrix.popPose();
 
@@ -104,19 +108,31 @@ public class ShopButton extends Button {
     }
 
     private int getNumItems() {
-        if (recipe instanceof ItemRecipe itemRecipe) {
-            return itemRecipe.getItem().getCount() * getQuantity();
-        } else if (recipe instanceof FluidRecipe fluidRecipe) {
-            return fluidRecipe.getFluid().getAmount() * getQuantity();
-        } else {
-            AdminShop.LOGGER.error("ShopButton: Unknown recipe type: {}", recipe.getClass());
-            return -1;
-        }
+        return recipe.getCount() * getQuantity();
     }
 
     public int getQuantity(){
         if (recipe instanceof ItemRecipe itemRecipe) {
-            int maxFits = itemRecipe.getItem().getMaxStackSize() / itemRecipe.getItem().getCount();
+
+            // Get max fits based on stack size
+            int maxFits;
+            if (itemRecipe instanceof BuyItemRecipe buyRecipe) {
+                maxFits = buyRecipe.getItem().get().getMaxStackSize() / buyRecipe.getCount();
+            } else if (itemRecipe instanceof SellItemRecipe sellRecipe) {
+                if (sellRecipe.getSellType() == SellItemRecipe.SellTypes.ITEM) {
+                    maxFits = sellRecipe.getItem().get().getMaxStackSize() / sellRecipe.getCount();
+                } else if (sellRecipe.getSellType() == SellItemRecipe.SellTypes.TAG) {
+                    maxFits = sellRecipe.getFirstItem().getMaxStackSize() / sellRecipe.getCount();
+                } else {
+                    AdminShop.LOGGER.error("ShopButton: Unknown sell item recipe type: {}", sellRecipe.getSellType());
+                    return 0;
+                }
+            } else {
+                AdminShop.LOGGER.error("ShopButton: Unknown item recipe type: {}", itemRecipe.getClass());
+                return 0;
+            }
+
+            // Get quantity based on key presses and max fits
             if (Screen.hasControlDown()) {
                 return maxFits;
             }
@@ -124,7 +140,7 @@ public class ShopButton extends Button {
                 return Math.max(maxFits / 2, 1);
             }
             return 1;
-        } else if (recipe instanceof FluidRecipe fluidRecipe) {
+        } else if (recipe instanceof FluidRecipe) {
             return 1;
         } else {
             AdminShop.LOGGER.error("ShopButton: Unknown recipe type: {}", recipe.getClass());

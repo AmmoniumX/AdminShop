@@ -63,6 +63,10 @@ public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
         return fluid.copy();
     }
 
+    public int getCount() {
+        return fluid.getAmount();
+    }
+
     public String getName() {
         return fluid.getDisplayName().getString();
     }

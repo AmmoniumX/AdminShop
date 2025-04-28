@@ -198,8 +198,8 @@ public class BuyerScreen extends AbstractContainerScreen<BuyerMenu> {
 
         this.blit(poseStack, x, y, 0, 0, imageWidth, imageHeight);
         if (this.recipe != null) {
-            renderItem(poseStack, this.recipe.getItem().getItem(), x+104, y+14);
-            if (this.recipe.getItem().hasTag()) {
+            renderItem(poseStack, this.recipe.getItem().get().getItem(), x+104, y+14);
+            if (this.recipe.getItem().get().hasTag()) {
                 drawString(poseStack, font, "+NBT", x+104-font.width("+NBT")-1, y+14, 0xFF55FF);
             }
         }

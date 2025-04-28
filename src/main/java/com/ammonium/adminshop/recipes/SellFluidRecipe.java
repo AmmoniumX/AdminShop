@@ -77,6 +77,10 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
         return permit;
     }
 
+    public int getCount() {
+        return fluid.getAmount();
+    }
+
     public String getName() {
         return fluid.getDisplayName().getString();
     }

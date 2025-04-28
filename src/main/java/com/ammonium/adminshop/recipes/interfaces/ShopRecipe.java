@@ -6,5 +6,6 @@ import net.minecraft.world.item.crafting.Recipe;
 public interface ShopRecipe extends Recipe<Container> {
     String getPermit();
     long getPrice();
+    int getCount();
     String getName();
 }

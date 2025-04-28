@@ -2,9 +2,9 @@
   "type": "adminshop:item_selling",
   "price": 100,
   "input": {
-    "item": {
-      "item": "minecraft:cobblestone",
-      "count": 32
+    "tag": {
+      "tag": "minecraft:wool",
+      "count": 16
     }
   }
 }

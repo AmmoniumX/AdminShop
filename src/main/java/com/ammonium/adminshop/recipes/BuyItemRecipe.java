@@ -20,6 +20,9 @@ import net.minecraftforge.common.crafting.CraftingHelper;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+import java.util.Optional;
+
 public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
     private final ResourceLocation id;
     private final long price;
@@ -47,8 +50,21 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
         return true;
     }
 
-    public ItemStack getItem() {
+    public Optional<ItemStack> getItem() {
+        return Optional.of(result.copy());
+    }
+
+    public ItemStack getDisplayItem() {
         return result.copy();
+    }
+
+    @Override
+    public List<ItemStack> getValidItems() {
+        return List.of(result.copy());
+    }
+
+    public int getCount() {
+        return result.getCount();
     }
 
     public long getPrice() {
@@ -111,7 +127,7 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
 
         public @NotNull BuyItemRecipe fromJson(@NotNull ResourceLocation id, @NotNull JsonObject json) {
             long price = GsonHelper.getAsLong(json, "price");
-            ItemStack item = CraftingHelper.getItemStack(GsonHelper.getAsJsonObject(json, "item"), true, true);
+            ItemStack item = CraftingHelper.getItemStack(GsonHelper.getAsJsonObject(json, "result"), true, true);
             if (item.getCount() > item.getMaxStackSize()) {
                 AdminShop.LOGGER.warn("ItemStack count {} exceeds max stack size {} for item {}", item.getCount(), item.getMaxStackSize(), item.getItem());
                 item.setCount(item.getMaxStackSize());
