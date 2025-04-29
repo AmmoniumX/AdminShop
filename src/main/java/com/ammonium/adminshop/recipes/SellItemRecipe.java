@@ -2,8 +2,7 @@ package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.interfaces.ItemSellerMachine;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.interfaces.ItemRecipe;
 import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import com.google.gson.JsonObject;
@@ -26,7 +25,6 @@ import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -165,10 +163,13 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
         }
     }
 
-    public boolean matches(BankAccount account, ItemSellerMachine machine) {
-
+    public boolean matches(MoneyHelper.MoneyAccount account, ItemSellerMachine machine) {
+        if (account == null) {
+            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account is null");
+            return false;
+        }
         // Check permit status
-        if ((!permit.isEmpty()) && (!account.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
+        if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }
@@ -192,9 +193,8 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
     public void sell(ServerLevel level, ItemSellerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds
-        MoneyManager manager = MoneyManager.get(level);
-        Pair<String, Integer> account = machine.getAccountId();
-        manager.addBalance(account, price);
+        MoneyHelper.get(level).addMoney(machine.getTeamId(), price);
+        return;
     }
 
     @Override

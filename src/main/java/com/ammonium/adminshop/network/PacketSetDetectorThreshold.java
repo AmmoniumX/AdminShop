@@ -2,10 +2,11 @@ package com.ammonium.adminshop.network;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.interfaces.Detector;
+import com.ammonium.adminshop.money.MoneyHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -38,27 +39,22 @@ public class PacketSetDetectorThreshold {
 
             // Change machine's account
             ServerPlayer player = ctx.getSender();
-
             if (player != null) {
-                System.out.println("Setting detector threshold for "+this.pos+" to "+this.threshold);
-                // Get IDetectorBE
-                Level level = player.level;
+                AdminShop.LOGGER.debug("Setting detector threshold for {} to {}", this.pos, this.threshold);
+                ServerLevel level = player.getLevel();
                 BlockEntity blockEntity = level.getBlockEntity(this.pos);
                 if (!(blockEntity instanceof Detector detectorBE)) {
                     AdminShop.LOGGER.error("BlockEntity at pos is not Detector");
                     return;
                 }
-                // Check machine's owner is the same as player
-                if (!detectorBE.getOwnerUUID().equals(player.getStringUUID())) {
-                    AdminShop.LOGGER.error("Player is not the machine's owner");
+                // Check if player has access to the machine
+                if (!MoneyHelper.get(level).isMemberOfTeam(detectorBE.getTeamId(), player)) {
+                    AdminShop.LOGGER.error("Player does not have access to the machine");
                     return;
                 }
                 System.out.println("Saving detector information.");
                 // Apply changes to detectorBE
                 detectorBE.setThreshold(this.threshold);
-                // Handled inside setThreshold()
-//                blockEntity.setChanged();
-//                detectorBE.sendUpdates();
             }
         });
         return true;

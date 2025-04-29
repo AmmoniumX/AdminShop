@@ -40,21 +40,6 @@ public class Messages {
                 .encoder(PacketSellRequest::toBytes)
                 .consumerMainThread(PacketSellRequest::handle)
                 .add();
-//        net.messageBuilder(PacketSyncShopToClient.class, id(), NetworkDirection.PLAY_TO_CLIENT)
-//                .decoder(PacketSyncShopToClient::new)
-//                .encoder(PacketSyncShopToClient::toBytes)
-//                .consumerMainThread(PacketSyncShopToClient::handle)
-//                .add();
-        net.messageBuilder(PacketMachineAccountChange.class, id(), NetworkDirection.PLAY_TO_SERVER)
-                .decoder(PacketMachineAccountChange::new)
-                .encoder(PacketMachineAccountChange::toBytes)
-                .consumerMainThread(PacketMachineAccountChange::handle)
-                .add();
-        net.messageBuilder(PacketChangeDefaultAccount.class, id(), NetworkDirection.PLAY_TO_SERVER)
-                .decoder(PacketChangeDefaultAccount::new)
-                .encoder(PacketChangeDefaultAccount::toBytes)
-                .consumerMainThread(PacketChangeDefaultAccount::handle)
-                .add();
         net.messageBuilder(PacketSetItemBuyerRecipe.class, id(), NetworkDirection.PLAY_TO_SERVER)
                 .decoder(PacketSetItemBuyerRecipe::new)
                 .encoder(PacketSetItemBuyerRecipe::toBytes)
@@ -69,11 +54,6 @@ public class Messages {
                 .decoder(PacketAccountAddPermit::new)
                 .encoder(PacketAccountAddPermit::toBytes)
                 .consumerMainThread(PacketAccountAddPermit::handle)
-                .add();
-        net.messageBuilder(PacketAccountRemovePermit.class, id(), NetworkDirection.PLAY_TO_SERVER)
-                .decoder(PacketAccountRemovePermit::new)
-                .encoder(PacketAccountRemovePermit::toBytes)
-                .consumerMainThread(PacketAccountRemovePermit::handle)
                 .add();
         net.messageBuilder(PacketUpdateRequest.class, id(), NetworkDirection.PLAY_TO_SERVER)
                 .decoder(PacketUpdateRequest::new)

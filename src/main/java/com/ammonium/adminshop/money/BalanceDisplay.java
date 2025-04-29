@@ -1,6 +1,6 @@
 package com.ammonium.adminshop.money;
+
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.setup.ClientConfig;
 import com.ammonium.adminshop.setup.Config;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -83,7 +83,11 @@ public class BalanceDisplay {
         // Update balance history at configured interval
         if (tick <= 0) {
             tick = BALANCE_DELTA_TICKS;
-            balance = ClientLocalData.getMoney(ClientConfig.getDefaultAccount());
+            MoneyHelper.MoneyAccount account = ClientCache.getAccount();
+            if (account == null) {
+                return;
+            }
+            balance = account.balance();
             history[0] = history[1];
             history[1] = balance;
         }

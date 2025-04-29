@@ -1,8 +1,7 @@
 package com.ammonium.adminshop.network;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.BuyFluidRecipe;
 import com.ammonium.adminshop.recipes.BuyItemRecipe;
 import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
@@ -24,8 +23,8 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 import net.minecraftforge.network.NetworkEvent;
-import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -34,41 +33,23 @@ import static java.lang.Math.ceil;
 
 public class PacketBuyRequest {
     private final int quantity;
-    private final String accOwner;
-    private final int accID;
+    private final UUID teamId;
     private final ResourceLocation recipeId; // final
 
-    public PacketBuyRequest(BankAccount bankAccount, ResourceLocation recipeId, int quantity){
-        this.accOwner = bankAccount.getOwner();
-        this.accID = bankAccount.getId();
-        this.recipeId = recipeId;
-        this.quantity = quantity;
-    }
-
-    public PacketBuyRequest(Pair<String, Integer> bankAccount, ResourceLocation recipeId, int quantity){
-        this.accOwner = bankAccount.getKey();
-        this.accID = bankAccount.getValue();
-        this.recipeId = recipeId;
-        this.quantity = quantity;
-    }
-
-    public PacketBuyRequest(String owner, int ownerId, ResourceLocation recipeId, int quantity){
-        this.accOwner = owner;
-        this.accID = ownerId;
+    public PacketBuyRequest(UUID teamId, ResourceLocation recipeId, int quantity){
+        this.teamId = teamId;
         this.recipeId = recipeId;
         this.quantity = quantity;
     }
 
     public PacketBuyRequest(FriendlyByteBuf buf){
-        this.accOwner = buf.readUtf();
-        this.accID = buf.readInt();
+        this.teamId = buf.readUUID();
         this.recipeId = buf.readResourceLocation();
         this.quantity = buf.readInt();
     }
 
     public void toBytes(FriendlyByteBuf buf){
-        buf.writeUtf(accOwner);
-        buf.writeInt(accID);
+        buf.writeUUID(teamId);
         buf.writeResourceLocation(recipeId);
         buf.writeInt(quantity);
     }
@@ -78,6 +59,8 @@ public class PacketBuyRequest {
         ctx.enqueueWork(() -> {
             //Client side accessed here
             //Do NOT call client-only code though, since server needs to access this too
+            ServerPlayer player = ctx.getSender();
+            assert player != null;
             ServerLevel level = ctx.getSender().getLevel();
 
             Recipe<?> rawRecipe = level.getRecipeManager().byKey(recipeId).orElse(null);
@@ -93,16 +76,10 @@ public class PacketBuyRequest {
                 AdminShop.LOGGER.debug("Fluid: {}", fluidRecipe.getFluid());
             }
 
-            ServerPlayer player = ctx.getSender();
-            assert player != null;
-            MoneyManager moneyManager = MoneyManager.get(player.getLevel());
-
             // Check if account has permit requirement
-            BankAccount bankAccount = moneyManager.getBankAccount(this.accOwner, this.accID);
-            if (!bankAccount.hasPermit(recipe.getPermit())) {
-                AdminShop.LOGGER.error("Account {}:{} does not have permit tier {}", accOwner, accID, recipe.getPermit());
-                player.sendSystemMessage(Component.literal( MojangAPI.getUsernameByUUID(accOwner)+":"+accID+" does not " +
-                                "have permit tier "+ recipe.getPermit()));
+            if (!MoneyHelper.get(level).hasPermit(teamId, recipe.getPermit())) {
+                AdminShop.LOGGER.error("Account {} does not have permit {}", teamId, recipe.getPermit());
+                player.sendSystemMessage(Component.literal( "Your account does not have permit '"+recipe.getPermit()+"'"));
                 return;
             }
 
@@ -137,25 +114,27 @@ public class PacketBuyRequest {
         // IItemHandler inventory = player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
-        // Get item handler
         assert player != null;
+        ServerLevel level = player.getLevel();
+        // Get item handler
         Inventory playerInventory = player.getInventory();
         LazyOptional<IItemHandler> mainInventoryHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory));
         mainInventoryHandler.ifPresent(iItemHandler -> {
             // item logic
             // Attempt to insert the items, and only perform transaction on what can fit
             AdminShop.LOGGER.debug("Buying Item");
+            int numItems = quantity * recipe.getCount();
             ItemStack toInsert = recipe.getItem().get();
-            toInsert.setCount(quantity);
+            toInsert.setCount(numItems);
             ItemStack returned = ItemHandlerHelper.insertItemStacked(iItemHandler, toInsert, true);
-            if(returned.getCount() == quantity) {
+//            AdminShop.LOGGER.debug("Returned:{}x {}", returned.getCount(), returned);
+            if(returned.getCount() == numItems) {
                 player.sendSystemMessage(Component.literal("Not enough inventory space for item!"));
             }
-            long itemCost = recipe.getPrice();
-            long price = (long) ceil((quantity - returned.getCount()) * itemCost);
+            long price = quantity * recipe.getPrice();
 
-            MoneyManager moneyManager = MoneyManager.get(player.getLevel());
-            boolean success = moneyManager.subtractBalance(accOwner, accID, price);
+            MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getAccountById(teamId);
+            boolean success = MoneyHelper.get(level).removeMoney(teamId, price);
             if (success) {
                 ItemHandlerHelper.insertItemStacked(iItemHandler, toInsert, false);
             } else {
@@ -165,10 +144,12 @@ public class PacketBuyRequest {
         });
     }
     private void buyFluidTransaction(Supplier<NetworkEvent.Context> supplier, BuyFluidRecipe recipe, int quantity) {
+        // TODO fix not working with buckets
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
-        // Get item handler
         assert player != null;
+        ServerLevel level = player.getLevel();
+        // Get item handler
         Inventory playerInventory = player.getInventory();
         LazyOptional<IItemHandler> mainInventoryHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory));
         mainInventoryHandler.ifPresent(itemHandler -> {
@@ -204,9 +185,8 @@ public class PacketBuyRequest {
             long fluidCost = recipe.getPrice();
             long price = (long) ceil(filledAmount.get() * fluidCost);
 
-
-            MoneyManager moneyManager = MoneyManager.get(player.getLevel());
-            boolean success = moneyManager.subtractBalance(accOwner, accID, price);
+            MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getAccountById(teamId);
+            boolean success = MoneyHelper.get(level).removeMoney(teamId, price);
             if (success) {
                 newContainer.get().getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).ifPresent(fluidHandler -> {
                     AdminShop.LOGGER.debug("Attempt to fill with {}, {}", toInsert.getDisplayName().getString(), toInsert.getAmount());

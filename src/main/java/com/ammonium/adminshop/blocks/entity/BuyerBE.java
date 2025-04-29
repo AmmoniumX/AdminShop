@@ -29,12 +29,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachine, WorldlyContainer {
     private static final int slotSize = 1;
@@ -43,8 +43,7 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
     private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
     private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
 
-    private String ownerUUID;
-    private Pair<String, Integer> account;
+    private UUID teamId = null;
     private ResourceLocation recipeId = null;
     private int tickCounter = 0;
 
@@ -53,25 +52,18 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
         super(ModBlockEntities.BUYER_1.get(), blockPos, blockState);
     }
 
-    public void setOwnerUUID(String ownerUUID) {
-        this.ownerUUID = ownerUUID;
+    @Override
+    public void setTeamId(UUID teamId) {
+        this.teamId = teamId;
         this.setChanged();
         this.sendUpdates();
     }
 
-    public String getOwnerUUID() {
-        return ownerUUID;
+    @Override
+    public UUID getTeamId() {
+        return teamId;
     }
 
-    public void setAccount(Pair<String, Integer> account) {
-        this.account = account;
-        this.setChanged();
-        this.sendUpdates();
-    }
-
-    public Pair<String, Integer> getAccountId() {
-        return account;
-    }
     public void setRecipe(ResourceLocation recipeId) {
         this.recipeId = recipeId;
         this.setChanged();
@@ -197,12 +189,8 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
     public @NotNull CompoundTag getUpdateTag() {
         CompoundTag tag = super.getUpdateTag();
         ContainerHelper.saveAllItems(tag, this.stacks);
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
@@ -232,13 +220,8 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
     public void handleUpdateTag(CompoundTag tag) {
         super.handleUpdateTag(tag);
         ContainerHelper.loadAllItems(tag, this.stacks);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
         if (tag.contains("recipe")) {
             this.recipeId = new ResourceLocation(tag.getString("recipe"));
@@ -252,12 +235,8 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
     protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
         ContainerHelper.saveAllItems(tag, this.stacks);
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
@@ -268,13 +247,8 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
     public void load(@NotNull CompoundTag tag) {
         super.load(tag);
         ContainerHelper.loadAllItems(tag, this.stacks);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
         if (tag.contains("recipe")) {
             this.recipeId = new ResourceLocation(tag.getString("recipe"));

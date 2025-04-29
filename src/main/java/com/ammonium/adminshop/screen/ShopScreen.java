@@ -3,14 +3,11 @@ package com.ammonium.adminshop.screen;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.ShopBlock;
 import com.ammonium.adminshop.client.gui.BuySellButton;
-import com.ammonium.adminshop.client.gui.ChangeAccountButton;
-import com.ammonium.adminshop.client.gui.SetDefaultAccountButton;
 import com.ammonium.adminshop.client.gui.ShopButton;
 import com.ammonium.adminshop.item.ModItems;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.ClientLocalData;
+import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyFormat;
-import com.ammonium.adminshop.network.MojangAPI;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketAccountAddPermit;
 import com.ammonium.adminshop.network.PacketBuyRequest;
 import com.ammonium.adminshop.network.PacketSellRequest;
@@ -18,7 +15,6 @@ import com.ammonium.adminshop.recipes.*;
 import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
 import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import com.ammonium.adminshop.recipes.interfaces.ShopRecipe;
-import com.ammonium.adminshop.setup.ClientConfig;
 import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -32,24 +28,21 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private final ResourceLocation GUI = new ResourceLocation(AdminShop.MODID, "textures/gui/shop_gui.png");
     private final String GUI_BUY = "gui.buy";
     private final String GUI_SELL = "gui.sell";
-    private final String playerUUID;
     private static final int NUM_ROWS = 4, NUM_COLS = 9;
     private static final int SHOP_BUTTON_X = 16;
     private static final int SHOP_BUTTON_Y = 33;
@@ -60,18 +53,12 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private final List<ShopButton> sellButtons;
     private List<ShopRecipe> searchResults = new ArrayList<>();
     private boolean isBuy; //Whether the Buy option is currently selected
-    private Map<Pair<String, Integer>, BankAccount> accountMap;
-    private final List<Pair<String, Integer>> usableAccounts = new ArrayList<>();
-    private int usableAccountsIndex = -1; // -1 for unset
-    private ChangeAccountButton changeAccountButton;
-    private SetDefaultAccountButton setDefaultAccountButton;
     private BuySellButton buySellButton;
     private EditBox searchBar;
     private int tickCounter = 0;
     private String search = "";
-    private final Pair<String, Integer> personalAccount;
     private int relX, relY;
-    private String username = "";
+    private UUID teamId = null;
 
     public ShopScreen(ShopMenu container, Inventory inv, Component name) {
         super(container, inv, name);
@@ -80,27 +67,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         assert Minecraft.getInstance().level != null;
         assert Minecraft.getInstance().level.isClientSide;
 
-        this.playerUUID = Minecraft.getInstance().player.getStringUUID();
-        this.personalAccount = Pair.of(playerUUID, 1);
-        this.accountMap = ClientLocalData.getAccountMap();
-
-        if (!this.accountMap.containsKey(personalAccount)) {
-            AdminShop.LOGGER.warn("Couldn't find personal account, creating one.");
-            AdminShop.LOGGER.warn(personalAccount.getKey()+":"+personalAccount.getValue());
-            BankAccount personalBankAccount = ClientLocalData.addAccount(new BankAccount(personalAccount.getKey(),
-                    personalAccount.getValue()));
-            // Refresh account map
-            this.accountMap = ClientLocalData.getAccountMap();
-        }
-        this.usableAccounts.clear();
-        ClientLocalData.getUsableAccounts().forEach(account -> this.usableAccounts.add(Pair.of(account.getOwner(),
-                account.getId())));
-
-        // Get default account
-        Pair<String, Integer> currentAccount = ClientConfig.getDefaultAccount();
-        this.usableAccountsIndex = findUsableAccountIndex(currentAccount);
-//        currentAccount = getAccountDetails();
-//        AdminShop.LOGGER.debug("Set default account to "+currentAccount.getKey()+":"+currentAccount.getValue());
+        this.teamId = ClientCache.getAccount().teamId();
 
         this.shopMenu = container;
         this.imageWidth = 195;
@@ -113,52 +80,6 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
         isBuy = true;
     }
-    // Finds index in usableAccounts of account
-    private int findUsableAccountIndex(String accOwner, int accId) {
-        for (int i = 0; i < this.usableAccounts.size(); i++) {
-            Pair<String, Integer> account = this.usableAccounts.get(i);
-            if (account.getKey().equals(accOwner) && account.getValue().equals(accId)) {
-                return i;
-            }
-        }
-        AdminShop.LOGGER.warn("No account "+accOwner+":"+accId+" found in usableAccounts, fallback to personal account");
-
-        // Fallback to personal account
-        int personalAccountIndex = this.usableAccounts.indexOf(this.personalAccount);
-        if (personalAccountIndex != -1) {
-            return personalAccountIndex;
-        } else if (!this.usableAccounts.isEmpty()){
-            AdminShop.LOGGER.warn("Personal account not found in usableAccounts, fallback to first usable account");
-            return 0;
-        } else {
-            AdminShop.LOGGER.error("usableAccounts is empty!");
-            return -1;
-        }
-    }
-
-    private int findUsableAccountIndex(Pair<String, Integer> account) {
-        return findUsableAccountIndex(account.getKey(), account.getValue());
-    }
-
-    // Update and save the default account to the client config
-    public void setDefaultAccount(Pair<String, Integer> account) {
-        // Update ClientConfig
-        ClientConfig.setDefaultAccount(account);
-        // Update the usableAccountsIndex with the new values
-        this.usableAccountsIndex = findUsableAccountIndex(account);
-    }
-
-    private Pair<String, Integer> getAccountDetails() {
-        if (usableAccountsIndex == -1) {
-            AdminShop.LOGGER.error("Account isn't properly set!");
-            return this.personalAccount;
-        }
-        return this.usableAccounts.get(this.usableAccountsIndex);
-    }
-
-    private BankAccount getBankAccount() {
-        return ClientLocalData.getAccountMap().get(getAccountDetails());
-    }
 
 //    @SuppressWarnings("resource")
     @Override
@@ -166,21 +87,10 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         super.init();
         relX = (this.width - this.imageWidth) / 2;
         relY = (this.height - this.imageHeight) / 2;
-        // Fetch usable accounts (handled on constructor)
-//        this.usableAccounts.clear();
-//        ClientLocalData.getUsableAccounts().forEach(account -> this.usableAccounts.add(Pair.of(account.getOwner(),
-//                account.getId())));
-//        if (this.usableAccounts.size() < 1) {
-//            AdminShop.LOGGER.error("No usable accounts found!");
-//        }
-//        this.usableAccountsIndex = 0;
-        this.username = MojangAPI.getUsernameByUUID(getAccountDetails().getKey());
         rows_passed = 0;
         createShopButtons(false, relX, relY);
         createShopButtons(true, relX, relY);
         createBuySellButton(relX, relY);
-        createChangeAccountButton(relX, relY);
-        createSetDefaultAccountButton(relX, relY);
         createSearchBar(relX, relY);
         refreshShopButtons();
     }
@@ -239,18 +149,22 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         drawString(matrixStack, font, playerInventoryTitle, 16, getYSize()-94, 0xffffff);
 
         //Player Balance
-        BankAccount selectedAccount = getBankAccount();
-        long money = ClientLocalData.getMoney(getAccountDetails());
-        String formatted = Screen.hasAltDown() ? MoneyFormat.forcedFormat(money, MoneyFormat.FormatType.RAW) :
-                MoneyFormat.forcedFormat(money, MoneyFormat.FormatType.SHORT);
+        long balance = -1;
+        Component name = Component.empty();
+        MoneyHelper.MoneyAccount account = ClientCache.getAccount();
+        if (account != null) {
+            balance = account.balance();
+            name = account.name();
+        }
+        String formatted = Screen.hasAltDown() ? MoneyFormat.forcedFormat(balance, MoneyFormat.FormatType.RAW) :
+                MoneyFormat.forcedFormat(balance, MoneyFormat.FormatType.SHORT);
         drawString(matrixStack, Minecraft.getInstance().font,
                 formatted,
                 getXSize() - font.width(formatted) - 6,
                 6, 0xffffff);
 
         // Bank account
-        drawString(matrixStack, font, this.username+":"+
-                getAccountDetails().getValue(),16,112,0xffffff);
+        drawString(matrixStack, font, name.getString(),16,112,0xffffff);
 
         //Tooltip for item the player is hovering over
         List<ShopButton> shopButtons = isBuy ? buyButtons : sellButtons;
@@ -271,7 +185,6 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
             AdminShop.LOGGER.debug("Clicked on item: {}", itemStack);
             if (!itemStack.isEmpty()) {
                 // Get item clicked on
-                Item item = itemStack.getItem();
                 // Check if item is trade permit
                   if (itemStack.is(ModItems.PERMIT.get())) {
                     // Check if it has a “key” value
@@ -281,20 +194,27 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                             AdminShop.LOGGER.error("Trade permit has no key!");
                             return false;
                         }
-                        int key = compoundTag.getInt("key");
+                        String key = compoundTag.getString("key");
                         System.out.println("Key: "+key);
                         // check if key is valid
-                        if (key <= 0) {
+                        if (key.isEmpty()) {
                             AdminShop.LOGGER.error("Trade permit has invalid key!");
                             return false;
                         }
+
+                        // Check if we have an account
+                        MoneyHelper.MoneyAccount account = ClientCache.getAccount();
+                        if (account == null) {
+                            AdminShop.LOGGER.error("No account found!");
+                            return false;
+                        }
+
                         // Add permit tier to bank account
                         AdminShop.LOGGER.info("Adding permit to account: {}", key);
 //                        Minecraft.getInstance().player.sendSystemMessage(Component.literal("Adding permit "+key+" to account"),
 //                                Minecraft.getInstance().player.getUUID());
 //                        Minecraft.getInstance().player.playSound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
-                        Messages.sendToServer(new PacketAccountAddPermit(this.usableAccounts.get(this.usableAccountsIndex),
-                                key, slot.getSlotIndex()));
+                        Messages.sendToServer(new PacketAccountAddPermit(account, key, slot.getSlotIndex()));
                         return false;
                     }
                 }
@@ -319,7 +239,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                                 AdminShop.LOGGER.debug("Not enough fluid to sell");
                                 return false;
                             }
-                            Messages.sendToServer(new PacketSellRequest(getBankAccount(), fluidRecipe.getId(), slot.getSlotIndex(), 1));
+                            Messages.sendToServer(new PacketSellRequest(this.teamId, fluidRecipe.getId(), slot.getSlotIndex(), 1));
                             return false;
                         }
                     }
@@ -335,7 +255,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                         AdminShop.LOGGER.debug("Not enough items to sell");
                         return false;
                     }
-                    Messages.sendToServer(new PacketSellRequest(getBankAccount(), itemRecipe.getId(), slot.getSlotIndex(),
+                    Messages.sendToServer(new PacketSellRequest(this.teamId, itemRecipe.getId(), slot.getSlotIndex(),
                             maxFit));
                     return false;
                 }
@@ -381,7 +301,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                 .map(recipe -> (ShopRecipe) recipe)
                 .toList());
         }
-        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size: "+searchResults.size());
+//        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size: "+searchResults.size());
         // Filter by search if it is set
         if (!this.search.isEmpty()) {
             searchResults = searchResults.stream().filter(recipe -> {
@@ -401,7 +321,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                 return false;
             }).toList();
         }
-        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size after filter: "+searchResults.size());
+//        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size after filter: "+searchResults.size());
         List<ShopButton> shopButtons = isBuy ? buyButtons : sellButtons;
         //Clear shop buttons if they already exist
         shopButtons.forEach(this::removeWidget);
@@ -425,7 +345,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                     x+SHOP_BUTTON_X+SHOP_BUTTON_SIZE*(j%NUM_COLS),
                     y+SHOP_BUTTON_Y+SHOP_BUTTON_SIZE*((j/NUM_COLS)%NUM_ROWS), itemRenderer, (b) -> {
                 int quantity = ((ShopButton)b).getQuantity();
-                attemptTransaction(getBankAccount(), finalShopItems.get(j2), quantity);
+                attemptTransaction(finalShopItems.get(j2), quantity);
             });
             shopButtons.add(button);
             button.visible = isBuy;
@@ -434,58 +354,6 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
     }
 
-    private void createChangeAccountButton(int x, int y) {
-        if(changeAccountButton != null) {
-            removeWidget(changeAccountButton);
-        }
-        changeAccountButton = new ChangeAccountButton(x+127, y+108, (b) -> {
-            changeAccounts();
-            assert Minecraft.getInstance().player != null;
-            Minecraft.getInstance().player.sendSystemMessage(Component.literal("Changed account to "+
-                    this.username+":"+
-                    getAccountDetails().getValue()));
-        });
-        addRenderableWidget(changeAccountButton);
-    }
-
-    private void createSetDefaultAccountButton(int x, int y) {
-        if(setDefaultAccountButton != null) {
-            removeWidget(setDefaultAccountButton);
-        }
-        setDefaultAccountButton = new SetDefaultAccountButton(x+109, y+108, (b) -> {
-            setDefaultAccount(getAccountDetails());
-            assert Minecraft.getInstance().player != null;
-            Minecraft.getInstance().player.sendSystemMessage(Component.literal("Set default account to "+
-                    this.username+":"+
-                    getAccountDetails().getValue()));
-        });
-        addRenderableWidget(setDefaultAccountButton);
-    }
-
-    private void changeAccounts() {
-        // Check if bankAccount was in usableAccountsIndex
-        if (this.usableAccountsIndex == -1) {
-            AdminShop.LOGGER.warn("BankAccount is not in usableAccountsIndex");
-            return;
-        }
-        // Refresh usable accounts
-        Pair<String, Integer> bankAccount = getAccountDetails();
-        List<Pair<String, Integer>> localAccountData = new ArrayList<>();
-        ClientLocalData.getUsableAccounts().forEach(account -> localAccountData.add(Pair.of(account.getOwner(),
-                account.getId())));
-        if (!this.usableAccounts.equals(localAccountData)) {
-            this.usableAccounts.clear();
-            this.usableAccounts.addAll(localAccountData);
-        }
-        // Change account, either by resetting to first (personal) account or moving to next sorted account
-        if (!this.usableAccounts.contains(bankAccount)) {
-            this.usableAccountsIndex = 0;
-        } else {
-            this.usableAccountsIndex = (this.usableAccounts.indexOf(bankAccount) + 1) % this.usableAccounts.size();
-        }
-        // Update username
-        this.username = MojangAPI.getUsernameByUUID(usableAccounts.get(usableAccountsIndex).getKey());
-    }
     private void createSearchBar(int x, int y) {
         int searchBarWidth = 70;
         int searchBarHeight = 12;
@@ -512,12 +380,8 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private void refreshShopButtons(){
         buyButtons.forEach(b -> b.visible = false);
         sellButtons.forEach(b -> b.visible = false);
-        changeAccountButton.visible = false;
-        setDefaultAccountButton.visible = false;
         List<ShopButton> categoryButtons = isBuy ? buyButtons : sellButtons;
         categoryButtons.forEach(b -> b.visible = true);
-        changeAccountButton.visible = true;
-        setDefaultAccountButton.visible = true;
     }
 
     @Override
@@ -538,14 +402,11 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         return super.mouseScrolled(pMouseX, pMouseY, pDelta);
     }
 
-    private void attemptTransaction(BankAccount bankAccount, ShopRecipe recipe, int quantity){
-        Pair<String, Integer> accountInfo = Pair.of(bankAccount.getOwner(), bankAccount.getId());
+    private void attemptTransaction(ShopRecipe recipe, int quantity){
         if (recipe instanceof BuyRecipe buyRecipe) {
-            Messages.sendToServer(new PacketBuyRequest(accountInfo, buyRecipe.getId(), quantity));
+            Messages.sendToServer(new PacketBuyRequest(this.teamId, buyRecipe.getId(), quantity));
         } else if (recipe instanceof SellRecipe sellRecipe) {
-            Messages.sendToServer(new PacketSellRequest(accountInfo, sellRecipe.getId(), -1, quantity));
+            Messages.sendToServer(new PacketSellRequest(this.teamId, sellRecipe.getId(), -1, quantity));
         }
-        // Refresh account map
-        this.accountMap = ClientLocalData.getAccountMap();
     }
 }

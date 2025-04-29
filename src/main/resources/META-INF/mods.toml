@@ -35,7 +35,7 @@ authors="Vnator, Ammonium" #optional
 # The description text for the mod (multi line!) (#mandatory)
 description='''
 Player-accessible shop configurable by modpack developers and server owners!
-Can buy and sell Items, Fluids, and Forge Energy (can only *sell* energy)
+Can buy and sell Items and Fluids
 '''
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.adminshop]] #optional
@@ -61,11 +61,15 @@ Can buy and sell Items, Fluids, and Forge Energy (can only *sell* energy)
     modId="patchouli"
     mandatory=true
     versionRange="[1.19.2,)"
-    ordering="NONE"
     side="BOTH"
 [[dependencies.adminshop]]
     modId="jei"
     mandatory=false
     versionRange="$jei_range"
     ordering="AFTER"
+    side="BOTH"
+[[dependencies.adminshop]]
+    modId="ftbteams"
+    mandatory=true
+    versionRange="[1902.2.14-build.123,)"
     side="BOTH"

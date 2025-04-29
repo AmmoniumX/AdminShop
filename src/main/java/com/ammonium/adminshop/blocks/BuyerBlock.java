@@ -3,7 +3,7 @@ package com.ammonium.adminshop.blocks;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.BuyerBE;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.BuyerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -32,8 +32,9 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.network.NetworkHooks;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 public class BuyerBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
@@ -67,15 +68,15 @@ public class BuyerBlock extends BaseEntityBlock {
         if (!pLevel.isClientSide()) {
             assert pLevel instanceof ServerLevel;
             ServerLevel serverLevel = (ServerLevel) pLevel;
-            if(pLevel.getBlockEntity(pPos) instanceof BuyerBE buyerEntity) {
+            if(pLevel.getBlockEntity(pPos) instanceof BuyerBE buyerEntity
+                && pPlayer instanceof ServerPlayer serverPlayer) {
 //                AdminShop.LOGGER.debug("Looking for account: "+buyerEntity.getAccount().toString());
-                if (MoneyManager.get(serverLevel).getBankAccount(buyerEntity.getAccountId())
-                        .containsMember(pPlayer.getStringUUID())) {
-//                    AdminShop.LOGGER.debug("Found account");
+                if (MoneyHelper.get(serverLevel).isMemberOfTeam(buyerEntity.getTeamId(), serverPlayer)) {
+                    AdminShop.LOGGER.debug("Found account");
                     // Open menu
                     NetworkHooks.openScreen((ServerPlayer) pPlayer, buyerEntity, pPos);
                 } else {
-//                    AdminShop.LOGGER.debug("Account not found");
+                    AdminShop.LOGGER.debug("Account not found");
                     // Wrong user
                     pPlayer.sendSystemMessage(Component.literal("You don't have access to this machine's account!"));
                     AdminShop.LOGGER.debug("You doesn't have access to this machine's account!");
@@ -117,13 +118,13 @@ public class BuyerBlock extends BaseEntityBlock {
         super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
         if (!pLevel.isClientSide) {
             // Server side code
+            ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
             if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof BuyerBE buyerEntity) {
-                MoneyManager moneyManager = MoneyManager.get(pLevel);
-                Pair<String, Integer> defaultAccount = moneyManager.getDefaultAccount(serverPlayer.getStringUUID());
-                buyerEntity.setOwnerUUID(serverPlayer.getStringUUID());
-                buyerEntity.setAccount(defaultAccount);
+                UUID teamId = MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId();
+                AdminShop.LOGGER.debug("Setting initial teamId: {}", teamId);
+                buyerEntity.setTeamId(teamId);
             }
         }
     }

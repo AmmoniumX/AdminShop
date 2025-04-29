@@ -1,13 +1,13 @@
 package com.ammonium.adminshop.blocks;
 
 import com.ammonium.adminshop.blocks.entity.ShopBE;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
 import com.ammonium.adminshop.screen.ShopMenu;
 import com.ammonium.adminshop.setup.Messages;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -127,9 +127,10 @@ public class ShopBlock extends BaseEntityBlock {
                     }
                 };
                 // Update usable accounts
-                MoneyManager moneyManager = MoneyManager.get(level);
-                List< BankAccount> usableAccounts = moneyManager.getSharedAccounts().get(player.getStringUUID());
-                Messages.sendToPlayer(new PacketSyncMoneyToClient(usableAccounts), (ServerPlayer) player);
+                ServerLevel serverLevel = (ServerLevel) level;
+                ServerPlayer serverPlayer = (ServerPlayer) player;
+                MoneyHelper.MoneyAccount account = MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer);
+                Messages.sendToPlayer(new PacketSyncMoneyToClient(account), (ServerPlayer) player);
                 NetworkHooks.openScreen((ServerPlayer) player, containerProvider);
             } else {
                 throw new IllegalStateException("Our named container provider is missing!");

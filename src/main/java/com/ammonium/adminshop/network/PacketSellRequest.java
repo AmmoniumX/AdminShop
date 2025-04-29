@@ -1,8 +1,7 @@
 package com.ammonium.adminshop.network;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.recipes.SellFluidRecipe;
 import com.ammonium.adminshop.recipes.SellItemRecipe;
@@ -23,45 +22,33 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 import net.minecraftforge.network.NetworkEvent;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class PacketSellRequest {
     private int quantity;
-    private final String accOwner;
-    private final int accID;
+    private final UUID teamId;
     private int slotIndex;
     private final ResourceLocation recipeId;
 
-    public PacketSellRequest(BankAccount account, ResourceLocation recipeId, int slotIndex, int quantity){
-        this.accOwner = account.getOwner();
-        this.accID = account.getId();
-        this.slotIndex = slotIndex;
-        this.recipeId = recipeId;
-        this.quantity = quantity;
-    }
-
-    public PacketSellRequest(Pair<String, Integer> account, ResourceLocation recipeId, int slotIndex, int quantity){
-        this.accOwner = account.getKey();
-        this.accID = account.getValue();
+    public PacketSellRequest(UUID teamId, ResourceLocation recipeId, int slotIndex, int quantity){
+        this.teamId = teamId;
         this.slotIndex = slotIndex;
         this.recipeId = recipeId;
         this.quantity = quantity;
     }
 
     public PacketSellRequest(FriendlyByteBuf buf){
-        this.accOwner = buf.readUtf();
-        this.accID = buf.readInt();
+        this.teamId = buf.readUUID();
         this.slotIndex = buf.readInt();
         this.recipeId = buf.readResourceLocation();
         this.quantity = buf.readInt();
     }
 
     public void toBytes(FriendlyByteBuf buf){
-        buf.writeUtf(accOwner);
-        buf.writeInt(accID);
+        buf.writeUUID(teamId);
         buf.writeInt(slotIndex);
         buf.writeResourceLocation(recipeId);
         buf.writeInt(quantity);
@@ -107,7 +94,7 @@ public class PacketSellRequest {
                             : itemRecipe.getCount();
                     for (int i = 0; i < itemHandler.getSlots(); i++) {
                         ItemStack currentStack = itemHandler.getStackInSlot(i);
-                        AdminShop.LOGGER.debug("Checking stack {} against recipe: {}", currentStack, itemRecipe);
+//                        AdminShop.LOGGER.debug("Checking stack {} against recipe: {}", currentStack, itemRecipe);
                         if (itemRecipe.isMatchingItem(currentStack) && currentStack.getCount() >= targetCount) {
                             AdminShop.LOGGER.debug("Found item in slot {}: {}", i, currentStack);
                             slotIndex = i;
@@ -259,6 +246,7 @@ public class PacketSellRequest {
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
         assert player != null;
+        ServerLevel level = player.getLevel();
         Inventory playerInventory = player.getInventory();
         IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
         int toSell = recipe.getCount() * quantity;
@@ -268,7 +256,7 @@ public class PacketSellRequest {
             AdminShop.LOGGER.debug("Target quantity and extracted value don't match: {}, {}", toSell, numSold);
             return;
         }
-        MoneyManager.get(player.getLevel()).addBalance(accOwner, accID, price);
+        MoneyHelper.get(level).addMoney(teamId, price);
     }
 
     private void sellFluid(Supplier<NetworkEvent.Context> supplier, int slotIndex, SellFluidRecipe recipe, int quantity) {
@@ -276,6 +264,7 @@ public class PacketSellRequest {
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
         assert player != null;
+        ServerLevel level = player.getLevel();
         Inventory playerInventory = player.getInventory();
         IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
         ItemStack toExtract = itemHandler.getStackInSlot(slotIndex);
@@ -300,7 +289,7 @@ public class PacketSellRequest {
             }
         }
 
-        MoneyManager.get(player.getLevel()).addBalance(accOwner, accID, price);
+        MoneyHelper.get(level).addMoney(teamId, price);
     }
 
 }

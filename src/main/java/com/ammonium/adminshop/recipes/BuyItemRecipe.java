@@ -2,8 +2,7 @@ package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.interfaces.ItemBuyerMachine;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
 import com.ammonium.adminshop.recipes.interfaces.ItemRecipe;
 import com.google.gson.JsonObject;
@@ -17,7 +16,6 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.crafting.CraftingHelper;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -36,14 +34,20 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
         this.permit = permit != null ? permit : "";
     }
 
-    public boolean matches(BankAccount account, ItemBuyerMachine machine) {
+    public boolean matches(MoneyHelper.MoneyAccount account, ItemBuyerMachine machine) {
+
+        if (account == null) {
+            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account is null");
+            return false;
+        }
+
         // Check permit status
-        if ((!permit.isEmpty()) && (!account.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
+        if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }
         // Check account balance
-        if (account.getBalance() < price) {
+        if (account.balance() < price) {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have enough money");
             return false;
         }
@@ -82,9 +86,8 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
     public ItemStack buy(ServerLevel level, ItemBuyerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds
-        MoneyManager manager = MoneyManager.get(level);
-        Pair<String, Integer> account = machine.getAccountId();
-        manager.subtractBalance(account, price);
+        MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getAccountById(machine.getTeamId());
+        MoneyHelper.get(level).removeMoney(account.teamId(), price);
         return result.copy();
     }
 

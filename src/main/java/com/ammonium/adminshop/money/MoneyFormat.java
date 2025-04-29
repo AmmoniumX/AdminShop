@@ -1,13 +1,11 @@
 package com.ammonium.adminshop.money;
 
-import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.setup.Config;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 
 import javax.annotation.Nullable;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Locale;
 

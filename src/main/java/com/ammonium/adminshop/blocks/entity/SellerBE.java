@@ -28,11 +28,11 @@ import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMachine, WorldlyContainer {
     private static final int slotSize = 1;
@@ -40,32 +40,23 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
     private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
     private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
 
-    private String ownerUUID;
-    private Pair<String, Integer> account;
+    private UUID teamId = null;
     private int tickCounter = 0;
 
     public SellerBE(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.SELLER.get(), pWorldPosition, pBlockState);
     }
 
-    public void setOwnerUUID(String ownerUUID) {
-        this.ownerUUID = ownerUUID;
+    @Override
+    public void setTeamId(UUID teamId) {
+        this.teamId = teamId;
         this.setChanged();
         this.sendUpdates();
     }
 
-    public String getOwnerUUID() {
-        return ownerUUID;
-    }
-
-    public void setAccount(Pair<String, Integer> account) {
-        this.account = account;
-        this.setChanged();
-        this.sendUpdates();
-    }
-
-    public Pair<String, Integer> getAccountId() {
-        return account;
+    @Override
+    public UUID getTeamId() {
+        return teamId;
     }
 
     @Override
@@ -162,6 +153,7 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
             ItemStack simulatedResult = handler.extractItem(slot, recipe.getCount(), true);
             if (!simulatedResult.isEmpty() && simulatedResult.getCount() == recipe.getCount()) {
                 ItemStack itemResult = handler.extractItem(slot, recipe.getCount(), false);
+                recipe.sell((ServerLevel) level, sellerBE);
                 AdminShop.LOGGER.debug("Sold item: {}", itemResult);
                 return;
             }
@@ -181,12 +173,8 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
     public @NotNull CompoundTag getUpdateTag() {
         CompoundTag tag = super.getUpdateTag();
         ContainerHelper.saveAllItems(tag, this.stacks);
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
         return tag;
     }
@@ -212,13 +200,8 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
     public void handleUpdateTag(CompoundTag tag) {
         super.handleUpdateTag(tag);
         ContainerHelper.loadAllItems(tag, this.stacks);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
     }
 
@@ -226,12 +209,8 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
     protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
         ContainerHelper.saveAllItems(tag, this.stacks);
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
     }
 
@@ -239,13 +218,8 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
     public void load(@NotNull CompoundTag tag) {
         super.load(tag);
         ContainerHelper.loadAllItems(tag, this.stacks);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
     }
 

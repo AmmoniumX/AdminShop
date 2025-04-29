@@ -2,11 +2,8 @@ package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.Buyer3BE;
-import com.ammonium.adminshop.client.gui.ChangeAccountButton;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.ClientLocalData;
-import com.ammonium.adminshop.network.MojangAPI;
-import com.ammonium.adminshop.network.PacketMachineAccountChange;
+import com.ammonium.adminshop.money.ClientCache;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketSetItemBuyerRecipe;
 import com.ammonium.adminshop.network.PacketUpdateRequest;
 import com.ammonium.adminshop.recipes.BuyItemRecipe;
@@ -22,115 +19,30 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
 public class Buyer3Screen extends AbstractContainerScreen<Buyer3Menu> {
     private static final ResourceLocation TEXTURE =
             new ResourceLocation(AdminShop.MODID, "textures/gui/buyer_3.png");
     private final BlockPos blockPos;
     private Buyer3BE buyerEntity;
-    private String ownerUUID;
-    private Pair<String, Integer> account;
+    private UUID teamId = null;
     private BuyItemRecipe recipe;
-    private ChangeAccountButton changeAccountButton;
-    private final List<Pair<String, Integer>> usableAccounts = new ArrayList<>();
-
-    private int usableAccountsIndex = -1; // -1 for unset
-    private String username = "";
 
     public Buyer3Screen(Buyer3Menu pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle);
         this.blockPos = blockPos;
     }
 
-    private Pair<String, Integer> getAccountDetails() {
-        if (usableAccountsIndex == -1 || usableAccountsIndex >= this.usableAccounts.size()) {
-            AdminShop.LOGGER.error("Account isn't properly set!");
-            return this.usableAccounts.get(0);
-        }
-        return this.usableAccounts.get(this.usableAccountsIndex);
-    }
-
-    private BankAccount getBankAccount() {
-        return ClientLocalData.getAccountMap().get(getAccountDetails());
-    }
-
-    private void createChangeAccountButton(int x, int y) {
-        if(changeAccountButton != null) {
-            removeWidget(changeAccountButton);
-        }
-        changeAccountButton = new ChangeAccountButton(x+119, y+62, (b) -> {
-            Player player = Minecraft.getInstance().player;
-            assert player != null;
-            // Check if player is the owner
-            if (!player.getStringUUID().equals(ownerUUID)) {
-                player.playNotifySound(SoundEvents.UI_BUTTON_CLICK, SoundSource.BLOCKS, 1.0f, 0.5f);
-                player.sendSystemMessage(Component.literal("You are not the owner of this machine!"));
-                return;
-            }
-            // Change accounts
-            changeAccounts();
-            Minecraft.getInstance().player.sendSystemMessage(Component.literal("Changed account to "+
-                    this.username+":"+ getAccountDetails().getValue()));
-        });
-        addRenderableWidget(changeAccountButton);
-    }
-
-    private void changeAccounts() {
-        // Check if bankAccount was in usableAccountsIndex
-        if (this.usableAccountsIndex == -1) {
-            AdminShop.LOGGER.error("BankAccount is not in usableAccountsIndex");
-            return;
-        }
-        // Refresh usable accounts
-        Pair<String, Integer> bankAccount = usableAccounts.get(usableAccountsIndex);
-        List<Pair<String, Integer>> localAccountData = new ArrayList<>();
-        ClientLocalData.getUsableAccounts().forEach(account -> localAccountData.add(Pair.of(account.getOwner(),
-                account.getId())));
-        if (!this.usableAccounts.equals(localAccountData)) {
-            this.usableAccounts.clear();
-            this.usableAccounts.addAll(localAccountData);
-        }
-        // Change account, either by resetting to first (personal) account or moving to next sorted account
-        if (!this.usableAccounts.contains(bankAccount)) {
-            this.usableAccountsIndex = 0;
-        } else {
-            this.usableAccountsIndex = (this.usableAccounts.indexOf(bankAccount) + 1) % this.usableAccounts.size();
-        }
-        // Update username
-        this.username = MojangAPI.getUsernameByUUID(this.usableAccounts.get(usableAccountsIndex).getKey());
-        // Send change package
-//        System.out.println("Registering account change with server...");
-        Messages.sendToServer(new PacketMachineAccountChange(this.ownerUUID, getAccountDetails().getKey(),
-                getAccountDetails().getValue(), this.blockPos));
-    }
     @Override
     protected void init() {
         super.init();
-        int relX = (this.width - this.imageWidth) / 2;
-        int relY = (this.height - this.imageHeight) / 2;
-        // Fetch usable accounts
-        this.usableAccounts.clear();
-        ClientLocalData.getUsableAccounts().forEach(account -> this.usableAccounts.add(Pair.of(account.getOwner(),
-                account.getId())));
-        if (this.usableAccounts.isEmpty()) {
-            AdminShop.LOGGER.warn("No usable accounts found!");
-        }
-        this.usableAccountsIndex = 0;
-        this.username = MojangAPI.getUsernameByUUID(getAccountDetails().getKey());
-        createChangeAccountButton(relX, relY);
 
         // Request update from server
 //        System.out.println("Requesting update from server");
@@ -138,22 +50,8 @@ public class Buyer3Screen extends AbstractContainerScreen<Buyer3Menu> {
     }
 
     private void updateInformation(Level level) {
-        this.ownerUUID = this.buyerEntity.getOwnerUUID();
-        this.account = this.buyerEntity.getAccountId();
+        this.teamId = this.buyerEntity.getTeamId();
         this.recipe = this.buyerEntity.getRecipe(level).orElse(null);
-
-        this.usableAccounts.clear();
-        ClientLocalData.getUsableAccounts().forEach(account -> this.usableAccounts.add(Pair.of(account.getOwner(),
-                account.getId())));
-        Optional<Pair<String, Integer>> search = this.usableAccounts.stream().filter(baccount ->
-                this.account.equals(Pair.of(baccount.getKey(), baccount.getValue()))).findAny();
-        if (search.isEmpty()) {
-            AdminShop.LOGGER.error("Player does not have access to this seller!");
-            this.usableAccountsIndex = -1;
-        } else {
-            Pair<String, Integer> result = search.get();
-            this.usableAccountsIndex = this.usableAccounts.indexOf(result);
-        }
     }
 
     @Override
@@ -174,7 +72,7 @@ public class Buyer3Screen extends AbstractContainerScreen<Buyer3Menu> {
                 }
                 // Set buyer target
                 // Check if account has permit to buy item
-                if (getBankAccount().hasPermit(recipe.getPermit())) {
+                if (ClientCache.hasPermit(recipe.getPermit())) {
                     this.buyerEntity.setRecipe(recipe.getId());
                     this.recipe = recipe;
                     Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, this.recipe.getId()));
@@ -210,16 +108,15 @@ public class Buyer3Screen extends AbstractContainerScreen<Buyer3Menu> {
     @Override
     protected void renderLabels(PoseStack poseStack, int mouseX, int mouseY) {
         super.renderLabels(poseStack, mouseX, mouseY);
-        if (this.usableAccounts == null || this.usableAccountsIndex == -1 || this.usableAccountsIndex >=
-                this.usableAccounts.size()) {
-            return;
+        Component name = Component.literal("No account");
+        boolean accAvailable = false;
+        MoneyHelper.MoneyAccount account = ClientCache.getAccount();
+        if (account != null) {
+            name = account.name();
+            accAvailable = true;
         }
-        Pair<String, Integer> account = getAccountDetails();
-        boolean accAvailable = this.usableAccountsIndex != -1 && ClientLocalData.accountAvailable(account.getKey(),
-                account.getValue());
         int color = accAvailable ? 0xffffff : 0xff0000;
-        drawString(poseStack, font, this.username+":"+ account.getValue(),
-                7,62,color);
+        drawString(poseStack, font, name.getString(), 7,62,color);
     }
 
     @Override
@@ -231,16 +128,13 @@ public class Buyer3Screen extends AbstractContainerScreen<Buyer3Menu> {
         // Get data from BlockEntity
         this.buyerEntity = this.getMenu().getBlockEntity();
 
-        String buyerOwnerUUID = this.buyerEntity.getOwnerUUID();
-        Pair<String, Integer> buyerAccount = this.buyerEntity.getAccountId();
+        UUID teamId = this.buyerEntity.getTeamId();
         BuyItemRecipe recipe = this.buyerEntity.getRecipe(Minecraft.getInstance().level).orElse(null);
 
-        boolean shouldUpdateDueToNulls = (this.ownerUUID == null && buyerOwnerUUID != null) ||
-                (this.account == null && buyerAccount != null) ||
+        boolean shouldUpdateDueToNulls = (this.teamId == null && teamId != null) ||
                 (this.recipe == null && recipe != null);
 
-        boolean shouldUpdateDueToDifferences = (this.ownerUUID != null && !this.ownerUUID.equals(buyerOwnerUUID)) ||
-                (this.account != null && !this.account.equals(buyerAccount)) ||
+        boolean shouldUpdateDueToDifferences = (this.teamId != null && !this.teamId.equals(teamId)) ||
                 (this.recipe != recipe);
 
         if (shouldUpdateDueToNulls || shouldUpdateDueToDifferences) {

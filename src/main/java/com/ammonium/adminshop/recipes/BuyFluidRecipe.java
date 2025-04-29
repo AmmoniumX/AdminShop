@@ -2,8 +2,7 @@ package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.interfaces.FluidBuyerMachine;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
 import com.ammonium.adminshop.recipes.interfaces.FluidRecipe;
 import com.google.gson.JsonObject;
@@ -19,7 +18,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
@@ -35,15 +33,20 @@ public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
         this.permit = permit != null ? permit : "";
     }
 
-    public boolean matches(BankAccount account, FluidBuyerMachine machine) {
+    public boolean matches(MoneyHelper.MoneyAccount account, FluidBuyerMachine machine) {
+
+        if (account == null) {
+            AdminShop.LOGGER.debug("ShopBuyFluidRecipe: account is null");
+            return false;
+        }
 
         // Check permit status
-        if ((!permit.isEmpty()) && (!account.hasPermit(Integer.parseInt(permit)))) { // TODO switch permits to strings
+        if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
             AdminShop.LOGGER.debug("ShopBuyFluidRecipe: account does not have permit {}", permit);
             return false;
         }
         // Check account balance
-        if (account.getBalance() < price) {
+        if (account.balance() < price) {
             AdminShop.LOGGER.debug("ShopBuyFluidRecipe: account does not have enough money");
             return false;
         }
@@ -74,9 +77,8 @@ public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
     public FluidStack buy(ServerLevel level, FluidBuyerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds
-        MoneyManager manager = MoneyManager.get(level);
-        Pair<String, Integer> account = machine.getAccountId();
-        manager.subtractBalance(account, price);
+        MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getAccountById(machine.getTeamId());
+        MoneyHelper.get(level).removeMoney(account.teamId(), price);
         return fluid.copy();
     }
 

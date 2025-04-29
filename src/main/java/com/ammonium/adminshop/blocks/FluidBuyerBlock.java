@@ -2,10 +2,11 @@ package com.ammonium.adminshop.blocks;
 
 import com.ammonium.adminshop.blocks.entity.FluidBuyerBE;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.FluidBuyerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -24,10 +25,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.network.NetworkHooks;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Objects;
 
 public class FluidBuyerBlock extends BaseEntityBlock {
     public FluidBuyerBlock() {
@@ -56,9 +54,12 @@ public class FluidBuyerBlock extends BaseEntityBlock {
     public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos,
                                  Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
         if (!pLevel.isClientSide()) {
-            if(pLevel.getBlockEntity(pPos) instanceof FluidBuyerBE fbuyerEntity) {
 
-                if (Objects.equals(fbuyerEntity.getOwnerUUID(), pPlayer.getStringUUID())) {
+            ServerLevel serverLevel = (ServerLevel) pLevel;
+            if(pLevel.getBlockEntity(pPos) instanceof FluidBuyerBE fbuyerEntity
+                && pPlayer instanceof ServerPlayer serverPlayer) {
+
+                if (MoneyHelper.get(serverLevel).isMemberOfTeam(fbuyerEntity.getTeamId(), serverPlayer)) {
                     // Open menu
                     NetworkHooks.openScreen((ServerPlayer) pPlayer, fbuyerEntity, pPos);
                 } else {
@@ -100,13 +101,11 @@ public class FluidBuyerBlock extends BaseEntityBlock {
         super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
         if (!pLevel.isClientSide) {
             // Server side code
+            ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
             if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof FluidBuyerBE fbuyerEntity) {
-                MoneyManager moneyManager = MoneyManager.get(pLevel);
-                Pair<String, Integer> defaultAccount = moneyManager.getDefaultAccount(serverPlayer.getStringUUID());
-                fbuyerEntity.setOwnerUUID(serverPlayer.getStringUUID());
-                fbuyerEntity.setAccount(defaultAccount);
+                fbuyerEntity.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
                 fbuyerEntity.setChanged();
                 fbuyerEntity.sendUpdates();
             }

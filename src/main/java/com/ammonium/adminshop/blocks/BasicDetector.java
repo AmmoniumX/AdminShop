@@ -3,11 +3,12 @@ package com.ammonium.adminshop.blocks;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.BasicDetectorBE;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.BasicDetectorMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -33,10 +34,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.network.NetworkHooks;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Objects;
 
 public class BasicDetector extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
@@ -91,13 +89,11 @@ public class BasicDetector extends BaseEntityBlock {
         super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
         if (!pLevel.isClientSide) {
             // Server side code
+            ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
             if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof BasicDetectorBE basicDetectorBE) {
-                MoneyManager moneyManager = MoneyManager.get(pLevel);
-                Pair<String, Integer> defaultAccount = moneyManager.getDefaultAccount(serverPlayer.getStringUUID());
-                basicDetectorBE.setOwnerUUID(serverPlayer.getStringUUID());
-                basicDetectorBE.setAccount(defaultAccount);
+                basicDetectorBE.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
             }
         }
     }
@@ -118,9 +114,12 @@ public class BasicDetector extends BaseEntityBlock {
     public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos,
                                  Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
         if (!pLevel.isClientSide()) {
-            if(pLevel.getBlockEntity(pPos) instanceof BasicDetectorBE basicDetectorBE) {
+            ServerLevel serverLevel = (ServerLevel) pLevel;
 
-                if (Objects.equals(basicDetectorBE.getOwnerUUID(), pPlayer.getStringUUID())) {
+            if(pLevel.getBlockEntity(pPos) instanceof BasicDetectorBE basicDetectorBE
+                && pPlayer instanceof ServerPlayer serverPlayer) {
+
+                if (MoneyHelper.get(serverLevel).isMemberOfTeam(basicDetectorBE.getTeamId(), serverPlayer)) {
                     // Open menu
                     AdminShop.LOGGER.debug("Opening screen");
                     NetworkHooks.openScreen((ServerPlayer) pPlayer, basicDetectorBE, pPos);

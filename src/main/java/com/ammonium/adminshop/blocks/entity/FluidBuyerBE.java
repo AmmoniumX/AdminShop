@@ -24,18 +24,17 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.FluidHandlerBlockEntity;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.templates.FluidTank;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerMachine {
     private static final int TANK_CAPACITY = 64000;
 
-    private String ownerUUID;
-    private Pair<String, Integer> account;
+    private UUID teamId = null;
     private ResourceLocation recipeId = null;
     private int tickCounter = 0;
 
@@ -45,29 +44,21 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerM
         this.tank = new FluidTank(TANK_CAPACITY);
     }
 
-    public void setOwnerUUID(String ownerUUID) {
-        this.ownerUUID = ownerUUID;
+    @Override
+    public void setTeamId(UUID teamId) {
+        this.teamId = teamId;
         this.setChanged();
         this.sendUpdates();
     }
 
-    public String getOwnerUUID() {
-        return ownerUUID;
+    @Override
+    public UUID getTeamId() {
+        return teamId;
     }
 
-    public void setAccount(Pair<String, Integer> account) {
-        this.account = account;
-        this.setChanged();
-        this.sendUpdates();
-    }
-
-    public Pair<String, Integer> getAccountId() {
-        return account;
-    }
+    @Override
     public void setRecipe(ResourceLocation recipeId) {
         this.recipeId = recipeId;
-        this.setChanged();
-        this.sendUpdates();
     }
 
     @Override
@@ -158,12 +149,8 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerM
         CompoundTag tag = super.getUpdateTag();
 //        tag.put("inventory", this.itemHandler.serializeNBT());
         tank.writeToNBT(tag);
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
@@ -192,13 +179,8 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerM
         super.handleUpdateTag(tag);
 //        this.itemHandler.deserializeNBT(tag.getCompound("inventory"));
         this.tank.readFromNBT(tag);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
         if (tag.contains("recipe")) {
             this.recipeId = new ResourceLocation(tag.getString("recipe"));
@@ -213,12 +195,8 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerM
     protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
 //        tank.writeToNBT(tag);
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
@@ -229,18 +207,8 @@ public class FluidBuyerBE extends FluidHandlerBlockEntity implements FluidBuyerM
     public void load(@NotNull CompoundTag tag) {
         super.load(tag);
 //        tank.readFromNBT(tag);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
-        }
-        ResourceLocation targetResource = null;
-        if (tag.contains("targetResource")) {
-            targetResource = new ResourceLocation(tag.getString("targetResource"));
-//            AdminShop.LOGGER.debug("Contains targetResource");
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
         if (tag.contains("recipe")) {
             this.recipeId = new ResourceLocation(tag.getString("recipe"));

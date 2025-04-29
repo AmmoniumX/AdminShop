@@ -9,8 +9,8 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = AdminShop.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class ClientForgeEvents {
 
-    public static boolean isShopIncrease1Pressed = false;
-    public static boolean isShopIncrease2Pressed = false;
+//    public static boolean isShopIncrease1Pressed = false;
+//    public static boolean isShopIncrease2Pressed = false;
 
     private ClientForgeEvents(){}
 

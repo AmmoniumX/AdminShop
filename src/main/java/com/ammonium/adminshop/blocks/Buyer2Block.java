@@ -3,7 +3,7 @@ package com.ammonium.adminshop.blocks;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.Buyer2BE;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.BuyerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -32,7 +32,6 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.network.NetworkHooks;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
 public class Buyer2Block extends BaseEntityBlock {
@@ -67,10 +66,10 @@ public class Buyer2Block extends BaseEntityBlock {
         if (!pLevel.isClientSide()) {
             assert pLevel instanceof ServerLevel;
             ServerLevel serverLevel = (ServerLevel) pLevel;
-            if(pLevel.getBlockEntity(pPos) instanceof Buyer2BE buyerEntity) {
+            if(pLevel.getBlockEntity(pPos) instanceof Buyer2BE buyerEntity
+                && pPlayer instanceof  ServerPlayer serverPlayer) {
 //                AdminShop.LOGGER.debug("Looking for account: "+buyerEntity.getAccount().toString());
-                if (MoneyManager.get(serverLevel).getBankAccount(buyerEntity.getAccountId())
-                        .containsMember(pPlayer.getStringUUID())) {
+                if (MoneyHelper.get(serverLevel).isMemberOfTeam(buyerEntity.getTeamId(), serverPlayer)) {
 //                    AdminShop.LOGGER.debug("Found account");
                     // Open menu
                     NetworkHooks.openScreen((ServerPlayer) pPlayer, buyerEntity, pPos);
@@ -118,13 +117,11 @@ public class Buyer2Block extends BaseEntityBlock {
         super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
         if (!pLevel.isClientSide) {
             // Server side code
+            ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
             if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof Buyer2BE buyerEntity) {
-                MoneyManager moneyManager = MoneyManager.get(pLevel);
-                Pair<String, Integer> defaultAccount = moneyManager.getDefaultAccount(serverPlayer.getStringUUID());
-                buyerEntity.setOwnerUUID(serverPlayer.getStringUUID());
-                buyerEntity.setAccount(defaultAccount);
+                buyerEntity.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
             }
         }
     }

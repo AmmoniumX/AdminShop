@@ -1,11 +1,10 @@
 package com.ammonium.adminshop.commands;
 
 import com.ammonium.adminshop.item.ModItems;
-import com.ammonium.adminshop.money.MoneyManager;
-import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
-import com.ammonium.adminshop.setup.Messages;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.LongArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -15,57 +14,55 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.selector.EntitySelector;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 public class AdminShopCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher){
         LiteralArgumentBuilder<CommandSourceStack> adminShopCommand = Commands.literal("adminshop");
 
-        // adminshop getPermit [tier]
+        // adminshop getPermit {permit}
         LiteralArgumentBuilder<CommandSourceStack> getPermitCommand = Commands.literal("getPermit").requires(source -> source.hasPermission(3));
-        RequiredArgumentBuilder<CommandSourceStack, Integer> getPermitCommandTier = Commands.argument("tier", IntegerArgumentType.integer())
-                        .executes(command -> {
-                            int tier = IntegerArgumentType.getInteger(command, "tier");
-                            return getPermit(command.getSource(), tier);
-                        });
+        RequiredArgumentBuilder<CommandSourceStack, String> getPermitCommandTier = Commands.argument("tier", StringArgumentType.string())
+                .executes(command -> {
+                    String tier = StringArgumentType.getString(command, "tier");
+                    return getPermit(command.getSource(), tier);
+                });
         getPermitCommand.then(getPermitCommandTier);
 
-        // adminshop give {owner} {id} {amount}
+        // adminshop give {player} {amount}
         LiteralArgumentBuilder<CommandSourceStack> giveMoneyCommand = Commands.literal("give")
                 .requires(source -> source.hasPermission(3))
-                .then(Commands.argument("owner", EntityArgument.players())
-                .then(Commands.argument("id", IntegerArgumentType.integer())
-                        .then(Commands.argument("amount", IntegerArgumentType.integer())
-                                .executes(context -> {
-                                    EntitySelector ownerSelector = context.getArgument("owner", EntitySelector.class);
-                                    int id = IntegerArgumentType.getInteger(context, "id");
-                                    int amount = IntegerArgumentType.getInteger(context, "amount");
-                                    return giveMoney(context.getSource(), ownerSelector, id, amount);
-                                })
-                        )
-                ));
+                .then(Commands.argument("player", EntityArgument.players()))
+                .then(Commands.argument("amount", LongArgumentType.longArg())
+                .executes(context -> {
+                    EntitySelector playerSelector = context.getArgument("player", EntitySelector.class);
+                    long amount = LongArgumentType.getLong(context, "amount");
+                    return giveMoney(context.getSource(), playerSelector, amount);
+                }));
 
-        // adminshop remove {owner} {id} {amount}
+        // adminshop remove {player} {amount}
         LiteralArgumentBuilder<CommandSourceStack> removeMoneyCommand = Commands.literal("remove")
                 .requires(source -> source.hasPermission(3))
-                .then(Commands.argument("owner", EntityArgument.players())
-                        .then(Commands.argument("id", IntegerArgumentType.integer())
-                                .then(Commands.argument("amount", IntegerArgumentType.integer())
-                                        .executes(context -> {
-                                            EntitySelector ownerSelector = context.getArgument("owner", EntitySelector.class);
-                                            int id = IntegerArgumentType.getInteger(context, "id");
-                                            int amount = IntegerArgumentType.getInteger(context, "amount");
-                                            return removeMoney(context.getSource(), ownerSelector, id, amount);
-                                        })
-                                )
-                        ));
+                .then(Commands.argument("player", EntityArgument.players())
+                .then(Commands.argument("amount", LongArgumentType.longArg())
+                .executes(context -> {
+                    EntitySelector playerSelector = context.getArgument("player", EntitySelector.class);
+                    long amount = LongArgumentType.getLong(context, "amount");
+                    return removeMoney(context.getSource(), playerSelector, amount);
+                })));
+
+        // adminshop removePermit {permit}
+        LiteralArgumentBuilder<CommandSourceStack> removePermitCommand = Commands.literal("removePermit")
+                .requires(source -> source.hasPermission(0))
+                .then(Commands.argument("tier", StringArgumentType.string())
+                .executes(command -> {
+                    String tier = StringArgumentType.getString(command, "tier");
+                    return removePermit(command.getSource(), tier);
+                }));
+
 
         adminShopCommand.then(getPermitCommand)
                         .then(giveMoneyCommand)
@@ -73,9 +70,9 @@ public class AdminShopCommand {
         dispatcher.register(adminShopCommand);
     }
 
-    static int getPermit(CommandSourceStack source, int tier) throws CommandSyntaxException {
+    static int getPermit(CommandSourceStack source, String tier) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
-        if (tier == 0) {
+        if (tier == null || tier.isEmpty()) {
             source.sendFailure(Component.literal("Permit tier 0 is the default, all accounts have it!"));
             return 0;
         }
@@ -83,7 +80,7 @@ public class AdminShopCommand {
         // Give item
         ItemStack permit = new ItemStack(ModItems.PERMIT.get());
         CompoundTag key = permit.getOrCreateTag();
-        key.putInt("key", tier);
+        key.putString("key", tier);
         permit.setTag(key);
 
         boolean success = player.getInventory().add(permit);
@@ -95,50 +92,22 @@ public class AdminShopCommand {
         return 1;
     }
 
-    static int giveMoney(CommandSourceStack source, EntitySelector selector, int id, int amount) throws CommandSyntaxException {
-        // Skip non-positive values
-        if (!(amount>0)) {
-            source.sendFailure(Component.literal("Must be a positive value!"));
+    static int removePermit(CommandSourceStack source, String tier) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        ServerLevel level = source.getLevel();
+        if (tier == null || tier.isEmpty()) {
+            source.sendFailure(Component.literal("Permit tier 0 is the default, all accounts have it!"));
             return 0;
         }
 
-        // Get player and MoneyManager
-        MoneyManager moneyManager = MoneyManager.get(source.getLevel());
-        ServerPlayer player = selector.findSinglePlayer(source);
-        String playerUUID = player.getStringUUID();
-
-        // Search for account
-        if (!moneyManager.existsBankAccount(playerUUID, id)) {
-            source.sendFailure(Component.literal("Account "+player.getName().getString()+":"+id+" does not exist!"));
-            return 0;
-        }
-
-        // Add money
-        boolean success = moneyManager.addBalance(playerUUID, id, amount);
-
-        if (!success) {
-            source.sendFailure(Component.literal("Error adding money to account"));
-            return 0;
-        }
-
-        // Sync client data with all onlineMembers
-        List<ServerPlayer> onlinePlayers = source.getLevel().players();
-        Set<String> membersUUIDs = moneyManager.getBankAccount(playerUUID, id).getMembers();
-        Set<ServerPlayer> onlineMembers = new HashSet<>();
-        // Get list of online members to sync, including removed one
-        membersUUIDs.forEach(accountMember -> {
-            Optional<ServerPlayer> searchMember = onlinePlayers.stream().filter(serverPlayer ->
-                    serverPlayer.getStringUUID().equals(accountMember)).findAny();
-            searchMember.ifPresent(onlineMembers::add);
-        });
-        onlineMembers.forEach(memberPlayer -> Messages.sendToPlayer(
-                new PacketSyncMoneyToClient(moneyManager.getSharedAccounts().get(memberPlayer.getStringUUID())),
-                memberPlayer));
-        source.sendSuccess(Component.literal("Successfully added money to account"), true);
+        // Remove permit
+        MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
+        MoneyHelper.get(level).removePermit(account.teamId(), tier);
+        source.sendSuccess(Component.literal("Removed trade permit"), true);
         return 1;
     }
 
-    static int removeMoney(CommandSourceStack source, EntitySelector selector, int id, int amount) throws CommandSyntaxException {
+    static int giveMoney(CommandSourceStack source, EntitySelector selector, long amount) throws CommandSyntaxException {
         // Skip non-positive values
         if (!(amount>0)) {
             source.sendFailure(Component.literal("Must be a positive value!"));
@@ -146,43 +115,35 @@ public class AdminShopCommand {
         }
 
         // Get player and MoneyManager
-        MoneyManager moneyManager = MoneyManager.get(source.getLevel());
+        ServerLevel level = source.getLevel();
         ServerPlayer player = selector.findSinglePlayer(source);
-        String playerUUID = player.getStringUUID();
+        MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
 
-        // Search for account
-        if (!moneyManager.existsBankAccount(playerUUID, id)) {
-            source.sendFailure(Component.literal("Account "+player.getName().getString()+":"+id+" does not exist"));
+        // Give money
+        MoneyHelper.get(level).addMoney(account.teamId(), amount);
+        source.sendSuccess(Component.literal("Successfully exchanged money"), true);
+        return 1;
+    }
+
+    static int removeMoney(CommandSourceStack source, EntitySelector selector, long amount) throws CommandSyntaxException {
+        // Skip non-positive values
+        if (!(amount>0)) {
+            source.sendFailure(Component.literal("Must be a positive value!"));
             return 0;
         }
 
-        // Check if player has enough money
-        if (moneyManager.getBalance(playerUUID, id) < amount) {
-            source.sendFailure(Component.literal("Not enough money in account"));
-            return 0;
-        }
+        // Get player and account
+        ServerLevel level = source.getLevel();
+        ServerPlayer player = selector.findSinglePlayer(source);
+        MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
 
         // Remove money
-        boolean success = moneyManager.subtractBalance(playerUUID, id, amount);
-
+        boolean success = MoneyHelper.get(level).removeMoney(account.teamId(), amount);
         if (!success) {
             source.sendFailure(Component.literal("Error removing money from account"));
             return 0;
         }
 
-        // Sync client data with all onlineMembers
-        List<ServerPlayer> onlinePlayers = source.getLevel().players();
-        Set<String> membersUUIDs = moneyManager.getBankAccount(playerUUID, id).getMembers();
-        Set<ServerPlayer> onlineMembers = new HashSet<>();
-        // Get list of online members to sync, including removed one
-        membersUUIDs.forEach(accountMember -> {
-            Optional<ServerPlayer> searchMember = onlinePlayers.stream().filter(serverPlayer ->
-                    serverPlayer.getStringUUID().equals(accountMember)).findAny();
-            searchMember.ifPresent(onlineMembers::add);
-        });
-        onlineMembers.forEach(memberPlayer -> Messages.sendToPlayer(
-                new PacketSyncMoneyToClient(moneyManager.getSharedAccounts().get(memberPlayer.getStringUUID())),
-                memberPlayer));
         source.sendSuccess(Component.literal("Successfully removed money from account"), true);
         return 1;
     }

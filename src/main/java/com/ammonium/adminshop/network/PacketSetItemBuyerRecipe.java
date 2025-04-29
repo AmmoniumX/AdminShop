@@ -2,12 +2,12 @@ package com.ammonium.adminshop.network;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.interfaces.ItemBuyerMachine;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -42,19 +42,16 @@ public class PacketSetItemBuyerRecipe {
             ServerPlayer player = ctx.getSender();
 
             if (player != null) {
-                System.out.println("Setting buyer recipe for "+this.pos+" to "+this.recipeId);
-                Level level = player.level;
+                AdminShop.LOGGER.debug("Setting buyer recipe for "+this.pos+" to "+this.recipeId);
+                ServerLevel level = player.getLevel();
                 BlockEntity blockEntity = level.getBlockEntity(this.pos);
                 if (!(blockEntity instanceof ItemBuyerMachine buyerEntity)) {
                     AdminShop.LOGGER.error("BlockEntity at pos is not BuyerMachine");
                     return;
                 }
-                // Check machine's owner is the same as player
-//                if (!buyerEntity.getOwnerUUID().equals(player.getStringUUID())) {
 
                 // Check if player has access to the machine's account
-                MoneyManager moneyManager = MoneyManager.get(player.getLevel());
-                if (!moneyManager.getBankAccount(buyerEntity.getAccountId()).containsMember(player.getStringUUID())) {
+                if (!MoneyHelper.get(level).isMemberOfTeam(buyerEntity.getTeamId(), player)) {
                     AdminShop.LOGGER.error("Player does not have access to this machine's account");
                     return;
                 }

@@ -3,7 +3,7 @@ package com.ammonium.adminshop.blocks.entity;
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.BasicDetector;
 import com.ammonium.adminshop.blocks.interfaces.Detector;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.AdvancedDetectorMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -19,16 +19,15 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public class AdvancedDetectorBE extends BlockEntity implements Detector {
     private int tickCounter = 0;
-    private String ownerUUID;
-    private Pair<String, Integer> account;
+    private UUID teamId = null;
     private long threshold = 0;
     private int signal = 0;
 
@@ -55,24 +54,14 @@ public class AdvancedDetectorBE extends BlockEntity implements Detector {
         super(ModBlockEntities.ADVANCED_DETECTOR.get(), pPos, pBlockState);
     }
 
-    public void setOwnerUUID(String ownerUUID) {
-        this.ownerUUID = ownerUUID;
-        this.setChanged();
-        this.sendUpdates();
+    @Override
+    public void setTeamId(UUID teamId) {
+        this.teamId = teamId;
     }
 
-    public String getOwnerUUID() {
-        return ownerUUID;
-    }
-
-    public void setAccount(Pair<String, Integer> account) {
-        this.account = account;
-        this.setChanged();
-        this.sendUpdates();
-    }
-
-    public Pair<String, Integer> getAccountId() {
-        return account;
+    @Override
+    public UUID getTeamId() {
+        return teamId;
     }
 
     public void setThreshold(long threshold) {
@@ -93,8 +82,7 @@ public class AdvancedDetectorBE extends BlockEntity implements Detector {
                 assert pLevel instanceof ServerLevel;
                 ServerLevel sLevel = (ServerLevel) pLevel;
                 // Get account balance
-                MoneyManager moneyManager = MoneyManager.get(sLevel);
-                long balance = moneyManager.getBalance(pBlockEntity.account.getKey(), pBlockEntity.account.getValue());
+                long balance = MoneyHelper.get(sLevel).getAccountById(pBlockEntity.getTeamId()).balance();
                 // Get redstone level based on threshold, range from 0 to 15
                 long threshold = pBlockEntity.getThreshold();
                 int calculatedSignal = (int) Math.min(Math.floor((balance/(double) threshold)*15), 15);
@@ -120,12 +108,8 @@ public class AdvancedDetectorBE extends BlockEntity implements Detector {
     @Override
     public @NotNull CompoundTag getUpdateTag() {
         CompoundTag tag = super.getUpdateTag();
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
         tag.putLong("threshold", this.threshold);
         return tag;
@@ -150,13 +134,8 @@ public class AdvancedDetectorBE extends BlockEntity implements Detector {
     @Override
     public void handleUpdateTag(CompoundTag tag) {
         super.handleUpdateTag(tag);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
         if (tag.contains("threshold")) {
             this.threshold = tag.getLong("threshold");
@@ -166,25 +145,16 @@ public class AdvancedDetectorBE extends BlockEntity implements Detector {
     @Override
     protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
         tag.putLong("threshold", this.threshold);
     }
     @Override
     public void load(@NotNull CompoundTag tag) {
         super.load(tag);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
         if (tag.contains("threshold")) {
             this.threshold = tag.getLong("threshold");

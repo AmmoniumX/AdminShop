@@ -1,8 +1,7 @@
 package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.blocks.interfaces.*;
-import com.ammonium.adminshop.money.BankAccount;
-import com.ammonium.adminshop.money.MoneyManager;
+import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
 import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import net.minecraft.resources.ResourceLocation;
@@ -18,8 +17,8 @@ import java.util.Optional;
 
 public class RecipeManager {
 
-    private static BankAccount getAccount(ServerLevel level, ShopMachine machine) {
-        return MoneyManager.get(level).getBankAccount(machine.getAccountId());
+    private static MoneyHelper.MoneyAccount getAccount(ServerLevel level, ShopMachine machine) {
+        return MoneyHelper.get(level).getAccountById(machine.getTeamId());
     }
 
     public static List<BuyItemRecipe> getAllBuyItemRecipes(Level level) {
@@ -63,6 +62,7 @@ public class RecipeManager {
     }
 
     public static boolean matches(ItemStack item, BuyItemRecipe recipe) {
+//        AdminShop.LOGGER.debug("Matching item {} with recipe {}", item, recipe.getId());
         if (recipe.getItem().isEmpty()) { return false; }
         ItemStack recipeItem = recipe.getItem().get();
         if (item.isEmpty() || recipeItem.isEmpty()) { return false; }
@@ -114,7 +114,8 @@ public class RecipeManager {
     }
 
     public static Optional<SellItemRecipe> checkForSellItemRecipe(ServerLevel level, ItemSellerMachine machine) {
-        BankAccount account = getAccount(level, machine);
+        MoneyHelper.MoneyAccount account = getAccount(level, machine);
+        if (account == null) { return Optional.empty(); }
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get())
                 .stream()
                 .filter(recipe -> recipe.matches(account, machine))
@@ -152,7 +153,8 @@ public class RecipeManager {
     }
 
     public static Optional<SellFluidRecipe> checkForSellFluidRecipe(ServerLevel level, FluidSellerMachine machine) {
-        BankAccount account = getAccount(level, machine);
+        MoneyHelper.MoneyAccount account = getAccount(level, machine);
+        if (account == null) { return Optional.empty(); }
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get())
                 .stream()
                 .filter(recipe -> recipe.matches(account, machine))

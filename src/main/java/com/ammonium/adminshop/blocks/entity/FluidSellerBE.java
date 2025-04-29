@@ -22,15 +22,14 @@ import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.capability.FluidHandlerBlockEntity;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.templates.FluidTank;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSellerMachine {
-    private String ownerUUID;
-    private Pair<String, Integer> account;
+    private UUID teamId = null;
     private int tickCounter = 0;
     private static final int TANK_CAPACITY = 64000;
 
@@ -40,24 +39,16 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
         this.tank = new FluidTank(TANK_CAPACITY);
     }
 
-    public void setOwnerUUID(String ownerUUID) {
-        this.ownerUUID = ownerUUID;
+    @Override
+    public void setTeamId(UUID teamId) {
+        this.teamId = teamId;
         this.setChanged();
         this.sendUpdates();
     }
 
-    public String getOwnerUUID() {
-        return ownerUUID;
-    }
-
-    public void setAccount(Pair<String, Integer> account) {
-        this.account = account;
-        this.setChanged();
-        this.sendUpdates();
-    }
-
-    public Pair<String, Integer> getAccountId() {
-        return account;
+    @Override
+    public UUID getTeamId() {
+        return teamId;
     }
 
     @Override
@@ -94,7 +85,7 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
         SellFluidRecipe recipe = RecipeManager.checkForSellFluidRecipe((ServerLevel) level, sellerBE).orElse(null);
         if (recipe == null) { return; }
 
-        // Buy the fluid
+        // Sell the fluid
         IFluidHandler handler = sellerBE.getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);
         if (handler == null) {
             AdminShop.LOGGER.debug("Fluid handler is null");
@@ -132,12 +123,8 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
         CompoundTag tag = super.getUpdateTag();
 //        tag.put("inventory", this.itemHandler.serializeNBT());
         tank.writeToNBT(tag);
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
         return tag;
     }
@@ -163,13 +150,8 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
         super.handleUpdateTag(tag);
 //        this.itemHandler.deserializeNBT(tag.getCompound("inventory"));
         this.tank.readFromNBT(tag);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
     }
 
@@ -177,12 +159,8 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
     protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
 //        tank.writeToNBT(tag);
-        if (this.ownerUUID != null) {
-            tag.putString("ownerUUID", this.ownerUUID);
-        }
-        if (this.account != null) {
-            tag.putString("accountUUID", this.account.getKey());
-            tag.putInt("accountID", this.account.getValue());
+        if (this.teamId != null) {
+            tag.putUUID("team", this.teamId);
         }
     }
 
@@ -190,13 +168,8 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
     public void load(@NotNull CompoundTag tag) {
         super.load(tag);
 //        tank.readFromNBT(tag);
-        if (tag.contains("ownerUUID")) {
-            this.ownerUUID = tag.getString("ownerUUID");
-        }
-        if (tag.contains("accountUUID") && tag.contains("accountID")) {
-            String accountUUID = tag.getString("accountUUID");
-            int accountID = tag.getInt("accountID");
-            this.account = Pair.of(accountUUID, accountID);
+        if (tag.contains("team")) {
+            this.teamId = tag.getUUID("team");
         }
     }
 
