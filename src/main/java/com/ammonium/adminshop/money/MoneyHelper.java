@@ -95,9 +95,9 @@ public class MoneyHelper extends SavedData {
     private Optional<CompoundTag> getAccountTag(UUID teamId) {
         for (int i = 0; i < ledger.size(); i++) {
             CompoundTag accountTag = ledger.getCompound(i);
-            AdminShop.LOGGER.debug("Account tag: {}", accountTag);
+//            AdminShop.LOGGER.debug("Account tag: {}", accountTag);
             if (accountTag.getUUID("team").equals(teamId)) {
-                AdminShop.LOGGER.debug("Found account tag: {}", accountTag);
+//                AdminShop.LOGGER.debug("Found account tag: {}", accountTag);
                 return Optional.of(accountTag);
             }
         }
@@ -106,17 +106,17 @@ public class MoneyHelper extends SavedData {
     }
 
     private void updateAccount(MoneyAccount account, TeamManager manager) {
-        AdminShop.LOGGER.debug("updateAccount: {}", account.teamId);
+//        AdminShop.LOGGER.debug("updateAccount: {}", account.teamId);
         CompoundTag tag;
         Optional<CompoundTag> existingTag = getAccountTag(account.teamId);
 
         if (existingTag.isPresent()) {
             // Update the existing account
-            AdminShop.LOGGER.debug("Account found, so updating it");
+//            AdminShop.LOGGER.debug("Account found, so updating it");
             tag = existingTag.get();
         } else {
             // Create a new account
-            AdminShop.LOGGER.debug("Account not found, so creating a new one");
+//            AdminShop.LOGGER.debug("Account not found, so creating a new one");
             tag = new CompoundTag();
             tag.putUUID("team", account.teamId);
             ledger.add(tag);
@@ -128,7 +128,7 @@ public class MoneyHelper extends SavedData {
         for (String permit : account.permits) {
             permitsList.add(StringTag.valueOf(permit));
         }
-        AdminShop.LOGGER.debug("Saving tag: {}, {}, {}", account.teamId, tag, ledger);
+//        AdminShop.LOGGER.debug("Saving tag: {}, {}, {}", account.teamId, tag, ledger);
         tag.put("permits", permitsList);
         this.setDirty();
 
@@ -139,13 +139,13 @@ public class MoneyHelper extends SavedData {
             return;
         }
         for (ServerPlayer player : team.getOnlineMembers()) {
-            AdminShop.LOGGER.debug("Syncing account to player: {}", player.getName().getString());
+//            AdminShop.LOGGER.debug("Syncing account to player: {}", player.getName().getString());
             Messages.sendToPlayer(new PacketSyncMoneyToClient(account), player);
         }
     }
 
     public @NotNull MoneyAccount getPlayerAccount(@NotNull ServerPlayer player) {
-        AdminShop.LOGGER.debug("getPlayerAccount: {}", player.getName().getString());
+//        AdminShop.LOGGER.debug("getPlayerAccount: {}", player.getName().getString());
         TeamManager manager = FTBTeamsAPI.getManager();
         Team team = manager.getPlayerTeam(player);
         CompoundTag managerTag = manager.getExtraData();
@@ -160,9 +160,9 @@ public class MoneyHelper extends SavedData {
             updateAccount(account, manager);
             return account;
         } else {
-            AdminShop.LOGGER.debug("Account found for team: {}", team.getName().getString());
+//            AdminShop.LOGGER.debug("Account found for team: {}", team.getName().getString());
             MoneyAccount account = getFromTag(team.getName(), accountTag.get());
-            AdminShop.LOGGER.debug("Account name: {}", account.name.getString());
+//            AdminShop.LOGGER.debug("Account name: {}", account.name.getString());
             return account;
         }
     }

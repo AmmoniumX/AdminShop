@@ -6,6 +6,7 @@ import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.screen.SellerMenu;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -149,7 +150,7 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
             return;
         }
         for (int slot = 0; slot < handler.getSlots(); slot++) {
-            if (!recipe.isMatchingItem(handler.getStackInSlot(slot))) { continue; }
+            if (!recipe.isMatchingItemStack(handler.getStackInSlot(slot))) { continue; }
             ItemStack simulatedResult = handler.extractItem(slot, recipe.getCount(), true);
             if (!simulatedResult.isEmpty() && simulatedResult.getCount() == recipe.getCount()) {
                 ItemStack itemResult = handler.extractItem(slot, recipe.getCount(), false);
@@ -236,7 +237,12 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
     public boolean canPlaceItem(int i, ItemStack itemStack) {
         boolean fits = super.canPlaceItem(i, itemStack);
         if (!fits) { return false; }
-        return RecipeManager.isSellItemRecipe(Minecraft.getInstance().level, itemStack).isPresent();
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level == null) {
+            AdminShop.LOGGER.debug("Level is null");
+            return false;
+        }
+        return RecipeManager.canPlaceItemInSeller(level, itemStack);
     }
 
     @Override

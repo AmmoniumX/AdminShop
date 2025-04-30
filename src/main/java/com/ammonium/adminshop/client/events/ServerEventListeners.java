@@ -1,7 +1,6 @@
 package com.ammonium.adminshop.client.events;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.client.jei.PreparableReloadListener;
 import com.ammonium.adminshop.commands.AdminShopCommand;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
@@ -43,7 +42,7 @@ public class ServerEventListeners {
 
     @SubscribeEvent
     public static void addReloadListener(AddReloadListenerEvent event) {
-        event.addListener(new PreparableReloadListener());
+//        event.addListener(new PreparableReloadListener());
     }
 
 }

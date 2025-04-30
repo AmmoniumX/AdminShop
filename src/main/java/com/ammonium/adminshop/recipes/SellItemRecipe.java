@@ -72,7 +72,7 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
         this.permit = permit != null ? permit : "";
     }
 
-    public boolean isMatchingItem(ItemStack toMatch) {
+    public boolean isMatchingItemStack(ItemStack toMatch) {
         if (toMatch.isEmpty()) { return false; }
 
         if (type == SellTypes.ITEM) {
@@ -95,6 +95,31 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
             // Check if item count matches
             return toMatch.getCount() >= tagCount;
 
+        } else {
+            AdminShop.LOGGER.debug("ShopRecipeManager.matches: unknown recipe type {}", type);
+            return false;
+        }
+    }
+
+    public boolean isMatchingItemNoCount(ItemStack toMatch) {
+        if (toMatch.isEmpty()) { return false; }
+
+        if (type == SellTypes.ITEM) {
+            // Check if both items match
+            if (item.isEmpty()) { return false; }
+            if (item.getItem() != toMatch.getItem()) { return false; }
+            // Check if item tags match
+            if (item.hasTag()) {
+                if (toMatch.getTag() == null || !toMatch.getTag().equals(item.getTag())) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (type == SellTypes.TAG) {
+            // Check if item is in the tag
+            assert tagId != null;
+            TagKey<Item> tag = ItemTags.create(tagId);
+            return toMatch.is(tag);
         } else {
             AdminShop.LOGGER.debug("ShopRecipeManager.matches: unknown recipe type {}", type);
             return false;

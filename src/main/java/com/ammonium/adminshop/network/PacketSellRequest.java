@@ -83,7 +83,7 @@ public class PacketSellRequest {
                     sellStack = itemHandler.getStackInSlot(slotIndex);
 
                     // Check if items match
-                    if (!itemRecipe.isMatchingItem(sellStack)) {
+                    if (!itemRecipe.isMatchingItemStack(sellStack)) {
                         AdminShop.LOGGER.debug("Item doesn't match recipe");
                         return;
                     }
@@ -95,7 +95,7 @@ public class PacketSellRequest {
                     for (int i = 0; i < itemHandler.getSlots(); i++) {
                         ItemStack currentStack = itemHandler.getStackInSlot(i);
 //                        AdminShop.LOGGER.debug("Checking stack {} against recipe: {}", currentStack, itemRecipe);
-                        if (itemRecipe.isMatchingItem(currentStack) && currentStack.getCount() >= targetCount) {
+                        if (itemRecipe.isMatchingItemStack(currentStack) && currentStack.getCount() >= targetCount) {
                             AdminShop.LOGGER.debug("Found item in slot {}: {}", i, currentStack);
                             slotIndex = i;
                             sellStack = currentStack;
