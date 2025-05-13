@@ -48,11 +48,6 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
             AdminShop.LOGGER.debug("ShopSellFluidRecipe: account does not have permit {}", permit);
             return false;
         }
-        // Check account balance
-        if (account.balance() < price) {
-            AdminShop.LOGGER.debug("ShopSellFluidRecipe: account does not have enough money");
-            return false;
-        }
 
         // Check if machine contains fluid
         LazyOptional<IFluidHandler> lazyHandler = machine.getCapability(ForgeCapabilities.FLUID_HANDLER);
@@ -62,7 +57,7 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
         }
         IFluidHandler handler = lazyHandler.orElseThrow(IllegalStateException::new);
         if (handler.drain(fluid, IFluidHandler.FluidAction.SIMULATE).getAmount() < fluid.getAmount()) {
-            AdminShop.LOGGER.debug("ShopSellFluidRecipe: machine does not have enough fluid");
+//            AdminShop.LOGGER.debug("ShopSellFluidRecipe: machine does not have enough fluid");
             return false;
         }
         return true;

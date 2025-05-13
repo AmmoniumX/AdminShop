@@ -241,7 +241,7 @@ public class PacketSellRequest {
         return true;
     }
 
-    private void sellItem(Supplier<NetworkEvent.Context> supplier, int slotIndex, SellItemRecipe recipe, int quantity) {
+    private void sellItem(Supplier<NetworkEvent.Context> supplier, int slotIndex, SellItemRecipe recipe, int sellQuantity) {
         // Assumes all checks have been done before calling this
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
@@ -249,17 +249,17 @@ public class PacketSellRequest {
         ServerLevel level = player.getLevel();
         Inventory playerInventory = player.getInventory();
         IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
-        int toSell = recipe.getCount() * quantity;
-        int numSold = itemHandler.extractItem(slotIndex, toSell, false).getCount();
-        long price = quantity * recipe.getPrice();
-        if (numSold != toSell) {
-            AdminShop.LOGGER.debug("Target quantity and extracted value don't match: {}, {}", toSell, numSold);
+        int quantity = recipe.getCount() * sellQuantity;
+        int numSold = itemHandler.extractItem(slotIndex, quantity, false).getCount();
+        long price = sellQuantity * recipe.getPrice();
+        if (numSold != quantity) {
+            AdminShop.LOGGER.debug("Target quantity and extracted value don't match: {}, {}", quantity, numSold);
             return;
         }
         MoneyHelper.get(level).addMoney(teamId, price);
     }
 
-    private void sellFluid(Supplier<NetworkEvent.Context> supplier, int slotIndex, SellFluidRecipe recipe, int quantity) {
+    private void sellFluid(Supplier<NetworkEvent.Context> supplier, int slotIndex, SellFluidRecipe recipe, int sellQuantity) {
         // Assumes all checks have been done before calling this
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
@@ -269,13 +269,13 @@ public class PacketSellRequest {
         IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
         ItemStack toExtract = itemHandler.getStackInSlot(slotIndex);
         IFluidHandlerItem fluidHandler = toExtract.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).orElse(null);
-        int toSell = recipe.getFluid().getAmount() * quantity;
+        int quantity = sellQuantity * recipe.getCount();
         FluidStack toDrain = recipe.getFluid().copy();
-        toDrain.setAmount(toSell);
+        toDrain.setAmount(quantity);
         FluidStack drained = fluidHandler.drain(toDrain, IFluidHandler.FluidAction.EXECUTE);
-        long price = quantity * recipe.getPrice();
-        if (drained.getAmount() != toSell) {
-            AdminShop.LOGGER.debug("Target quantity and extracted value don't match: {}, {}", toSell, drained.getAmount());
+        long price = sellQuantity * recipe.getPrice();
+        if (drained.getAmount() != quantity) {
+            AdminShop.LOGGER.debug("Target quantity and extracted value don't match: {}, {}", quantity, drained.getAmount());
             return;
         }
 

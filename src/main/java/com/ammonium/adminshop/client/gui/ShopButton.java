@@ -106,10 +106,12 @@ public class ShopButton extends Button {
         matrix.popPose();
     }
 
+    // Returns the number of items to be placed based on the recipe type
     private int getNumItems() {
         return recipe.getCount() * getQuantity();
     }
 
+    // Returns the quantity of **orders** to be placed based on the recipe type, **not** the quantity of items
     public int getQuantity(){
         if (recipe instanceof ItemRecipe itemRecipe) {
 
