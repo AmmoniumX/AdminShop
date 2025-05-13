@@ -18,8 +18,8 @@ public class ModMenuTypes {
     public static final RegistryObject<MenuType<SellerMenu>> SELLER_MENU = MENUS.register("seller_menu",
             () -> IForgeMenuType.create((SellerMenu::new)));
 
-    public static final RegistryObject<MenuType<BuyerMenu>> BUYER_MENU = MENUS.register("buyer_menu",
-            () -> IForgeMenuType.create((BuyerMenu::new)));
+    public static final RegistryObject<MenuType<Buyer1Menu>> BUYER_1_MENU = MENUS.register("buyer_menu",
+            () -> IForgeMenuType.create((Buyer1Menu::new)));
 
     public static final RegistryObject<MenuType<Buyer2Menu>> BUYER_2_MENU = MENUS.register("buyer_2_menu",
             () -> IForgeMenuType.create((Buyer2Menu::new)));

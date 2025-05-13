@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.entity.BuyerBE;
+import com.ammonium.adminshop.blocks.entity.AbstractBuyerBE;
 import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketSetItemBuyerRecipe;
@@ -27,17 +27,17 @@ import net.minecraft.world.level.Level;
 
 import java.util.UUID;
 
-public class BuyerScreen extends AbstractContainerScreen<BuyerMenu> {
-    private static final ResourceLocation TEXTURE =
-            new ResourceLocation(AdminShop.MODID, "textures/gui/buyer.png");
+public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractContainerScreen<T> {
+    private final ResourceLocation TEXTURE;
     private final BlockPos blockPos;
-    private BuyerBE buyerEntity;
+    private AbstractBuyerBE buyerEntity;
     private UUID teamId = null;
     private BuyItemRecipe recipe;
 
-    public BuyerScreen(BuyerMenu pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
+    public AbstractBuyerScreen(String texturePath, T pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle);
         this.blockPos = blockPos;
+        this.TEXTURE = new ResourceLocation(AdminShop.MODID, texturePath);
     }
 
     @Override
@@ -45,7 +45,6 @@ public class BuyerScreen extends AbstractContainerScreen<BuyerMenu> {
         super.init();
 
         // Request update from server
-//        System.out.println("Requesting update from server");
         Messages.sendToServer(new PacketUpdateRequest(this.blockPos));
     }
     private void updateInformation(Level level) {

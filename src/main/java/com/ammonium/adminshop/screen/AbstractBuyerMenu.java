@@ -1,8 +1,7 @@
 package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.ModBlocks;
-import com.ammonium.adminshop.blocks.entity.BuyerBE;
+import com.ammonium.adminshop.blocks.entity.AbstractBuyerBE;
 import com.ammonium.adminshop.screen.slot.ResultSlot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -10,37 +9,46 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 
-public class BuyerMenu extends AbstractContainerMenu {
-
-    private final BuyerBE blockEntity;
+public abstract class AbstractBuyerMenu extends AbstractContainerMenu {
+    private final AbstractBuyerBE blockEntity;
     private final Level level;
+    private final int SLOT_COUNT;
+    private final int SLOT_START_X;
 
-    public BuyerMenu(int windowId, Inventory inv, FriendlyByteBuf extraData) {
-        this(windowId, inv, inv.player.level.getBlockEntity(extraData.readBlockPos()));
+    protected abstract Block getBlockType();
+
+    protected AbstractBuyerMenu(MenuType<? extends AbstractBuyerMenu> menuType, int slotCount, int slotStartX, int windowId, Inventory inv, FriendlyByteBuf extraData) {
+        this(menuType, slotCount, slotStartX, windowId, inv, inv.player.level.getBlockEntity(extraData.readBlockPos()));
     }
 
-    public BuyerMenu(int windowId, Inventory inv, BlockEntity entity) {
-        super(ModMenuTypes.BUYER_MENU.get(), windowId);
-        checkContainerSize(inv, TE_INVENTORY_SLOT_COUNT);
-        this.blockEntity = ((BuyerBE) entity);
+    protected AbstractBuyerMenu(MenuType<? extends AbstractBuyerMenu> menuType, int slotCount, int slotStartX, int windowId, Inventory inv, BlockEntity entity) {
+        super(menuType, windowId);
+        this.SLOT_COUNT = slotCount;
+        this.SLOT_START_X = slotStartX;
+        this.blockEntity = ((AbstractBuyerBE) entity);
         this.level = inv.player.level;
+        checkContainerSize(inv, SLOT_COUNT);
 
         addPlayerInventory(inv);
         addPlayerHotbar(inv);
 
         this.blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).ifPresent(handler -> {
-            this.addSlot(new ResultSlot(handler, 0, 80, 42));
+            for (int i = 0; i < SLOT_COUNT; i++) {
+                this.addSlot(new ResultSlot(handler, i, SLOT_START_X + (i * 18), 42));
+            }
         });
 
     }
 
-    public BuyerBE getBlockEntity() {
+    public AbstractBuyerBE getBlockEntity() {
         return blockEntity;
     }
     // CREDIT GOES TO: diesieben07 | https://github.com/diesieben07/SevenCommons
@@ -58,18 +66,15 @@ public class BuyerMenu extends AbstractContainerMenu {
     private static final int VANILLA_FIRST_SLOT_INDEX = 0;
     private static final int TE_INVENTORY_FIRST_SLOT_INDEX = VANILLA_FIRST_SLOT_INDEX + VANILLA_SLOT_COUNT;
 
-    // THIS YOU HAVE TO DEFINE!
-    private static final int TE_INVENTORY_SLOT_COUNT = 1;  // must be the number of slots you have!
-
     protected int getTeInventoryFirstSlotIndex() {
         return TE_INVENTORY_FIRST_SLOT_INDEX;
     }
     protected int getTeInventorySlotCount() {
-        return TE_INVENTORY_SLOT_COUNT;
+        return SLOT_COUNT;
     }
 
-    public BuyerMenu(int id, Inventory playerInventory, Level pLevel, BlockPos pPos) {
-        this(id, playerInventory, pLevel.getBlockEntity(pPos));
+    protected AbstractBuyerMenu(MenuType<? extends AbstractBuyerMenu> menuType, int slotCount, int slotStartX, int id, Inventory playerInventory, Level pLevel, BlockPos pPos) {
+        this(menuType, slotCount, slotStartX, id, playerInventory, pLevel.getBlockEntity(pPos));
     }
 
 
@@ -77,7 +82,7 @@ public class BuyerMenu extends AbstractContainerMenu {
     @Override
     protected boolean moveItemStackTo(ItemStack pStack, int pStartIndex, int pEndIndex, boolean pReverseDirection) {
         if (pStartIndex >= TE_INVENTORY_FIRST_SLOT_INDEX && pEndIndex < TE_INVENTORY_FIRST_SLOT_INDEX
-                + TE_INVENTORY_SLOT_COUNT) {
+                + SLOT_COUNT) {
             AdminShop.LOGGER.debug("Cannot move item stack here");
             return false;
         }
@@ -92,7 +97,7 @@ public class BuyerMenu extends AbstractContainerMenu {
         ItemStack copyOfSourceStack = sourceStack.copy();
 //        System.out.println("quickMoveStack()");
         // Check if the slot clicked is one of the block container slots
-        if (index >= TE_INVENTORY_FIRST_SLOT_INDEX && index < TE_INVENTORY_FIRST_SLOT_INDEX + TE_INVENTORY_SLOT_COUNT) {
+        if (index >= TE_INVENTORY_FIRST_SLOT_INDEX && index < TE_INVENTORY_FIRST_SLOT_INDEX + SLOT_COUNT) {
 //            System.out.println("Is in one of the block container slots");
             // This is a TE slot so merge the stack into the players inventory
             if (!moveItemStackTo(sourceStack, VANILLA_FIRST_SLOT_INDEX, VANILLA_FIRST_SLOT_INDEX + VANILLA_SLOT_COUNT, false)) {
@@ -116,7 +121,7 @@ public class BuyerMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player pPlayer) {
         return stillValid(ContainerLevelAccess.create(level, blockEntity.getBlockPos()),
-                pPlayer, ModBlocks.BUYER_1.get());
+                pPlayer, getBlockType());
     }
 
     private void addPlayerInventory(Inventory playerInventory) {

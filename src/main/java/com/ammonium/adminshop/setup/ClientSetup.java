@@ -18,8 +18,8 @@ public class ClientSetup {
             MenuScreens.<SellerMenu, SellerScreen>register(ModMenuTypes.SELLER_MENU.get(), (SellerMenu menu,
             Inventory playerInventory, Component title) -> new SellerScreen(menu, playerInventory, title,
                     menu.getBlockEntity().getBlockPos()));
-            MenuScreens.<BuyerMenu, BuyerScreen>register(ModMenuTypes.BUYER_MENU.get(), (BuyerMenu menu,
-            Inventory playerInventory, Component title) -> new BuyerScreen(menu, playerInventory, title,
+            MenuScreens.<Buyer1Menu, Buyer1Screen>register(ModMenuTypes.BUYER_1_MENU.get(), (Buyer1Menu menu,
+                                                                                             Inventory playerInventory, Component title) -> new Buyer1Screen(menu, playerInventory, title,
                     menu.getBlockEntity().getBlockPos()));
             MenuScreens.<Buyer2Menu, Buyer2Screen>register(ModMenuTypes.BUYER_2_MENU.get(), (Buyer2Menu menu,
             Inventory playerInventory, Component title) -> new Buyer2Screen(menu, playerInventory, title,

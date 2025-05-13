@@ -1,6 +1,7 @@
 {
   "key.categories.adminshop": "Admin Shop",
   "screen.adminshop.shop": "Shop",
+  "be.adminshop.buyer": "Buyer",
   "gui.buy": "Buy",
   "gui.sell": "Sell",
   "gui.money_decimal_offset": 2,

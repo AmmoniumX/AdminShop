@@ -4,7 +4,7 @@ import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.interfaces.ItemBuyerMachine;
 import com.ammonium.adminshop.recipes.BuyItemRecipe;
 import com.ammonium.adminshop.recipes.RecipeManager;
-import com.ammonium.adminshop.screen.BuyerMenu;
+import com.ammonium.adminshop.screen.AbstractBuyerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -25,6 +25,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
@@ -32,24 +34,35 @@ import net.minecraftforge.items.ItemHandlerHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachine, WorldlyContainer {
-    private static final int slotSize = 1;
-    public static final int TICK_COOLDOWN = 40;
-
-    private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
-    private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
+public abstract class AbstractBuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachine, WorldlyContainer {
+    private final int SLOT_SIZE;
+    public final int TICK_COOLDOWN;
+    private final NonNullList<ItemStack> stacks;
 
     private UUID teamId = null;
     private ResourceLocation recipeId = null;
     private int tickCounter = 0;
 
+    @FunctionalInterface
+    public interface MenuFactory<T extends AbstractBuyerMenu> {
+        T createMenu(int id, Inventory inventory, BlockEntity blockEntity);
+    }
+    protected final MenuFactory<?> MENU_FACTORY;
 
-    public BuyerBE(BlockPos blockPos, BlockState blockState) {
-        super(ModBlockEntities.BUYER_1.get(), blockPos, blockState);
+    public AbstractBuyerBE(BlockEntityType<? extends AbstractBuyerBE> blockEntityType,
+                           MenuFactory<? extends AbstractBuyerMenu> menuFactory,
+                           BlockPos blockPos, BlockState blockState,
+                           int slotSize, int tickCooldown) {
+        super(blockEntityType, blockPos, blockState);
+        this.MENU_FACTORY = menuFactory;
+        this.SLOT_SIZE = slotSize;
+        this.TICK_COOLDOWN = tickCooldown;
+        this.stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
     }
 
     @Override
@@ -76,7 +89,7 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Auto-Buyer");
+        return Component.translatable("be.adminshop.buyer");
     }
 
     @Override
@@ -86,7 +99,7 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
 
     @Override
     public int getContainerSize() {
-        return slotSize;
+        return SLOT_SIZE;
     }
 
     @Override
@@ -135,40 +148,40 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
-        return new BuyerMenu(id, inventory, this);
+        return MENU_FACTORY.createMenu(id, inventory, this);
     }
 
     @Override
     protected AbstractContainerMenu createMenu(int id, Inventory inventory) {
-        return new BuyerMenu(id, inventory, this);
+        return MENU_FACTORY.createMenu(id, inventory, this);
     }
 
-    public static void tick(Level level, BlockPos pos, BlockState state, BuyerBE buyerBE) {
+    public static void tick(Level level, BlockPos pos, BlockState state, AbstractBuyerBE buyer) {
         // Ignore if not server side
         if (level.isClientSide) { return; }
         assert level instanceof ServerLevel;
 
         // Only run every TICK_COOLDOWN ticks
-        buyerBE.tickCounter++;
-        if (buyerBE.tickCounter <= TICK_COOLDOWN) { return; }
-        buyerBE.tickCounter = 0;
+        buyer.tickCounter++;
+        if (buyer.tickCounter <= buyer.TICK_COOLDOWN) { return; }
+        buyer.tickCounter = 0;
 
         // Check for valid recipe
-        BuyItemRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
+        BuyItemRecipe recipe = buyer.getRecipe((ServerLevel) level).orElse(null);
         if (recipe == null) { return; }
-        boolean isValid = RecipeManager.checkForBuyItemRecipe((ServerLevel) level, buyerBE, recipe);
+        boolean isValid = RecipeManager.checkForBuyItemRecipe((ServerLevel) level, buyer, recipe);
         if (!isValid) {
             AdminShop.LOGGER.debug("Buyer recipe is not valid");
             return;
         }
 
         // Check for space
-        IItemHandler handler = buyerBE.getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(NullPointerException::new);
+        IItemHandler handler = buyer.getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(NullPointerException::new);
         ItemStack simulated = ItemHandlerHelper.insertItemStacked(handler, recipe.getItem().get().copy(), true);
         if (simulated.isEmpty()) {
 
             // Buy the item and add to inventory
-            ItemStack item = recipe.buy((ServerLevel) level, buyerBE);
+            ItemStack item = recipe.buy((ServerLevel) level, buyer);
             assert item != null && !item.isEmpty();
             ItemHandlerHelper.insertItemStacked(handler, item, false);
             return;
@@ -264,10 +277,11 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
 
     @Override
     public int[] getSlotsForFace(Direction direction) {
-        return slots;
+//        return stacks.stream().mapToInt(stacks::indexOf).toArray();
+        return java.util.stream.IntStream.range(0, SLOT_SIZE).toArray();
     }
 
-    // TODO: enable once we have recipe system fully working
+//    // TODO: enable once we have recipe system fully working
 //    @Override
 //    public boolean canPlaceItem(int i, ItemStack itemStack) {
 //        return false;
@@ -285,6 +299,6 @@ public class BuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachin
 
     @Override
     public void clearContent() {
-        this.stacks.replaceAll(ignored -> ItemStack.EMPTY);
+        Collections.fill(this.stacks, ItemStack.EMPTY);
     }
 }

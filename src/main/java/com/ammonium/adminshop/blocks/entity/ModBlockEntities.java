@@ -20,8 +20,8 @@ public class ModBlockEntities {
             BLOCK_ENTITIES.register("shop", () -> BlockEntityType.Builder.of(ShopBE::new,
                     ModBlocks.SHOP.get()).build(null));
 
-    public static final RegistryObject<BlockEntityType<BuyerBE>> BUYER_1 =
-            BLOCK_ENTITIES.register("buyer_1", () -> BlockEntityType.Builder.of(BuyerBE::new,
+    public static final RegistryObject<BlockEntityType<Buyer1BE>> BUYER_1 =
+            BLOCK_ENTITIES.register("buyer_1", () -> BlockEntityType.Builder.of(Buyer1BE::new,
                     ModBlocks.BUYER_1.get()).build(null));
 
     public static final RegistryObject<BlockEntityType<Buyer2BE>> BUYER_2 =
