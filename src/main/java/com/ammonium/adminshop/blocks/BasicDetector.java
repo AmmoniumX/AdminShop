@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.entity.BasicDetectorBE;
+import com.ammonium.adminshop.blocks.entity.BasicDetectorEntity;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.BasicDetectorMenu;
@@ -92,7 +92,7 @@ public class BasicDetector extends BaseEntityBlock {
             ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
-            if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof BasicDetectorBE basicDetectorBE) {
+            if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof BasicDetectorEntity basicDetectorBE) {
                 basicDetectorBE.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
             }
         }
@@ -101,7 +101,7 @@ public class BasicDetector extends BaseEntityBlock {
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
-        return new BasicDetectorBE(pPos, pState);
+        return new BasicDetectorEntity(pPos, pState);
     }
 
     @Override
@@ -116,7 +116,7 @@ public class BasicDetector extends BaseEntityBlock {
         if (!pLevel.isClientSide()) {
             ServerLevel serverLevel = (ServerLevel) pLevel;
 
-            if(pLevel.getBlockEntity(pPos) instanceof BasicDetectorBE basicDetectorBE
+            if(pLevel.getBlockEntity(pPos) instanceof BasicDetectorEntity basicDetectorBE
                 && pPlayer instanceof ServerPlayer serverPlayer) {
 
                 if (MoneyHelper.get(serverLevel).isMemberOfTeam(basicDetectorBE.getTeamId(), serverPlayer)) {
@@ -139,7 +139,7 @@ public class BasicDetector extends BaseEntityBlock {
     public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
         if (pState.getBlock() != pNewState.getBlock()) {
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof BasicDetectorBE basicDetectorBE) {
+            if (blockEntity instanceof BasicDetectorEntity basicDetectorBE) {
                 basicDetectorBE.setRemoved();
             }
         }
@@ -166,7 +166,7 @@ public class BasicDetector extends BaseEntityBlock {
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level pLevel, BlockState pState, BlockEntityType<T> pBlockEntityType) {
         return pLevel.isClientSide() ? null : checkType(pBlockEntityType, ModBlockEntities.BASIC_DETECTOR.get(),
-                (level, pos, state, blockEntity) -> BasicDetectorBE.tick(level, pos, state, (BasicDetectorBE) blockEntity));
+                (level, pos, state, blockEntity) -> BasicDetectorEntity.tick(level, pos, state, (BasicDetectorEntity) blockEntity));
     }
 
     private static <T extends BlockEntity> BlockEntityTicker<T> checkType(BlockEntityType<T> blockEntityType, BlockEntityType<?> expectedType, BlockEntityTicker<? super T> ticker) {

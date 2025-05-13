@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.entity.AbstractBuyerBE;
+import com.ammonium.adminshop.blocks.entity.AbstractBuyerEntity;
 import com.ammonium.adminshop.screen.slot.ResultSlot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 
 public abstract class AbstractBuyerMenu extends AbstractContainerMenu {
-    private final AbstractBuyerBE blockEntity;
+    private final AbstractBuyerEntity blockEntity;
     private final Level level;
     private final int SLOT_COUNT;
     private final int SLOT_START_X;
@@ -33,7 +33,7 @@ public abstract class AbstractBuyerMenu extends AbstractContainerMenu {
         super(menuType, windowId);
         this.SLOT_COUNT = slotCount;
         this.SLOT_START_X = slotStartX;
-        this.blockEntity = ((AbstractBuyerBE) entity);
+        this.blockEntity = ((AbstractBuyerEntity) entity);
         this.level = inv.player.level;
         checkContainerSize(inv, SLOT_COUNT);
 
@@ -48,7 +48,7 @@ public abstract class AbstractBuyerMenu extends AbstractContainerMenu {
 
     }
 
-    public AbstractBuyerBE getBlockEntity() {
+    public AbstractBuyerEntity getBlockEntity() {
         return blockEntity;
     }
     // CREDIT GOES TO: diesieben07 | https://github.com/diesieben07/SevenCommons

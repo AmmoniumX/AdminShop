@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.entity.AdvancedDetectorBE;
+import com.ammonium.adminshop.blocks.entity.AdvancedDetectorEntity;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.AdvancedDetectorMenu;
@@ -56,7 +56,7 @@ public class AdvancedDetector extends BaseEntityBlock {
     public int getSignal(BlockState state, BlockGetter world, BlockPos pos, Direction direction) {
         if (direction.equals(Direction.UP)) return 0;
         BlockEntity be = world.getBlockEntity(pos);
-        if (be instanceof AdvancedDetectorBE advancedDetectorBE) {
+        if (be instanceof AdvancedDetectorEntity advancedDetectorBE) {
             return advancedDetectorBE.getSignal();
         }
         return 0;
@@ -96,7 +96,7 @@ public class AdvancedDetector extends BaseEntityBlock {
             ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
-            if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof AdvancedDetectorBE advancedDetectorBE) {
+            if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof AdvancedDetectorEntity advancedDetectorBE) {
                 advancedDetectorBE.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
             }
         }
@@ -105,7 +105,7 @@ public class AdvancedDetector extends BaseEntityBlock {
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
-        return new AdvancedDetectorBE(pPos, pState);
+        return new AdvancedDetectorEntity(pPos, pState);
     }
 
     @Override
@@ -118,7 +118,7 @@ public class AdvancedDetector extends BaseEntityBlock {
                                  Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
         if (!pLevel.isClientSide()) {
             ServerLevel serverLevel = (ServerLevel) pLevel;
-            if(pLevel.getBlockEntity(pPos) instanceof AdvancedDetectorBE advancedDetectorBE
+            if(pLevel.getBlockEntity(pPos) instanceof AdvancedDetectorEntity advancedDetectorBE
                     && pPlayer instanceof ServerPlayer serverPlayer) {
 
                 if (MoneyHelper.get(serverLevel).isMemberOfTeam(advancedDetectorBE.getTeamId(), serverPlayer)) {
@@ -141,7 +141,7 @@ public class AdvancedDetector extends BaseEntityBlock {
     public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
         if (pState.getBlock() != pNewState.getBlock()) {
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof AdvancedDetectorBE advancedDetectorBE) {
+            if (blockEntity instanceof AdvancedDetectorEntity advancedDetectorBE) {
                 advancedDetectorBE.setRemoved();
             }
         }
@@ -157,7 +157,7 @@ public class AdvancedDetector extends BaseEntityBlock {
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level pLevel, BlockState pState, BlockEntityType<T> pBlockEntityType) {
         return pLevel.isClientSide() ? null : checkType(pBlockEntityType, ModBlockEntities.ADVANCED_DETECTOR.get(),
-                (level, pos, state, blockEntity) -> AdvancedDetectorBE.tick(level, pos, state, (AdvancedDetectorBE) blockEntity));
+                (level, pos, state, blockEntity) -> AdvancedDetectorEntity.tick(level, pos, state, (AdvancedDetectorEntity) blockEntity));
     }
 
     private static <T extends BlockEntity> BlockEntityTicker<T> checkType(BlockEntityType<T> blockEntityType, BlockEntityType<?> expectedType, BlockEntityTicker<? super T> ticker) {

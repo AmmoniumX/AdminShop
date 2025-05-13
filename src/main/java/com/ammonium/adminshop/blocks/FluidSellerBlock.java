@@ -1,6 +1,6 @@
 package com.ammonium.adminshop.blocks;
 
-import com.ammonium.adminshop.blocks.entity.FluidSellerBE;
+import com.ammonium.adminshop.blocks.entity.FluidSellerEntity;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.FluidSellerMenu;
@@ -43,7 +43,7 @@ public class FluidSellerBlock extends BaseEntityBlock {
     public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
         if (pState.getBlock() != pNewState.getBlock()) {
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof FluidSellerBE fSellerEntity) {
+            if (blockEntity instanceof FluidSellerEntity fSellerEntity) {
                 fSellerEntity.setRemoved();
             }
         }
@@ -55,7 +55,7 @@ public class FluidSellerBlock extends BaseEntityBlock {
                                  Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
         if (!pLevel.isClientSide()) {
             ServerLevel serverLevel = (ServerLevel) pLevel;
-            if(pLevel.getBlockEntity(pPos) instanceof FluidSellerBE fSellerEntity
+            if(pLevel.getBlockEntity(pPos) instanceof FluidSellerEntity fSellerEntity
                 && pPlayer instanceof ServerPlayer serverPlayer) {
 
                 if (MoneyHelper.get(serverLevel).isMemberOfTeam(fSellerEntity.getTeamId(), serverPlayer)) {
@@ -87,7 +87,7 @@ public class FluidSellerBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
-        return new FluidSellerBE(pPos, pState);
+        return new FluidSellerEntity(pPos, pState);
     }
 
     @Override
@@ -103,7 +103,7 @@ public class FluidSellerBlock extends BaseEntityBlock {
             ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
-            if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof FluidSellerBE fSellerEntity) {
+            if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof FluidSellerEntity fSellerEntity) {
                 fSellerEntity.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
                 fSellerEntity.setChanged();
                 fSellerEntity.sendUpdates();
@@ -136,7 +136,7 @@ public class FluidSellerBlock extends BaseEntityBlock {
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level pLevel, BlockState pState, BlockEntityType<T> pBlockEntityType) {
         return pLevel.isClientSide() ? null : checkType(pBlockEntityType, ModBlockEntities.FLUID_SELLER.get(),
-                (level, pos, state, blockEntity) -> FluidSellerBE.tick(level, pos, state, (FluidSellerBE) blockEntity));
+                (level, pos, state, blockEntity) -> FluidSellerEntity.tick(level, pos, state, (FluidSellerEntity) blockEntity));
     }
 
     private static <T extends BlockEntity> BlockEntityTicker<T> checkType(BlockEntityType<T> blockEntityType, BlockEntityType<?> expectedType, BlockEntityTicker<? super T> ticker) {

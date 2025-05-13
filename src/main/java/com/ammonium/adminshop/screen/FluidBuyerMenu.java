@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.blocks.ModBlocks;
-import com.ammonium.adminshop.blocks.entity.FluidBuyerBE;
+import com.ammonium.adminshop.blocks.entity.FluidBuyerEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class FluidBuyerMenu extends AbstractContainerMenu {
 
-    private final FluidBuyerBE blockEntity;
+    private final FluidBuyerEntity blockEntity;
     private final Level level;
 
     public FluidBuyerMenu(int windowId, Inventory inv, FriendlyByteBuf extraData) {
@@ -25,7 +25,7 @@ public class FluidBuyerMenu extends AbstractContainerMenu {
 
     public FluidBuyerMenu(int windowId, Inventory inv, BlockEntity entity) {
         super(ModMenuTypes.FLUID_BUYER_MENU.get(), windowId);
-        this.blockEntity = ((FluidBuyerBE) entity);
+        this.blockEntity = ((FluidBuyerEntity) entity);
         this.level = inv.player.level;
 
         addPlayerInventory(inv);
@@ -39,7 +39,7 @@ public class FluidBuyerMenu extends AbstractContainerMenu {
         return ItemStack.EMPTY;
     }
 
-    public FluidBuyerBE getBlockEntity() {
+    public FluidBuyerEntity getBlockEntity() {
         return blockEntity;
     }
 

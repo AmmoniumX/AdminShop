@@ -1,10 +1,10 @@
 package com.ammonium.adminshop.blocks.entity;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.interfaces.FluidSellerMachine;
+import com.ammonium.adminshop.blocks.interfaces.FluidBuyerMachine;
+import com.ammonium.adminshop.recipes.BuyFluidRecipe;
 import com.ammonium.adminshop.recipes.RecipeManager;
-import com.ammonium.adminshop.recipes.SellFluidRecipe;
-import com.ammonium.adminshop.screen.FluidSellerMenu;
+import com.ammonium.adminshop.screen.FluidBuyerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -19,6 +20,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.FluidHandlerBlockEntity;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.templates.FluidTank;
@@ -26,16 +28,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
-public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSellerMachine {
-    private UUID teamId = null;
-    private int tickCounter = 0;
+public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBuyerMachine {
     private static final int TANK_CAPACITY = 64000;
 
-    public FluidSellerBE(BlockPos pWorldPosition, BlockState pBlockState) {
-        super(ModBlockEntities.FLUID_SELLER.get(), pWorldPosition, pBlockState);
-//        this.tank = new InsertSellableOnlyTank(TANK_CAPACITY, this::sendUpdates);
+    private UUID teamId = null;
+    private ResourceLocation recipeId = null;
+    private int tickCounter = 0;
+
+    public FluidBuyerEntity(BlockPos pWorldPosition, BlockState pBlockState) {
+        super(ModBlockEntities.FLUID_BUYER.get(), pWorldPosition, pBlockState);
+//        this.tank = new ExtractOnlyTank(TANK_CAPACITY, this::sendUpdates);
         this.tank = new FluidTank(TANK_CAPACITY);
     }
 
@@ -52,8 +57,18 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
     }
 
     @Override
+    public void setRecipe(ResourceLocation recipeId) {
+        this.recipeId = recipeId;
+    }
+
+    @Override
+    public Optional<BuyFluidRecipe> getRecipe(Level level) {
+        return RecipeManager.getShopBuyFluidRecipe(level, recipeId);
+    }
+
+    @Override
     public Component getDisplayName() {
-        return Component.translatable("block.adminshop.fluid_seller");
+        return Component.translatable("block.adminshop.fluid_buyer");
     }
 
     @Override
@@ -68,34 +83,45 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int pContainerId, Inventory pInventory, Player pPlayer) {
-        return new FluidSellerMenu(pContainerId, pInventory, this);
+        return new FluidBuyerMenu(pContainerId, pInventory, this);
     }
 
-    public static void tick(Level level, BlockPos pos, BlockState state, FluidSellerBE sellerBE) {
+    public static void tick(Level level, BlockPos pos, BlockState state, FluidBuyerEntity buyerBE) {
         // Ignore if not server side
         if (level.isClientSide) { return; }
         assert level instanceof ServerLevel;
 
         // Only run every 20 ticks
-        sellerBE.tickCounter++;
-        if (sellerBE.tickCounter <= 20) { return; }
-        sellerBE.tickCounter = 0;
+        buyerBE.tickCounter++;
+        if (buyerBE.tickCounter <= 20) { return; }
+        buyerBE.tickCounter = 0;
 
         // Check for valid recipe
-        SellFluidRecipe recipe = RecipeManager.checkForSellFluidRecipe((ServerLevel) level, sellerBE).orElse(null);
+        BuyFluidRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
         if (recipe == null) { return; }
+        boolean isValid = RecipeManager.checkForBuyFluidRecipe((ServerLevel) level, buyerBE, recipe);
+        if (!isValid) { return; }
 
-        // Sell the fluid
-        IFluidHandler handler = sellerBE.getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);
+        // Check for space
+        IFluidHandler handler = buyerBE.getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);
         if (handler == null) {
-            AdminShop.LOGGER.debug("Fluid handler is null");
+            AdminShop.LOGGER.debug("Buyer has no fluid handler");
             return;
         }
-        handler.drain(recipe.getFluid().copy(), IFluidHandler.FluidAction.EXECUTE);
-        recipe.sell((ServerLevel) level, sellerBE);
-        return;
-    }
+        FluidStack simulate = recipe.getFluid();
+        int filled = handler.fill(simulate, IFluidHandler.FluidAction.SIMULATE);
+        AdminShop.LOGGER.debug("Filled: " + filled + " / " + simulate.getAmount());
+        if (filled == simulate.getAmount()) {
 
+            // Buy the fluid
+            FluidStack buy = recipe.buy((ServerLevel) level, buyerBE);
+            assert buy != null && !buy.isEmpty();
+            handler.fill(buy, IFluidHandler.FluidAction.EXECUTE);
+            buyerBE.setChanged();
+            buyerBE.sendUpdates();
+            return;
+        }
+    }
 
 //    @Nonnull
 //    @Override
@@ -126,6 +152,9 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        if (this.recipeId != null) {
+            tag.putString("recipe", this.recipeId.toString());
+        }
         return tag;
     }
 
@@ -153,6 +182,13 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }
+        if (tag.contains("recipe")) {
+            this.recipeId = new ResourceLocation(tag.getString("recipe"));
+        } else {
+            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
+            this.recipeId = null;
+        }
+//        AdminShop.LOGGER.debug("Updated FluidBuyer with targetShopItem "+((this.targetShopItem != null) ? this.targetShopItem.getFluid().getDisplayName() : "none"));
     }
 
     @Override
@@ -161,6 +197,9 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
 //        tank.writeToNBT(tag);
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
+        }
+        if (this.recipeId != null) {
+            tag.putString("recipe", this.recipeId.toString());
         }
     }
 
@@ -171,6 +210,13 @@ public class FluidSellerBE extends FluidHandlerBlockEntity implements FluidSelle
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }
+        if (tag.contains("recipe")) {
+            this.recipeId = new ResourceLocation(tag.getString("recipe"));
+        } else {
+            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
+            this.recipeId = null;
+        }
+//        AdminShop.LOGGER.debug("Loaded FluidBuyer with targetShopItem "+((this.targetShopItem != null) ? this.targetShopItem.getFluid().getDisplayName().getString() : "none"));
     }
 
 //    public void drops() {

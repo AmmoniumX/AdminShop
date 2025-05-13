@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.entity.SellerBE;
+import com.ammonium.adminshop.blocks.entity.SellerEntity;
 import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketUpdateRequest;
@@ -21,7 +21,7 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
     private static final ResourceLocation TEXTURE =
             new ResourceLocation(AdminShop.MODID, "textures/gui/seller.png");
     private final BlockPos blockPos;
-    private SellerBE sellerEntity;
+    private SellerEntity sellerEntity;
     private UUID teamId = null;
 
     public SellerScreen(SellerMenu pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {

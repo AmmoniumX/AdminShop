@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.entity.AbstractBuyerBE;
+import com.ammonium.adminshop.blocks.entity.AbstractBuyerEntity;
 import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketSetItemBuyerRecipe;
@@ -30,7 +30,7 @@ import java.util.UUID;
 public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractContainerScreen<T> {
     private final ResourceLocation TEXTURE;
     private final BlockPos blockPos;
-    private AbstractBuyerBE buyerEntity;
+    private AbstractBuyerEntity buyerEntity;
     private UUID teamId = null;
     private BuyItemRecipe recipe;
 

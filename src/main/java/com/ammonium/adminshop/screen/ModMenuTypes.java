@@ -18,14 +18,14 @@ public class ModMenuTypes {
     public static final RegistryObject<MenuType<SellerMenu>> SELLER_MENU = MENUS.register("seller_menu",
             () -> IForgeMenuType.create((SellerMenu::new)));
 
-    public static final RegistryObject<MenuType<Buyer1Menu>> BUYER_1_MENU = MENUS.register("buyer_menu",
-            () -> IForgeMenuType.create((Buyer1Menu::new)));
+    public static final RegistryObject<MenuType<BuyerMenu1>> BUYER_1_MENU = MENUS.register("buyer_menu",
+            () -> IForgeMenuType.create((BuyerMenu1::new)));
 
-    public static final RegistryObject<MenuType<Buyer2Menu>> BUYER_2_MENU = MENUS.register("buyer_2_menu",
-            () -> IForgeMenuType.create((Buyer2Menu::new)));
+    public static final RegistryObject<MenuType<BuyerMenu2>> BUYER_2_MENU = MENUS.register("buyer_2_menu",
+            () -> IForgeMenuType.create((BuyerMenu2::new)));
 
-    public static final RegistryObject<MenuType<Buyer3Menu>> BUYER_3_MENU = MENUS.register("buyer_3_menu",
-            () -> IForgeMenuType.create((Buyer3Menu::new)));
+    public static final RegistryObject<MenuType<BuyerMenu3>> BUYER_3_MENU = MENUS.register("buyer_3_menu",
+            () -> IForgeMenuType.create((BuyerMenu3::new)));
 
     public static final RegistryObject<MenuType<FluidBuyerMenu>> FLUID_BUYER_MENU = MENUS.register("fluid_buyer_menu",
             () -> IForgeMenuType.create((FluidBuyerMenu::new)));

@@ -2,7 +2,7 @@ package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.ModBlocks;
-import com.ammonium.adminshop.blocks.entity.SellerBE;
+import com.ammonium.adminshop.blocks.entity.SellerEntity;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.screen.slot.ShopItemInputSlot;
 import net.minecraft.client.Minecraft;
@@ -20,7 +20,7 @@ import net.minecraftforge.common.capabilities.ForgeCapabilities;
 
 public class SellerMenu extends AbstractContainerMenu {
 
-    private final SellerBE blockEntity;
+    private final SellerEntity blockEntity;
     private final Level level;
 
     public SellerMenu(int windowId, Inventory inv, FriendlyByteBuf extraData) {
@@ -30,7 +30,7 @@ public class SellerMenu extends AbstractContainerMenu {
     public SellerMenu(int windowId, Inventory inv, BlockEntity entity) {
         super(ModMenuTypes.SELLER_MENU.get(), windowId);
         checkContainerSize(inv, 1);
-        this.blockEntity = ((SellerBE) entity);
+        this.blockEntity = ((SellerEntity) entity);
         this.level = inv.player.level;
 
         addPlayerInventory(inv);
@@ -42,7 +42,7 @@ public class SellerMenu extends AbstractContainerMenu {
 
     }
 
-    public SellerBE getBlockEntity() {
+    public SellerEntity getBlockEntity() {
         return blockEntity;
     }
 

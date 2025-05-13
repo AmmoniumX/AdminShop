@@ -39,7 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-public abstract class AbstractBuyerBE extends BaseContainerBlockEntity implements ItemBuyerMachine, WorldlyContainer {
+public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity implements ItemBuyerMachine, WorldlyContainer {
     private final int SLOT_SIZE;
     public final int TICK_COOLDOWN;
     private final NonNullList<ItemStack> stacks;
@@ -54,10 +54,10 @@ public abstract class AbstractBuyerBE extends BaseContainerBlockEntity implement
     }
     protected final MenuFactory<?> MENU_FACTORY;
 
-    public AbstractBuyerBE(BlockEntityType<? extends AbstractBuyerBE> blockEntityType,
-                           MenuFactory<? extends AbstractBuyerMenu> menuFactory,
-                           BlockPos blockPos, BlockState blockState,
-                           int slotSize, int tickCooldown) {
+    public AbstractBuyerEntity(BlockEntityType<? extends AbstractBuyerEntity> blockEntityType,
+                               MenuFactory<? extends AbstractBuyerMenu> menuFactory,
+                               BlockPos blockPos, BlockState blockState,
+                               int slotSize, int tickCooldown) {
         super(blockEntityType, blockPos, blockState);
         this.MENU_FACTORY = menuFactory;
         this.SLOT_SIZE = slotSize;
@@ -156,7 +156,7 @@ public abstract class AbstractBuyerBE extends BaseContainerBlockEntity implement
         return MENU_FACTORY.createMenu(id, inventory, this);
     }
 
-    public static void tick(Level level, BlockPos pos, BlockState state, AbstractBuyerBE buyer) {
+    public static void tick(Level level, BlockPos pos, BlockState state, AbstractBuyerEntity buyer) {
         // Ignore if not server side
         if (level.isClientSide) { return; }
         assert level instanceof ServerLevel;

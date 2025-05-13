@@ -18,14 +18,14 @@ public class ClientSetup {
             MenuScreens.<SellerMenu, SellerScreen>register(ModMenuTypes.SELLER_MENU.get(), (SellerMenu menu,
             Inventory playerInventory, Component title) -> new SellerScreen(menu, playerInventory, title,
                     menu.getBlockEntity().getBlockPos()));
-            MenuScreens.<Buyer1Menu, Buyer1Screen>register(ModMenuTypes.BUYER_1_MENU.get(), (Buyer1Menu menu,
-                                                                                             Inventory playerInventory, Component title) -> new Buyer1Screen(menu, playerInventory, title,
+            MenuScreens.<BuyerMenu1, BuyerScreen1>register(ModMenuTypes.BUYER_1_MENU.get(), (BuyerMenu1 menu,
+                                                                                             Inventory playerInventory, Component title) -> new BuyerScreen1(menu, playerInventory, title,
                     menu.getBlockEntity().getBlockPos()));
-            MenuScreens.<Buyer2Menu, Buyer2Screen>register(ModMenuTypes.BUYER_2_MENU.get(), (Buyer2Menu menu,
-            Inventory playerInventory, Component title) -> new Buyer2Screen(menu, playerInventory, title,
+            MenuScreens.<BuyerMenu2, BuyerScreen2>register(ModMenuTypes.BUYER_2_MENU.get(), (BuyerMenu2 menu,
+                                                                                             Inventory playerInventory, Component title) -> new BuyerScreen2(menu, playerInventory, title,
                     menu.getBlockEntity().getBlockPos()));
-            MenuScreens.<Buyer3Menu, Buyer3Screen>register(ModMenuTypes.BUYER_3_MENU.get(), (Buyer3Menu menu,
-            Inventory playerInventory, Component title) -> new Buyer3Screen(menu, playerInventory, title,
+            MenuScreens.<BuyerMenu3, BuyerScreen3>register(ModMenuTypes.BUYER_3_MENU.get(), (BuyerMenu3 menu,
+                                                                                             Inventory playerInventory, Component title) -> new BuyerScreen3(menu, playerInventory, title,
                     menu.getBlockEntity().getBlockPos()));
             MenuScreens.<FluidBuyerMenu, FluidBuyerScreen>register(ModMenuTypes.FLUID_BUYER_MENU.get(), (FluidBuyerMenu menu,
             Inventory playerInventory, Component title) -> new FluidBuyerScreen(menu, playerInventory, title,

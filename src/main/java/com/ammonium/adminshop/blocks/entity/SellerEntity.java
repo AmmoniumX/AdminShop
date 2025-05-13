@@ -35,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 import java.util.UUID;
 
-public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMachine, WorldlyContainer {
+public class SellerEntity extends BaseContainerBlockEntity implements ItemSellerMachine, WorldlyContainer {
     private static final int slotSize = 1;
 
     private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
@@ -44,7 +44,7 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
     private UUID teamId = null;
     private int tickCounter = 0;
 
-    public SellerBE(BlockPos pWorldPosition, BlockState pBlockState) {
+    public SellerEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.SELLER.get(), pWorldPosition, pBlockState);
     }
 
@@ -129,7 +129,7 @@ public class SellerBE extends BaseContainerBlockEntity implements ItemSellerMach
         return new SellerMenu(i, inventory, this);
     }
 
-    public static void tick(Level level, BlockPos pos, BlockState state, SellerBE sellerBE) {
+    public static void tick(Level level, BlockPos pos, BlockState state, SellerEntity sellerBE) {
         // Ignore if not server side
         if (level.isClientSide) { return; }
         assert level instanceof ServerLevel;

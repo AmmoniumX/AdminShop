@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.blocks;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.entity.AbstractBuyerBE;
+import com.ammonium.adminshop.blocks.entity.AbstractBuyerEntity;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.AbstractBuyerMenu;
 import net.minecraft.core.BlockPos;
@@ -42,7 +42,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.1, 0.1, 0.1, 0.9, 0.9, 0.9);
 
     @FunctionalInterface
-    public interface BlockEntityFactory<T extends AbstractBuyerBE> {
+    public interface BlockEntityFactory<T extends AbstractBuyerEntity> {
         T createBlockEntity(BlockPos pos, BlockState state);
     }
     protected final BlockEntityFactory<?> BLOCK_ENTITY_FACTORY;
@@ -72,7 +72,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
     public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
         if (pState.getBlock() != pNewState.getBlock()) {
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof AbstractBuyerBE buyerEntity) {
+            if (blockEntity instanceof AbstractBuyerEntity buyerEntity) {
                 buyerEntity.drops();
                 buyerEntity.setRemoved();
             }
@@ -87,7 +87,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
             assert level instanceof ServerLevel;
             ServerLevel serverLevel = (ServerLevel) level;
             AdminShop.LOGGER.debug("Saving account");
-            if(level.getBlockEntity(pos) instanceof AbstractBuyerBE buyerEntity
+            if(level.getBlockEntity(pos) instanceof AbstractBuyerEntity buyerEntity
                 && player instanceof ServerPlayer serverPlayer) {
                 if (MoneyHelper.get(serverLevel).isMemberOfTeam(buyerEntity.getTeamId(), serverPlayer)) {
                     AdminShop.LOGGER.debug("Found account: {}", buyerEntity.getTeamId());
@@ -140,7 +140,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
             ServerLevel serverLevel = (ServerLevel) level;
             BlockEntity blockEntity = level.getBlockEntity(pos);
             // Set initial values
-            if (placer instanceof ServerPlayer serverPlayer && blockEntity instanceof AbstractBuyerBE buyerEntity) {
+            if (placer instanceof ServerPlayer serverPlayer && blockEntity instanceof AbstractBuyerEntity buyerEntity) {
                 UUID teamId = MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId();
                 AdminShop.LOGGER.debug("Setting initial teamId: {}", teamId);
                 buyerEntity.setTeamId(teamId);
@@ -185,13 +185,13 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
      * Gets the BlockEntityType for this block.
      * Each subclass must implement this to return its specific BlockEntityType.
      */
-    protected abstract BlockEntityType<? extends AbstractBuyerBE> getBlockEntityType();
+    protected abstract BlockEntityType<? extends AbstractBuyerEntity> getBlockEntityType();
 
     /**
      * Creates a ticker for the block entity.
      * Each subclass must implement this to return its specific ticker logic.
      */
-    protected abstract <T extends AbstractBuyerBE> BlockEntityTicker<T> createBlockEntityTicker();
+    protected abstract <T extends AbstractBuyerEntity> BlockEntityTicker<T> createBlockEntityTicker();
 
     /**
      * Implementation of getTicker that uses the subclass-specific methods.

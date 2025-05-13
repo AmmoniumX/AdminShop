@@ -1,6 +1,6 @@
 package com.ammonium.adminshop.blocks;
 
-import com.ammonium.adminshop.blocks.entity.ShopBE;
+import com.ammonium.adminshop.blocks.entity.ShopEntity;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
 import com.ammonium.adminshop.screen.ShopMenu;
@@ -93,7 +93,7 @@ public class ShopBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {
-        return new ShopBE(blockPos, blockState);
+        return new ShopEntity(blockPos, blockState);
     }
 
     @Nullable
@@ -103,7 +103,7 @@ public class ShopBlock extends BaseEntityBlock {
             return null;
         }
         return (lvl, pos, blockState, t) -> {
-            if(t instanceof ShopBE tile){
+            if(t instanceof ShopEntity tile){
 
             }
         };
@@ -114,7 +114,7 @@ public class ShopBlock extends BaseEntityBlock {
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult trace) {
         if (!level.isClientSide) {
             BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof ShopBE) {
+            if (be instanceof ShopEntity) {
                 MenuProvider containerProvider = new MenuProvider() {
                     @Override
                     public Component getDisplayName() {

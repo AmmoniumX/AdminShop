@@ -2,7 +2,7 @@ package com.ammonium.adminshop.blocks;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
-import com.ammonium.adminshop.blocks.entity.SellerBE;
+import com.ammonium.adminshop.blocks.entity.SellerEntity;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.SellerMenu;
 import net.minecraft.core.BlockPos;
@@ -52,7 +52,7 @@ public class SellerBlock extends BaseEntityBlock {
     public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
         if (pState.getBlock() != pNewState.getBlock()) {
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof SellerBE sellerEntity) {
+            if (blockEntity instanceof SellerEntity sellerEntity) {
                 sellerEntity.drops();
                 sellerEntity.setRemoved();
             }
@@ -66,7 +66,7 @@ public class SellerBlock extends BaseEntityBlock {
         if (!pLevel.isClientSide()) {
             assert pLevel instanceof ServerLevel;
             ServerLevel serverLevel = (ServerLevel) pLevel;
-            if(pLevel.getBlockEntity(pPos) instanceof SellerBE buyerEntity
+            if(pLevel.getBlockEntity(pPos) instanceof SellerEntity buyerEntity
                 && pPlayer instanceof ServerPlayer serverPlayer) {
 //                AdminShop.LOGGER.debug("Looking for account: "+buyerEntity.getAccount().toString());
                 if (MoneyHelper.get(serverLevel).isMemberOfTeam(buyerEntity.getTeamId(), serverPlayer)) {
@@ -104,7 +104,7 @@ public class SellerBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
-        return new SellerBE(pPos, pState);
+        return new SellerEntity(pPos, pState);
     }
 
     @Override
@@ -140,7 +140,7 @@ public class SellerBlock extends BaseEntityBlock {
             ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
-            if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof SellerBE sellerEntity) {
+            if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof SellerEntity sellerEntity) {
                 sellerEntity.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
                 sellerEntity.setChanged();
                 sellerEntity.sendUpdates();
@@ -152,7 +152,7 @@ public class SellerBlock extends BaseEntityBlock {
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level pLevel, BlockState pState, BlockEntityType<T> pBlockEntityType) {
         return pLevel.isClientSide() ? null : checkType(pBlockEntityType, ModBlockEntities.SELLER.get(),
-                (level, pos, state, blockEntity) -> SellerBE.tick(level, pos, state, (SellerBE) blockEntity));
+                (level, pos, state, blockEntity) -> SellerEntity.tick(level, pos, state, (SellerEntity) blockEntity));
     }
 
     private static <T extends BlockEntity> BlockEntityTicker<T> checkType(BlockEntityType<T> blockEntityType, BlockEntityType<?> expectedType, BlockEntityTicker<? super T> ticker) {

@@ -4,9 +4,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class ShopBE extends BlockEntity {
+public class ShopEntity extends BlockEntity {
 
-    public ShopBE(BlockPos pos, BlockState state){
+    public ShopEntity(BlockPos pos, BlockState state){
         super(ModBlockEntities.SHOP.get(), pos, state);
     }
 

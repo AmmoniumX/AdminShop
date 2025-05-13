@@ -26,12 +26,12 @@ public class ModBlocks {
     public static final RegistryObject<Block> SHOP = registerLoreBlock("shop",
             ShopBlock::new, ModSetup.ITEM_GROUP, "Buy and Sell Items!");
     public static final RegistryObject<Block> BUYER_1 = registerLoreBlock("buyer_1",
-            Buyer1Block::new, ModSetup.ITEM_GROUP, "Automatically buys once every 40 ticks");
+            BuyerBlock1::new, ModSetup.ITEM_GROUP, "Automatically buys once every 40 ticks");
 
     public static final RegistryObject<Block> BUYER_2 = registerLoreBlock("buyer_2",
-            Buyer2Block::new, ModSetup.ITEM_GROUP, "Automatically buys once every 20 ticks");
+            BuyerBlock2::new, ModSetup.ITEM_GROUP, "Automatically buys once every 20 ticks");
     public static final RegistryObject<Block> BUYER_3 = registerLoreBlock("buyer_3",
-            Buyer3Block::new, ModSetup.ITEM_GROUP, "Automatically buys once every 10 ticks");
+            BuyerBlock3::new, ModSetup.ITEM_GROUP, "Automatically buys once every 10 ticks");
 
     public static final RegistryObject<Block> SELLER = registerLoreBlock("seller",
             SellerBlock::new, ModSetup.ITEM_GROUP, "Automatically sells once every 20 ticks");

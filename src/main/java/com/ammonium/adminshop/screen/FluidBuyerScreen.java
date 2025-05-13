@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
-import com.ammonium.adminshop.blocks.entity.FluidBuyerBE;
+import com.ammonium.adminshop.blocks.entity.FluidBuyerEntity;
 import com.ammonium.adminshop.client.gui.TankGauge;
 import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyHelper;
@@ -40,7 +40,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     private static final ResourceLocation TEXTURE =
             new ResourceLocation(AdminShop.MODID, "textures/gui/fluid_buyer.png");
     private final BlockPos blockPos;
-    private FluidBuyerBE buyerEntity;
+    private FluidBuyerEntity buyerEntity;
     private UUID teamId = null;
     private BuyFluidRecipe recipe = null;
     private TextureAtlasSprite fluidTexture = null;
