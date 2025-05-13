@@ -233,13 +233,6 @@ dependencies {
     implementation fg.deobf("dev.ftb.mods:ftb-library-forge:${ftblib_version}") { transitive = false }
     implementation fg.deobf("dev.ftb.mods:ftb-teams-forge:${ftbteams_version}") { transitive = false }
 
-    //JUnit Testing
-    // testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    // testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
-
-    //CSV Reader
-    //implementation 'org.apache.commons:commons-csv:1.9.0'
-
     // Examples using mod jars from ./libs
     // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
 
