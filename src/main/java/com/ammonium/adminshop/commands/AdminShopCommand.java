@@ -35,13 +35,13 @@ public class AdminShopCommand {
         // adminshop give {player} {amount}
         LiteralArgumentBuilder<CommandSourceStack> giveMoneyCommand = Commands.literal("give")
                 .requires(source -> source.hasPermission(3))
-                .then(Commands.argument("player", EntityArgument.players()))
+                .then(Commands.argument("player", EntityArgument.players())
                 .then(Commands.argument("amount", LongArgumentType.longArg())
                 .executes(context -> {
                     EntitySelector playerSelector = context.getArgument("player", EntitySelector.class);
                     long amount = LongArgumentType.getLong(context, "amount");
                     return giveMoney(context.getSource(), playerSelector, amount);
-                }));
+                })));
 
         // adminshop remove {player} {amount}
         LiteralArgumentBuilder<CommandSourceStack> removeMoneyCommand = Commands.literal("remove")
