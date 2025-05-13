@@ -6,7 +6,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class Buyer2BE extends AbstractBuyerBE {
     private static final int SLOT_SIZE = 3;
-    public static final int TICK_COOLDOWN = 20;
+    private static final int TICK_COOLDOWN = 20;
 
     public Buyer2BE(BlockPos blockPos, BlockState blockState) {
         super(ModBlockEntities.BUYER_2.get(), Buyer2Menu::new, blockPos, blockState, SLOT_SIZE, TICK_COOLDOWN);

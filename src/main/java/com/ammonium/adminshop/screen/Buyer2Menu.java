@@ -9,8 +9,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class Buyer2Menu extends AbstractBuyerMenu {
-    public static final int SLOT_COUNT = 3;
-    public static final int SLOT_START_X = 62;
+    private static final int SLOT_COUNT = 3;
+    private static final int SLOT_START_X = 62;
 
     public Buyer2Menu(int windowId, Inventory inv, FriendlyByteBuf extraData) {
         super(ModMenuTypes.BUYER_2_MENU.get(), SLOT_COUNT, SLOT_START_X, windowId, inv, extraData);
