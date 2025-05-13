@@ -11,9 +11,9 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.fluids.FluidStack;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public class RecipeManager {
 
@@ -30,15 +30,10 @@ public class RecipeManager {
     }
 
     public static List<BuyRecipe> getAllBuyRecipes(Level level) {
-        List<BuyRecipe> recipes = new ArrayList<>(level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get())
-                .stream()
-                .map(recipe -> (BuyRecipe) recipe)
-                .toList());
-        recipes.addAll(level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_FLUID.get())
-                .stream()
-                .map(recipe -> (BuyRecipe) recipe)
-                .toList());
-        return recipes;
+        return Stream.concat(
+                level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get()).stream().map(r -> (BuyRecipe) r),
+                level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_FLUID.get()).stream().map(r -> (BuyRecipe) r)
+        ).toList();
     }
 
     public static List<SellItemRecipe> getAllSellItemRecipes(Level level) {
@@ -50,19 +45,13 @@ public class RecipeManager {
     }
 
     public static List<SellRecipe> getAllSellRecipes(Level level) {
-        List<SellRecipe> recipes = new ArrayList<>(level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get())
-                .stream()
-                .map(recipe -> (SellRecipe) recipe)
-                .toList());
-        recipes.addAll(level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get())
-                .stream()
-                .map(recipe -> (SellRecipe) recipe)
-                .toList());
-        return recipes;
+        return Stream.concat(
+                level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get()).stream().map(r -> (SellRecipe) r),
+                level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get()).stream().map(r -> (SellRecipe) r)
+        ).toList();
     }
 
     public static boolean matches(ItemStack item, BuyItemRecipe recipe) {
-//        AdminShop.LOGGER.debug("Matching item {} with recipe {}", item, recipe.getId());
         if (recipe.getItem().isEmpty()) { return false; }
         ItemStack recipeItem = recipe.getItem().get();
         if (item.isEmpty() || recipeItem.isEmpty()) { return false; }
