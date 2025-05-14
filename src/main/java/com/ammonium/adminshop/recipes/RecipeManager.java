@@ -13,6 +13,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class RecipeManager {
@@ -64,15 +65,26 @@ public class RecipeManager {
     }
 
     public static Optional<BuyItemRecipe> isBuyItemRecipe(Level level, ItemStack item) {
-        List<BuyItemRecipe> candidates = level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get())
+        Stream<BuyItemRecipe> matchingRecipes = level.getRecipeManager()
+                .getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get())
                 .stream()
-                .filter(recipe -> matches(item, recipe))
-                .toList();
-        Optional<BuyItemRecipe> firstWithNBT = candidates
-                .stream()
-                .filter(recipe -> recipe.getItem().get().hasTag())
-                .findFirst();
-        return firstWithNBT.or(() -> candidates.stream().findFirst());
+                .filter(recipe -> matches(item, recipe));
+
+        // Uses a teeing collector to process the stream in two different ways, within a single pass
+        // In theory, this should be twice as fast on large recipe streams
+        return matchingRecipes.collect(Collectors.teeing(
+                // First collector: Find any matching recipe (to use as fallback)
+                Collectors.reducing((first, second) -> first), // Take the first element
+
+                // Second collector: Find recipes with NBT
+                Collectors.filtering(
+                        recipe -> recipe.getItem().get().hasTag(),
+                        Collectors.reducing((first, second) -> first) // Take the first element with NBT
+                ),
+
+                // Combine results: Prefer NBT recipe if available, otherwise use any match
+                (anyMatch, nbtMatch) -> nbtMatch.isPresent() ? nbtMatch : anyMatch
+        ));
     }
 
     public static Optional<BuyItemRecipe> getShopBuyItemRecipe(Level level, ResourceLocation id) {
