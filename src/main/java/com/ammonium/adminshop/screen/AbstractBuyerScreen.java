@@ -2,6 +2,7 @@ package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.AbstractBuyerEntity;
+import com.ammonium.adminshop.client.gui.ProgressBar;
 import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketSetItemBuyerRecipe;
@@ -33,6 +34,7 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
     private AbstractBuyerEntity buyerEntity;
     private UUID teamId = null;
     private BuyItemRecipe recipe;
+    private ProgressBar progressBar;
 
     public AbstractBuyerScreen(String texturePath, T pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle);
@@ -43,6 +45,10 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
     @Override
     protected void init() {
         super.init();
+        int relX = (this.width - this.imageWidth) / 2;
+        int relY = (this.height - this.imageHeight) / 2;
+        this.progressBar = new ProgressBar(relX + 77, relY + 15);
+        addRenderableWidget(this.progressBar);
 
         // Request update from server
         Messages.sendToServer(new PacketUpdateRequest(this.blockPos));
@@ -50,6 +56,7 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
     private void updateInformation(Level level) {
         this.teamId = this.buyerEntity.getTeamId();
         this.recipe = this.buyerEntity.getRecipe(level).orElse(null);
+        this.progressBar.setProgress(this.buyerEntity.getProgress());
     }
 
     @Override
@@ -133,7 +140,8 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
                 (this.recipe == null && recipe != null);
 
         boolean shouldUpdateDueToDifferences = (this.teamId != null && !this.teamId.equals(teamId)) ||
-                (this.recipe != recipe);
+                (this.recipe != recipe) ||
+                (this.buyerEntity.getProgress() != this.progressBar.getProgress());
 
         if (shouldUpdateDueToNulls || shouldUpdateDueToDifferences) {
             updateInformation(Minecraft.getInstance().level);

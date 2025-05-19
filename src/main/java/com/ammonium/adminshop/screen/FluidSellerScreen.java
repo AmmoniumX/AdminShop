@@ -2,6 +2,7 @@ package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.FluidSellerEntity;
+import com.ammonium.adminshop.client.gui.ProgressBar;
 import com.ammonium.adminshop.client.gui.TankGauge;
 import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyHelper;
@@ -27,6 +28,7 @@ public class FluidSellerScreen extends AbstractContainerScreen<FluidSellerMenu> 
     private FluidSellerEntity sellerEntity;
     private UUID teamId = null;
     private TankGauge tankGauge;
+    private ProgressBar progressBar;
 
     public FluidSellerScreen(FluidSellerMenu pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle);
@@ -41,6 +43,8 @@ public class FluidSellerScreen extends AbstractContainerScreen<FluidSellerMenu> 
         int relY = (this.height - this.imageHeight) / 2;
         this.tankGauge = new TankGauge(this.sellerEntity.getTank(), relX+63, relY+10, 16, 50);
         addRenderableWidget(this.tankGauge);
+        this.progressBar = new ProgressBar(relX + 88, relY + 30);
+        addRenderableWidget(this.progressBar);
 
         // Request update from server
         Messages.sendToServer(new PacketUpdateRequest(this.blockPos));
@@ -48,6 +52,7 @@ public class FluidSellerScreen extends AbstractContainerScreen<FluidSellerMenu> 
     private void updateInformation() {
         this.teamId = this.sellerEntity.getTeamId();
         this.tankGauge.setTank(this.sellerEntity.getTank());
+        this.progressBar.setProgress(this.sellerEntity.getProgress());
     }
 
     @Override
@@ -103,7 +108,8 @@ public class FluidSellerScreen extends AbstractContainerScreen<FluidSellerMenu> 
 
         boolean shouldUpdateDueToDifferences =
                 (this.teamId != null && !this.teamId.equals(teamId)) ||
-                (!this.tankGauge.getTank().equals(buyerTank));
+                (!this.tankGauge.getTank().equals(buyerTank)) ||
+                (this.sellerEntity.getProgress() != this.progressBar.getProgress());
 
         if (shouldUpdateDueToNulls || shouldUpdateDueToDifferences) {
             updateInformation();

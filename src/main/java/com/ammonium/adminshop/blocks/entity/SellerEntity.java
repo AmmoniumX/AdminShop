@@ -37,15 +37,37 @@ import java.util.UUID;
 
 public class SellerEntity extends BaseContainerBlockEntity implements ItemSellerMachine, WorldlyContainer {
     private static final int slotSize = 1;
-
+    public static final int TICK_COOLDOWN = 20;
     private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
     private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
 
     private UUID teamId = null;
-    private int tickCounter = 0;
+    private int tickCounter = 0;    // unsynced
+    private int tickProgress = 0;   // synced
 
     public SellerEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.SELLER.get(), pWorldPosition, pBlockState);
+    }
+
+    public int getTickCounter() {
+        return this.tickCounter;
+    }
+
+    public void setTickCounter(int pTickCounter) {
+        if (this.tickCounter == pTickCounter) { return; }
+        int oldProgress = (this.tickCounter * 8) / TICK_COOLDOWN;
+        int newProgress = (pTickCounter * 8) / TICK_COOLDOWN;
+        this.tickCounter = pTickCounter;
+        this.tickProgress = newProgress;
+        if (oldProgress != newProgress) {
+            this.setChanged();
+            this.sendUpdates();
+        }
+    }
+
+    public int getProgress() {
+        // GetProgress returns the progress of the seller in the range of 0-8
+        return this.tickProgress;
     }
 
     @Override
@@ -130,14 +152,18 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
     }
 
     public static void tick(Level level, BlockPos pos, BlockState state, SellerEntity sellerBE) {
+
         // Ignore if not server side
         if (level.isClientSide) { return; }
         assert level instanceof ServerLevel;
 
         // Only run every 20 ticks
-        sellerBE.tickCounter++;
-        if (sellerBE.tickCounter <= 20) { return; }
-        sellerBE.tickCounter = 0;
+        int tickCounter = sellerBE.getTickCounter() + 1;
+        if (tickCounter <= TICK_COOLDOWN) {
+            sellerBE.setTickCounter(tickCounter);
+            return;
+        }
+        sellerBE.setTickCounter(0);
 
         // Check for valid recipe
         SellItemRecipe recipe = RecipeManager.checkForSellItemRecipe((ServerLevel) level, sellerBE).orElse(null);
@@ -177,6 +203,7 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        tag.putInt("tickProgress", this.tickProgress);
         return tag;
     }
     @Nullable
@@ -204,6 +231,9 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }
+        if (tag.contains("tickProgress")) {
+            this.tickProgress = tag.getInt("tickProgress");
+        }
     }
 
     @Override
@@ -213,6 +243,7 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        tag.putInt("tickProgress", this.tickProgress);
     }
 
     @Override
@@ -221,6 +252,9 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         ContainerHelper.loadAllItems(tag, this.stacks);
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
+        }
+        if (tag.contains("tickProgress")) {
+            this.tickProgress = tag.getInt("tickProgress");
         }
     }
 

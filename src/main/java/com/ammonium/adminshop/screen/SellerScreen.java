@@ -2,6 +2,7 @@ package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.SellerEntity;
+import com.ammonium.adminshop.client.gui.ProgressBar;
 import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.network.PacketUpdateRequest;
@@ -23,6 +24,7 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
     private final BlockPos blockPos;
     private SellerEntity sellerEntity;
     private UUID teamId = null;
+    private ProgressBar progressBar;
 
     public SellerScreen(SellerMenu pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle);
@@ -34,13 +36,15 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
         super.init();
         int relX = (this.width - this.imageWidth) / 2;
         int relY = (this.height - this.imageHeight) / 2;
+        this.progressBar = new ProgressBar(relX + 80, relY + 30);
+        addRenderableWidget(this.progressBar);
 
         // Request update from server
-//        System.out.println("Requesting update from server");
         Messages.sendToServer(new PacketUpdateRequest(this.blockPos));
     }
     private void updateInformation() {
         this.teamId = this.sellerEntity.getTeamId();
+        this.progressBar.setProgress(this.sellerEntity.getProgress());
     }
 
     @Override
@@ -69,21 +73,13 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
     }
 
     @Override
-    public void render(PoseStack pPoseStack, int mouseX, int mouseY, float delta) {
-        renderBackground(pPoseStack);
-        super.render(pPoseStack, mouseX, mouseY, delta);
-        renderTooltip(pPoseStack, mouseX, mouseY);
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float delta) {
+        renderBackground(poseStack);
+        super.render(poseStack, mouseX, mouseY, delta);
+        renderTooltip(poseStack, mouseX, mouseY);
 
         // Get data from BlockEntity
         this.sellerEntity = this.getMenu().getBlockEntity();
-
-        if (this.teamId == null) {
-            if (this.sellerEntity.getTeamId() != null) {
-                updateInformation();
-            }
-        }
-        if (this.teamId != null && (!this.teamId.equals(this.sellerEntity.getTeamId()))) {
-            updateInformation();
-        }
+        updateInformation();
     }
 }

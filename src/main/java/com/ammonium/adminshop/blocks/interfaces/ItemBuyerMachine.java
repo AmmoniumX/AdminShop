@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface ItemBuyerMachine extends Container, ShopMachine {
     void setRecipe(ResourceLocation recipeId);
     Optional<BuyItemRecipe> getRecipe(Level level);
+    int getProgress();
 }

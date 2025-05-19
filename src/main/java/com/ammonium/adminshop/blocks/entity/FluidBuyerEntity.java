@@ -33,15 +33,38 @@ import java.util.UUID;
 
 public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBuyerMachine {
     private static final int TANK_CAPACITY = 64000;
+    public static final int TICK_COOLDOWN = 20;
 
     private UUID teamId = null;
     private ResourceLocation recipeId = null;
-    private int tickCounter = 0;
+    private int tickCounter = 0;  // unsynced
+    private int tickProgress = 0; // synced
 
     public FluidBuyerEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.FLUID_BUYER.get(), pWorldPosition, pBlockState);
 //        this.tank = new ExtractOnlyTank(TANK_CAPACITY, this::sendUpdates);
         this.tank = new FluidTank(TANK_CAPACITY);
+    }
+
+    public int getTickCounter() {
+        return this.tickCounter;
+    }
+
+    public void setTickCounter(int pTickCounter) {
+        if (this.tickCounter == pTickCounter) { return; }
+        int oldProgress = (this.tickCounter * 8) / TICK_COOLDOWN;
+        int newProgress = (pTickCounter * 8) / TICK_COOLDOWN;
+        this.tickCounter = pTickCounter;
+        this.tickProgress = newProgress;
+        if (oldProgress != newProgress) {
+            this.setChanged();
+            this.sendUpdates();
+        }
+    }
+
+    public int getProgress() {
+        // GetProgress returns the progress of the seller in the range of 0-8
+        return this.tickProgress;
     }
 
     @Override
@@ -92,9 +115,12 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         assert level instanceof ServerLevel;
 
         // Only run every 20 ticks
-        buyerBE.tickCounter++;
-        if (buyerBE.tickCounter <= 20) { return; }
-        buyerBE.tickCounter = 0;
+        int tickCounter = buyerBE.getTickCounter() + 1;
+        if (tickCounter <= TICK_COOLDOWN) {
+            buyerBE.setTickCounter(tickCounter);
+            return;
+        }
+        buyerBE.setTickCounter(0);
 
         // Check for valid recipe
         BuyFluidRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
@@ -155,6 +181,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putInt("tickProgress", this.tickProgress);
         return tag;
     }
 
@@ -185,8 +212,11 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         if (tag.contains("recipe")) {
             this.recipeId = new ResourceLocation(tag.getString("recipe"));
         } else {
-            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
+//            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
+        }
+        if (tag.contains("tickProgress")) {
+            this.tickProgress = tag.getInt("tickProgress");
         }
 //        AdminShop.LOGGER.debug("Updated FluidBuyer with targetShopItem "+((this.targetShopItem != null) ? this.targetShopItem.getFluid().getDisplayName() : "none"));
     }
@@ -201,6 +231,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putInt("tickProgress", this.tickProgress);
     }
 
     @Override
@@ -213,8 +244,11 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         if (tag.contains("recipe")) {
             this.recipeId = new ResourceLocation(tag.getString("recipe"));
         } else {
-            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
+//            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
+        }
+        if (tag.contains("tickProgress")) {
+            this.tickProgress = tag.getInt("tickProgress");
         }
 //        AdminShop.LOGGER.debug("Loaded FluidBuyer with targetShopItem "+((this.targetShopItem != null) ? this.targetShopItem.getFluid().getDisplayName().getString() : "none"));
     }

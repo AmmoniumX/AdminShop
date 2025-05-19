@@ -50,7 +50,7 @@ public class TankGauge extends AbstractWidget {
         }
     }
     public TankGauge(FluidTank tank, int x, int y, int width, int height) {
-        super(x, y, width, height, Component.literal("Tank Gauge"));
+        super(x, y, width, height, Component.translatable("gui.adminshop.tank_gauge"));
         setTank(tank);
     }
 
@@ -64,8 +64,8 @@ public class TankGauge extends AbstractWidget {
     }
 
     @Override
-    public void render(PoseStack pPoseStack, int pMouseX, int pMouseY, float pPartialTick) {
-        super.render(pPoseStack, pMouseX, pMouseY, pPartialTick);
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
+        super.render(poseStack, mouseX, mouseY, partialTicks);
     }
 
     @Override

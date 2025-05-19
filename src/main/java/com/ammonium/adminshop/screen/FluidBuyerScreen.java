@@ -2,6 +2,7 @@ package com.ammonium.adminshop.screen;
 
 import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.FluidBuyerEntity;
+import com.ammonium.adminshop.client.gui.ProgressBar;
 import com.ammonium.adminshop.client.gui.TankGauge;
 import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyHelper;
@@ -46,6 +47,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     private TextureAtlasSprite fluidTexture = null;
     private float fluidColorR, fluidColorG, fluidColorB, fluidColorA;
     private TankGauge tankGauge;
+    private ProgressBar progressBar;
 
     public FluidBuyerScreen(FluidBuyerMenu pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle);
@@ -60,6 +62,8 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         int relY = (this.height - this.imageHeight) / 2;
         this.tankGauge = new TankGauge(this.buyerEntity.getTank(), relX+146, relY+10, 16, 50);
         addRenderableWidget(this.tankGauge);
+        this.progressBar = new ProgressBar(relX + 79, relY + 25);
+        addRenderableWidget(this.progressBar);
 
         // Request update from server
         Messages.sendToServer(new PacketUpdateRequest(this.blockPos));
@@ -69,6 +73,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         this.recipe = this.buyerEntity.getRecipe(level).orElse(null);
         this.tankGauge.setTank(this.buyerEntity.getTank());
         if (this.recipe != null) {setFluidTexture(this.recipe.getFluid().getFluid());}
+        this.progressBar.setProgress(this.buyerEntity.getProgress());
     }
 
     @Override
@@ -172,7 +177,8 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         boolean shouldUpdateDueToDifferences =
                 (this.teamId != null && !this.teamId.equals(teamId)) ||
                 (this.recipe != recipe) ||
-                (!this.tankGauge.getTank().equals(buyerTank));
+                (!this.tankGauge.getTank().equals(buyerTank)) ||
+                (this.buyerEntity.getProgress() != this.progressBar.getProgress());
 
         if (shouldUpdateDueToNulls || shouldUpdateDueToDifferences) {
             updateInformation(Minecraft.getInstance().level);

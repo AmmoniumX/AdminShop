@@ -46,7 +46,8 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
 
     private UUID teamId = null;
     private ResourceLocation recipeId = null;
-    private int tickCounter = 0;
+    private int tickCounter = 0;   // unsynced
+    private int tickProgress = 0;  // synced
 
     @FunctionalInterface
     public interface MenuFactory<T extends AbstractBuyerMenu> {
@@ -63,6 +64,27 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         this.SLOT_SIZE = slotSize;
         this.TICK_COOLDOWN = tickCooldown;
         this.stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
+    }
+
+    public int getTickCounter() {
+        return this.tickCounter;
+    }
+
+    public void setTickCounter(int pTickCounter) {
+        if (this.tickCounter == pTickCounter) { return; }
+        int oldProgress = (this.tickCounter * 8) / TICK_COOLDOWN;
+        int newProgress = (pTickCounter * 8) / TICK_COOLDOWN;
+        this.tickCounter = pTickCounter;
+        this.tickProgress = newProgress;
+        if (oldProgress != newProgress) {
+            this.setChanged();
+            this.sendUpdates();
+        }
+    }
+
+    public int getProgress() {
+        // GetProgress returns the progress of the seller in the range of 0-8
+        return this.tickProgress;
     }
 
     @Override
@@ -157,14 +179,18 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     public static void tick(Level level, BlockPos pos, BlockState state, AbstractBuyerEntity buyer) {
+
         // Ignore if not server side
         if (level.isClientSide) { return; }
         assert level instanceof ServerLevel;
 
         // Only run every TICK_COOLDOWN ticks
-        buyer.tickCounter++;
-        if (buyer.tickCounter <= buyer.TICK_COOLDOWN) { return; }
-        buyer.tickCounter = 0;
+        int tickCounter = buyer.getTickCounter() + 1;
+        if (tickCounter <= buyer.TICK_COOLDOWN) {
+            buyer.setTickCounter(tickCounter);
+            return;
+        }
+        buyer.setTickCounter(0);
 
         // Check for valid recipe
         BuyItemRecipe recipe = buyer.getRecipe((ServerLevel) level).orElse(null);
@@ -208,6 +234,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putInt("tickProgress", this.tickProgress);
         return tag;
     }
 
@@ -239,8 +266,11 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         if (tag.contains("recipe")) {
             this.recipeId = new ResourceLocation(tag.getString("recipe"));
         } else {
-            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
+//            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
+        }
+        if (tag.contains("tickProgress")) {
+            this.tickProgress = tag.getInt("tickProgress");
         }
     }
 
@@ -254,6 +284,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putInt("tickProgress", this.tickProgress);
     }
 
     @Override
@@ -266,8 +297,11 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         if (tag.contains("recipe")) {
             this.recipeId = new ResourceLocation(tag.getString("recipe"));
         } else {
-            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
+//            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
+        }
+        if (tag.contains("tickProgress")) {
+            this.tickProgress = tag.getInt("tickProgress");
         }
     }
 

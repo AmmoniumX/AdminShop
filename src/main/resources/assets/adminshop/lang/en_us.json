@@ -9,6 +9,8 @@
   "gui.balance": "Balance: %s",
   "gui.item_tag": "Any item: ",
   "gui.fluid_tag": "Any fluid: ",
+  "gui.adminshop.tank_gauge": "Tank Gauge",
+  "gui.adminshop.progress_bar": "Progress Bar",
   "block.adminshop.shop": "Shop",
   "block.adminshop.seller": "Seller",
   "block.adminshop.buyer_1": "T1 Buyer",

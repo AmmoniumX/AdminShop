@@ -29,14 +29,37 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidSellerMachine {
-    private UUID teamId = null;
-    private int tickCounter = 0;
+    public static final int TICK_COOLDOWN = 20;
     private static final int TANK_CAPACITY = 64000;
+
+    private UUID teamId = null;
+    private int tickCounter = 0; // unsynced
+    private int tickProgress = 0; // synced
 
     public FluidSellerEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.FLUID_SELLER.get(), pWorldPosition, pBlockState);
-//        this.tank = new InsertSellableOnlyTank(TANK_CAPACITY, this::sendUpdates);
         this.tank = new FluidTank(TANK_CAPACITY);
+    }
+
+    public int getTickCounter() {
+        return this.tickCounter;
+    }
+
+    public void setTickCounter(int pTickCounter) {
+        if (this.tickCounter == pTickCounter) { return; }
+        int oldProgress = (this.tickCounter * 8) / TICK_COOLDOWN;
+        int newProgress = (pTickCounter * 8) / TICK_COOLDOWN;
+        this.tickCounter = pTickCounter;
+        this.tickProgress = newProgress;
+        if (oldProgress != newProgress) {
+            this.setChanged();
+            this.sendUpdates();
+        }
+    }
+
+    public int getProgress() {
+        // GetProgress returns the progress of the seller in the range of 0-8
+        return this.tickProgress;
     }
 
     @Override
@@ -77,9 +100,12 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
         assert level instanceof ServerLevel;
 
         // Only run every 20 ticks
-        sellerBE.tickCounter++;
-        if (sellerBE.tickCounter <= 20) { return; }
-        sellerBE.tickCounter = 0;
+        int tickCounter = sellerBE.getTickCounter() + 1;
+        if (tickCounter <= TICK_COOLDOWN) {
+            sellerBE.setTickCounter(tickCounter);
+            return;
+        }
+        sellerBE.setTickCounter(0);
 
         // Check for valid recipe
         SellFluidRecipe recipe = RecipeManager.checkForSellFluidRecipe((ServerLevel) level, sellerBE).orElse(null);
@@ -126,6 +152,7 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        tag.putInt("tickProgress", this.tickProgress);
         return tag;
     }
 
@@ -153,6 +180,9 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }
+        if (tag.contains("tickProgress")) {
+            this.tickProgress = tag.getInt("tickProgress");
+        }
     }
 
     @Override
@@ -162,6 +192,7 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        tag.putInt("tickProgress", this.tickProgress);
     }
 
     @Override
@@ -170,6 +201,9 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
 //        tank.readFromNBT(tag);
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
+        }
+        if (tag.contains("tickProgress")) {
+            this.tickProgress = tag.getInt("tickProgress");
         }
     }
 
