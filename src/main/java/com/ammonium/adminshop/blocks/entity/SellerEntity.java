@@ -5,8 +5,6 @@ import com.ammonium.adminshop.blocks.interfaces.ItemSellerMachine;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.screen.SellerMenu;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -271,7 +269,7 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
     public boolean canPlaceItem(int i, ItemStack itemStack) {
         boolean fits = super.canPlaceItem(i, itemStack);
         if (!fits) { return false; }
-        ClientLevel level = Minecraft.getInstance().level;
+        Level level = this.level;
         if (level == null) {
             AdminShop.LOGGER.debug("Level is null");
             return false;

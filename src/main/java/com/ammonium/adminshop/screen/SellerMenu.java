@@ -5,7 +5,6 @@ import com.ammonium.adminshop.blocks.ModBlocks;
 import com.ammonium.adminshop.blocks.entity.SellerEntity;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.screen.slot.ShopItemInputSlot;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
@@ -37,7 +36,7 @@ public class SellerMenu extends AbstractContainerMenu {
         addPlayerHotbar(inv);
 
         this.blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).ifPresent(handler -> {
-            this.addSlot(new ShopItemInputSlot(handler, 0, 55, 30));
+            this.addSlot(new ShopItemInputSlot(level, handler, 0, 55, 30));
         });
 
     }
@@ -133,6 +132,6 @@ public class SellerMenu extends AbstractContainerMenu {
         }
     }
     boolean isRecipe(ItemStack stack) {
-        return RecipeManager.isSellItemRecipe(Minecraft.getInstance().level, stack).isPresent();
+        return RecipeManager.isSellItemRecipe(this.level, stack).isPresent();
     }
 }
