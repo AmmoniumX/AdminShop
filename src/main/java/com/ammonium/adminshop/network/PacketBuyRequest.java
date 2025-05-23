@@ -77,7 +77,7 @@ public class PacketBuyRequest {
             // Check if account has permit requirement
             if (!MoneyHelper.get(level).hasPermit(teamId, recipe.getPermit())) {
                 AdminShop.LOGGER.error("Account {} does not have permit {}", teamId, recipe.getPermit());
-                player.sendSystemMessage(Component.literal( "Your account does not have permit '"+recipe.getPermit()+"'"));
+                player.sendSystemMessage(Component.translatable("message.adminshop.no_permit", recipe.getPermit()));
                 return;
             }
 
@@ -127,7 +127,7 @@ public class PacketBuyRequest {
             ItemStack returned = ItemHandlerHelper.insertItemStacked(iItemHandler, toInsert, true);
 //            AdminShop.LOGGER.debug("Returned:{}x {}", returned.getCount(), returned);
             if(returned.getCount() == quantity) {
-                player.sendSystemMessage(Component.literal("Not enough inventory space for item!"));
+                player.sendSystemMessage(Component.translatable("message.adminshop.not_enough_space"));
             }
             long price = buyQuantity * recipe.getPrice();
 
@@ -136,7 +136,7 @@ public class PacketBuyRequest {
             if (success) {
                 ItemHandlerHelper.insertItemStacked(iItemHandler, toInsert, false);
             } else {
-                player.sendSystemMessage(Component.literal("Not enough money in account!"));
+                player.sendSystemMessage(Component.translatable("message.adminshop.not_enough_money"));
                 AdminShop.LOGGER.debug("Not enough money in account to perform transaction.");
             }
         });
@@ -163,7 +163,7 @@ public class PacketBuyRequest {
         toInsert.setAmount(quantity);
         int fillableContainerIdx = getFillableFluidContainer(playerInventoryHandler, toInsert.getFluid(), quantity);
         if(fillableContainerIdx == -1) {
-            player.sendSystemMessage(Component.literal("No container found for fluid!"));
+            player.sendSystemMessage(Component.translatable("message.adminshop.no_container"));
             AdminShop.LOGGER.error("No container found for fluid.");
             return;
         }
@@ -171,7 +171,7 @@ public class PacketBuyRequest {
         // If stacked buckets, make sure you have an empty slot
         if (container.getItem().equals(Items.BUCKET) && container.getCount() != 1) {
             if (!hasEmptySlot(playerInventoryHandler)) {
-                player.sendSystemMessage(Component.literal("Trying to fill into a bucket, but wouldn't have space for filled bucket"));
+                player.sendSystemMessage(Component.translatable("message.adminshop.no_container"));
                 AdminShop.LOGGER.debug("Trying to fill into a bucket, but wouldn't have space for filled bucket");
                 return;
             }
@@ -211,12 +211,12 @@ public class PacketBuyRequest {
                 ItemStack inserted = ItemHandlerHelper.insertItemStacked(playerInventoryHandler, newContainer, false);
                 AdminShop.LOGGER.debug("Inserted: "+inserted);
                 if (inserted.getCount() != 0) {
-                    player.sendSystemMessage(Component.literal("Error inserting fluid container, this shouldn't happen!"));
+                    player.sendSystemMessage(Component.translatable("message.adminshop.not_enough_space"));
                     AdminShop.LOGGER.error("Error inserting fluid container, this shouldn't happen! {}", inserted.getCount());
                 }
             }
         } else {
-            player.sendSystemMessage(Component.literal("Not enough money in account!"));
+            player.sendSystemMessage(Component.translatable("message.adminshop.not_enough_money"));
             AdminShop.LOGGER.debug("Not enough money in account to perform transaction.");
         }
     }

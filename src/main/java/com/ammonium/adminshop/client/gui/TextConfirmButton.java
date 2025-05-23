@@ -17,7 +17,7 @@ public class TextConfirmButton extends Button {
     private boolean valid;
 
     public TextConfirmButton(int x, int y, OnPress listener) {
-        super(x, y, 50, 12, Component.literal("Confirm"), listener);
+        super(x, y, 50, 12, Component.translatable("button.adminshop.confirm"), listener);
         this.valid = false;
     }
 

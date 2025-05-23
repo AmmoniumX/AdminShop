@@ -7,6 +7,7 @@ import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
 import com.ammonium.adminshop.recipes.interfaces.ItemRecipe;
 import com.google.gson.JsonObject;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.GsonHelper;
@@ -43,12 +44,12 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
 
         // Check permit status
         if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
+//            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }
         // Check account balance
         if (account.balance() < price) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have enough money");
+//            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have enough money");
             return false;
         }
         return true;
@@ -79,8 +80,8 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
         return permit;
     }
 
-    public String getName() {
-        return result.getDisplayName().getString();
+    public Component getName() {
+        return result.getDisplayName();
     }
 
     public ItemStack buy(ServerLevel level, ItemBuyerMachine machine) {

@@ -61,7 +61,7 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
     @Override
     protected void renderLabels(PoseStack pPoseStack, int pMouseX, int pMouseY) {
         super.renderLabels(pPoseStack, pMouseX, pMouseY);
-        Component name = Component.literal("No account");
+        Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         MoneyHelper.MoneyAccount account = ClientCache.getAccount();
         if (account != null) {

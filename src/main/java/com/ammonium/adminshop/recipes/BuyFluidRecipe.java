@@ -7,6 +7,7 @@ import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
 import com.ammonium.adminshop.recipes.interfaces.FluidRecipe;
 import com.google.gson.JsonObject;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.GsonHelper;
@@ -70,8 +71,8 @@ public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
         return fluid.getAmount();
     }
 
-    public String getName() {
-        return fluid.getDisplayName().getString();
+    public Component getName() {
+        return fluid.getDisplayName();
     }
 
     public FluidStack buy(ServerLevel level, FluidBuyerMachine machine) {

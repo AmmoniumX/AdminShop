@@ -211,9 +211,6 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
                         // Add permit tier to bank account
                         AdminShop.LOGGER.info("Adding permit to account: {}", key);
-//                        Minecraft.getInstance().player.sendSystemMessage(Component.literal("Adding permit "+key+" to account"),
-//                                Minecraft.getInstance().player.getUUID());
-//                        Minecraft.getInstance().player.playSound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
                         Messages.sendToServer(new PacketAccountAddPermit(account, key, slot.getSlotIndex()));
                         return false;
                     }
@@ -357,7 +354,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private void createSearchBar(int x, int y) {
         int searchBarWidth = 70;
         int searchBarHeight = 12;
-        searchBar = new EditBox(font, x+16, y+18, searchBarWidth, searchBarHeight, Component.literal(""));
+        searchBar = new EditBox(font, x+16, y+18, searchBarWidth, searchBarHeight, Component.empty());
         addWidget(searchBar);
     }
     private void createBuySellButton(int x, int y){
@@ -365,7 +362,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
             removeWidget(buySellButton);
         }
         buySellButton = new BuySellButton(x+15, y+4,
-                I18n.get(GUI_BUY), I18n.get(GUI_SELL), isBuy, (b) -> {
+                Component.translatable(GUI_BUY), Component.translatable(GUI_SELL), isBuy, (b) -> {
             isBuy = ((BuySellButton)b).switchBuySell();
             int relX = (this.width - this.imageWidth) / 2;
             int relY = (this.height - this.imageHeight) / 2;

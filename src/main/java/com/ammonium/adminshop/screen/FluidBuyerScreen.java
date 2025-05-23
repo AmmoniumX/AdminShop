@@ -110,7 +110,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
                     } else {
                         LocalPlayer player = Minecraft.getInstance().player;
                         assert player != null;
-                        player.sendSystemMessage(Component.literal("You haven't unlocked that yet!"));
+                        player.sendSystemMessage(Component.translatable("gui.adminshop.no_permit"));
                     }
                 });
             }
@@ -135,7 +135,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     @Override
     protected void renderLabels(PoseStack poseStack, int mouseX, int mouseY) {
         super.renderLabels(poseStack, mouseX, mouseY);
-        Component name = Component.literal("No account");
+        Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         MoneyHelper.MoneyAccount account = ClientCache.getAccount();
         if (account != null) {

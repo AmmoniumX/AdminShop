@@ -22,7 +22,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -85,7 +84,7 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
                 } else {
                     LocalPlayer player = Minecraft.getInstance().player;
                     assert player != null;
-                    player.sendSystemMessage(Component.literal("You haven't unlocked that yet!"));
+                    player.sendSystemMessage(Component.translatable("gui.adminshop.no_permit"));
                     return false;
                 }
             }
@@ -103,17 +102,30 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
 
         this.blit(poseStack, x, y, 0, 0, imageWidth, imageHeight);
         if (this.recipe != null) {
-            renderItem(poseStack, this.recipe.getItem().get().getItem(), x+104, y+14);
-            if (this.recipe.getItem().get().hasTag()) {
-                drawString(poseStack, font, "+NBT", x+104-font.width("+NBT")-1, y+14, 0xFF55FF);
-            }
+            ItemStack item = this.recipe.getItem().orElseThrow();
+            renderTargetItem(poseStack, item, x, y);
+        }
+    }
+
+    private void renderTargetItem(PoseStack poseStack, ItemStack item, int x, int y) {
+        assert this.minecraft != null;
+        ItemRenderer itemRenderer = this.minecraft.getItemRenderer();
+        itemRenderer.renderAndDecorateFakeItem(item, x+104, y+14);
+        if (item.hasTag()) {
+            poseStack.pushPose();
+
+            poseStack.translate(x + 104, y + 16, itemRenderer.blitOffset+200);
+            poseStack.scale(0.5F, 0.5F, 1.0F);
+            drawString(poseStack, font, "+NBT", 0, 0, 0xFF55FF);
+
+            poseStack.popPose();
         }
     }
 
     @Override
     protected void renderLabels(PoseStack poseStack, int mouseX, int mouseY) {
         super.renderLabels(poseStack, mouseX, mouseY);
-        Component name = Component.literal("No account");
+        Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         MoneyHelper.MoneyAccount account = ClientCache.getAccount();
         if (account != null) {
@@ -148,9 +160,4 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
         }
     }
 
-    private void renderItem(PoseStack matrixStack, Item item, int x, int y) {
-        ItemRenderer itemRenderer = this.minecraft.getItemRenderer();
-        ItemStack itemStack = new ItemStack(item);
-        itemRenderer.renderAndDecorateFakeItem(itemStack, x, y);
-    }
 }
