@@ -62,18 +62,42 @@ public class AdminShopCommand {
                     String tier = StringArgumentType.getString(command, "tier");
                     return removePermit(command.getSource(), tier);
                 }));
+        
+        // adminshop listOwnedPermits
+        LiteralArgumentBuilder<CommandSourceStack> listOwnedPermitsCommand = Commands.literal("listOwnedPermits")
+                .requires(source -> source.hasPermission(0))
+                .executes(command -> listOwnedPermits(command.getSource()));
 
 
         adminShopCommand.then(getPermitCommand)
                         .then(giveMoneyCommand)
-                        .then(removeMoneyCommand);
+                        .then(removeMoneyCommand)
+                        .then(removePermitCommand)
+                        .then(listOwnedPermitsCommand);
+
         dispatcher.register(adminShopCommand);
+    }
+
+    private static int listOwnedPermits(CommandSourceStack source) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        ServerLevel level = source.getLevel();
+        MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
+
+        if (account.permits().isEmpty()) {
+            source.sendSuccess(Component.translatable("message.adminshop.permits.empty"), true);
+            return 0;
+        }
+
+        String permits = account.permits().stream()
+                        .reduce("", (a, b) -> a + ", " + b);
+        source.sendSuccess(Component.literal(permits), true);
+        return 1;
     }
 
     static int getPermit(CommandSourceStack source, String tier) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
         if (tier == null || tier.isEmpty()) {
-            source.sendFailure(Component.literal("Permit tier 0 is the default, all accounts have it!"));
+            source.sendFailure(Component.translatable("message.adminshop.permit.default"));
             return 0;
         }
 
@@ -85,10 +109,10 @@ public class AdminShopCommand {
 
         boolean success = player.getInventory().add(permit);
         if (!success) {
-            source.sendFailure(Component.literal("Unable to give permit to player"));
+            source.sendFailure(Component.translatable("message.adminshop.permit.give.failure"));
             return 0;
         }
-        source.sendSuccess(Component.literal("Obtained trade permit"), true);
+        source.sendSuccess(Component.translatable("message.adminshop.permit.give.success", tier), true);
         return 1;
     }
 
@@ -96,21 +120,21 @@ public class AdminShopCommand {
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
         if (tier == null || tier.isEmpty()) {
-            source.sendFailure(Component.literal("Permit tier 0 is the default, all accounts have it!"));
+            source.sendFailure(Component.translatable("message.adminshop.permit.default"));
             return 0;
         }
 
         // Remove permit
         MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
         MoneyHelper.get(level).removePermit(account.teamId(), tier);
-        source.sendSuccess(Component.literal("Removed trade permit"), true);
+        source.sendSuccess(Component.translatable("message.adminshop.permit.remove.success", tier), true);
         return 1;
     }
 
     static int giveMoney(CommandSourceStack source, EntitySelector selector, long amount) throws CommandSyntaxException {
         // Skip non-positive values
         if (!(amount>0)) {
-            source.sendFailure(Component.literal("Must be a positive value!"));
+            source.sendFailure(Component.translatable("message.adminshop.error.not_positive"));
             return 0;
         }
 
@@ -121,14 +145,14 @@ public class AdminShopCommand {
 
         // Give money
         MoneyHelper.get(level).addMoney(account.teamId(), amount);
-        source.sendSuccess(Component.literal("Successfully exchanged money"), true);
+        source.sendSuccess(Component.translatable("message.adminshop.give.success", amount), true);
         return 1;
     }
 
     static int removeMoney(CommandSourceStack source, EntitySelector selector, long amount) throws CommandSyntaxException {
         // Skip non-positive values
         if (!(amount>0)) {
-            source.sendFailure(Component.literal("Must be a positive value!"));
+            source.sendFailure(Component.translatable("message.adminshop.error.not_positive"));
             return 0;
         }
 
@@ -140,11 +164,11 @@ public class AdminShopCommand {
         // Remove money
         boolean success = MoneyHelper.get(level).removeMoney(account.teamId(), amount);
         if (!success) {
-            source.sendFailure(Component.literal("Error removing money from account"));
+            source.sendFailure(Component.translatable("message.adminshop.remove.failure"));
             return 0;
         }
-
-        source.sendSuccess(Component.literal("Successfully removed money from account"), true);
+        
+        source.sendSuccess(Component.translatable("message.adminshop.remove.success", amount), true);
         return 1;
     }
 }

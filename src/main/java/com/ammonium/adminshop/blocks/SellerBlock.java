@@ -1,6 +1,5 @@
 package com.ammonium.adminshop.blocks;
 
-import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
 import com.ammonium.adminshop.blocks.entity.SellerEntity;
 import com.ammonium.adminshop.money.MoneyHelper;
@@ -74,10 +73,8 @@ public class SellerBlock extends BaseEntityBlock {
                     // Open menu
                     NetworkHooks.openScreen((ServerPlayer) pPlayer, buyerEntity, pPos);
                 } else {
-//                    AdminShop.LOGGER.debug("Account not found");
-                    // Wrong user
-                    pPlayer.sendSystemMessage(Component.literal("You don't have access to this machine's account!"));
-                    AdminShop.LOGGER.debug("You doesn't have access to this machine's account!");
+                    // No access
+                    pPlayer.sendSystemMessage(Component.translatable("message.adminshop.no_access"));
                 }
 
             } else {

@@ -34,11 +34,11 @@ public class ServerEventListeners {
         MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
         Messages.sendToPlayer(new PacketSyncMoneyToClient(account), player);
         if (oldShopPathExists) {
-            player.sendSystemMessage(Component.literal(
-            "Shop.csv found in config folder. This is no longer used and will not be read from, use datapack recipes!"
+            player.sendSystemMessage(Component.translatable(
+                    "message.adminshop.shop_csv_found_1"
             ));
-            player.sendSystemMessage(Component.literal(
-                    "Please delete the file at config/adminshop/shop.csv to disable this error."
+            player.sendSystemMessage(Component.translatable(
+                    "message.adminshop.shop_csv_found_2"
             ));
         }
     }

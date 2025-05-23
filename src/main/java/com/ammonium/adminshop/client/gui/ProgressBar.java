@@ -55,7 +55,7 @@ public class ProgressBar extends AbstractWidget {
     @Override
     public void renderButton(@NotNull PoseStack matrix, int mouseX, int mouseY, float partialTicks) {
         //super.renderButton(matrix, x, y, partialTicks);
-        AdminShop.LOGGER.debug("Rendering Progress Bar: {}", progress);
+//        AdminShop.LOGGER.debug("Rendering Progress Bar: {}", progress);
         if(!visible) return;
 
         RenderSystem.setShader(GameRenderer::getPositionTexShader);

@@ -24,8 +24,8 @@ public class BuySellButton extends Button {
 
     private boolean isBuy;
 
-    public BuySellButton(int x, int y, String buyText, String sellText, boolean isBuy, OnPress listener) {
-        super(x, y, 50, 12, Component.literal(isBuy ? buyText : sellText), listener);
+    public BuySellButton(int x, int y, Component buyText, Component sellText, boolean isBuy, OnPress listener) {
+        super(x, y, 50, 12, isBuy ? buyText : sellText, listener);
         this.isBuy = isBuy;
     }
 

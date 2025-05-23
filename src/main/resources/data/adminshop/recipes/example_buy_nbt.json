@@ -1,0 +1,8 @@
+{
+  "type": "adminshop:item_buying",
+  "price": 100,
+  "result": {
+    "item": "minecraft:paper",
+    "nbt": "{display:{Name:'{\"text\":\"Special Paper!\"}'}}"
+  }
+}

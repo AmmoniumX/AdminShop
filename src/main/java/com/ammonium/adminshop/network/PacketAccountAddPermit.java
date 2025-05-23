@@ -54,7 +54,9 @@ public class PacketAccountAddPermit {
             // Add permit
             MoneyHelper.get(level).addPermit(teamId, permit);
             player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.0f);
-            player.sendSystemMessage(Component.literal("Adding permit tier "+permit+" to ").append(MoneyHelper.get(level).getAccountById(teamId).name()));
+            MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getAccountById(teamId);
+            assert account != null;
+            player.sendSystemMessage(Component.translatable("message.adminshop.add_permit", permit, account.name()));
             // Remove item from user
             player.getInventory().removeItem(slotIndex, 1);
             // Sync money with affected clients

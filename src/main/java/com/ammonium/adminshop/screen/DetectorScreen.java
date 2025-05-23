@@ -54,7 +54,7 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
     private void createThresholdInputBox(int x, int y) {
         int boxWidth = 121;
         int boxHeight = 12;
-        this.thresholdInputBox = new EditBox(font, x+38, y+24, boxWidth, boxHeight, Component.literal(""));
+        this.thresholdInputBox = new EditBox(font, x+38, y+24, boxWidth, boxHeight, Component.empty());
         this.thresholdInputBox.setValue(Long.toString(this.threshold));
 
         // Only accept numerical input
@@ -92,7 +92,9 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
         AdminShop.LOGGER.debug("Setting detector threshold to "+value);
         Messages.sendToServer(new PacketSetDetectorThreshold(this.blockPos, value));
         this.detectorBE.setThreshold(value);
-        Minecraft.getInstance().player.sendSystemMessage(Component.literal("Set detector threshold to "+value));
+        if (Minecraft.getInstance().player != null) {
+            Minecraft.getInstance().player.sendSystemMessage(Component.translatable("gui.adminshop.set_threshold", value));
+        }
     }
     private void createTextConfirmButton(int x, int y) {
         if(textConfirmButton != null) {
@@ -137,7 +139,7 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
     @Override
     protected void renderLabels(PoseStack pPoseStack, int pMouseX, int pMouseY) {
         super.renderLabels(pPoseStack, pMouseX, pMouseY);
-        Component name = Component.literal("No account");
+        Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         MoneyHelper.MoneyAccount account = ClientCache.getAccount();
         if (account != null) {

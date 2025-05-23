@@ -126,8 +126,8 @@ public class AdvancedDetector extends BaseEntityBlock {
                     AdminShop.LOGGER.debug("Opening screen");
                     NetworkHooks.openScreen((ServerPlayer) pPlayer, advancedDetectorBE, pPos);
                 } else {
-                    // Wrong user
-                    pPlayer.sendSystemMessage(Component.literal("You are not this machine's owner!"));
+                    // No access
+                    pPlayer.sendSystemMessage(Component.translatable("message.adminshop.no_access"));
                 }
 
             } else {

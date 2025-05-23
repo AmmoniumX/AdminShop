@@ -96,7 +96,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
                 } else {
                     AdminShop.LOGGER.debug("Account not found");
                     // Wrong user
-                    player.sendSystemMessage(Component.literal("You don't have access to this machine's account!"));
+                    player.sendSystemMessage(Component.translatable("message.adminshop.no_access"));
                     AdminShop.LOGGER.debug("You doesn't have access to this machine's account!");
                 }
 

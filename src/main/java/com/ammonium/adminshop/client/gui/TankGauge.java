@@ -137,10 +137,10 @@ public class TankGauge extends AbstractWidget {
         List<Component> tootlip;
         if (tank.getFluid().isEmpty()) {
             tootlip = List.of(Component.literal("0/"+tank.getCapacity()),
-                    Component.literal("Empty"));
+                    Component.translatable("gui.adminshop.tank_empty"));
         } else {
             tootlip = List.of(Component.literal(getQuantity()+"/"+tank.getCapacity()),
-                    Component.literal(tank.getFluid().getDisplayName().getString()));
+                    tank.getFluid().getDisplayName());
         }
         return tootlip;
     }

@@ -82,7 +82,7 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Auto-Seller");
+        return Component.translatable("container.adminshop.seller");
     }
 
     @Override

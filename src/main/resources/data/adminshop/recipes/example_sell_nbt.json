@@ -1,0 +1,11 @@
+{
+  "type": "adminshop:item_selling",
+  "price": 100,
+  "input": {
+    "item": {
+      "item": "minecraft:paper",
+      "count": 4,
+        "nbt": "{display:{Name:'{\"text\":\"Special Paper!\"}'}}"
+    }
+  }
+}

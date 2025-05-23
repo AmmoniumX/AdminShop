@@ -24,7 +24,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -39,7 +38,7 @@ public class ShopButton extends Button {
     public boolean isMouseOn = false;
 
     public ShopButton(ShopRecipe recipe, int x, int y, ItemRenderer renderer, OnPress listener) {
-        super(x, y, 16, 16, Component.literal(" "), listener);
+        super(x, y, 16, 16, Component.empty(), listener);
         this.itemRenderer = renderer;
         this.recipe = recipe;
         if(recipe instanceof FluidRecipe fluidRecipe) {
@@ -154,13 +153,20 @@ public class ShopButton extends Button {
         int numItems = getNumItems();
         long price = recipe.getPrice() * quantity;
         List<Component> tooltip = new ArrayList<>();
-        String priceFormatted = Screen.hasAltDown() ? MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.RAW) :
-                MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.SHORT);
-        String description = priceFormatted+
-                " "+ numItems +((recipe instanceof ItemRecipe) ? "x " : "mb ")+ recipe.getName();
-        tooltip.add(Component.literal(description));
-        if (!Objects.equals(recipe.getPermit(), "0") && !recipe.getPermit().isEmpty()) {
-            tooltip.add(Component.literal("Requires Permit Tier: "+ recipe.getPermit()));
+        String priceFormatted = Screen.hasAltDown()
+                ? MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.RAW)
+                : MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.SHORT);
+        AdminShop.LOGGER.debug("Recipe name: {}", recipe.getName().getString());
+        String quantityString = numItems + ((recipe instanceof ItemRecipe) ? "x" : "mb");
+        Component description = Component.translatable(
+            "shopbutton.description",
+            priceFormatted,
+            quantityString,
+            recipe.getName()
+        );
+        tooltip.add(description);
+        if (!recipe.getPermit().equals("0") && !recipe.getPermit().isEmpty()) {
+            tooltip.add(Component.translatable("shopbutton.permit", recipe.getPermit()));
         }
         return tooltip;
     }

@@ -9,6 +9,7 @@ import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.ItemTags;
@@ -175,16 +176,16 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
         return permit;
     }
 
-    public String getName() {
+    public Component getName() {
         assert type != null;
         if (type == SellTypes.ITEM) {
-            return item.getDisplayName().getString();
+            return item.getDisplayName();
         } else if (type == SellTypes.TAG) {
             assert tagId != null;
-            return "Any "+ tagId;
+            return Component.translatable("sellitem.recipe.tag", tagId);
         } else {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.getName: type is null");
-            return "";
+            return Component.empty();
         }
     }
 
