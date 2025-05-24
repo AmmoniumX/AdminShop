@@ -351,19 +351,8 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     }
 
     private static int compareRecipes(ShopRecipe left, ShopRecipe right) {
-        if (left.getPermit().equals(right.getPermit())) {
-            // Both have the same permit, sort by id
-            return left.getId().toString().compareTo(right.getId().toString());
-        } else if (left.getPermit().isEmpty()) {
-            // left has no permit, comes first
-            return -1;
-        } else if (right.getPermit().isEmpty()) {
-            // right has no permit, comes first
-            return 1;
-        } else {
-            // Sort by permit
-            return left.getPermit().compareTo(right.getPermit());
-        }
+        // Sort by ID
+        return left.getId().toString().compareTo(right.getId().toString());
     }
 
     private void createSearchBar(int x, int y) {
