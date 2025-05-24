@@ -6,11 +6,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "On the Shop, some items may have \"Requires Permit Tier:\" under them. This means you need to unlock the associated $(l)trade permit$() before you can trade them. Trade permits are items that can give you the permission to buy/sell items under an account. Different trade permits give you access to different permit tiers. To use a trade permit, simply open the shop, switch to the account you want to unlock,"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "and shift-click the trade permit. Please note that permits only unlock the trades for the account you had selected, for more accounts you will need to craft more permits.$(br)Note: permit '0' is just the default, meaning no permit is needed"
+      "text": "On the Shop, some items may have \"Requires: (something)\" under them. This means you need to unlock the associated $(l)permit$() before you can trade them. Trade permits are items that can give you the permission to buy/sell items under an account. Different trade permits give you access to different permit tiers. To use a trade permit, simply open the shop and shift-click the permit."
     }
   ]
 }

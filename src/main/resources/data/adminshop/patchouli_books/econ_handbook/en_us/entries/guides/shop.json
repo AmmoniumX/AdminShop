@@ -1,5 +1,5 @@
 {
-  "name": "Shop GUI",
+  "name": "Shop",
   "icon": "adminshop:shop",
   "category": "adminshop:introduction",
   "pages": [
@@ -12,18 +12,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "1: Buy/Sell toggle. Click to change between buy and sell mode. The pressed button shows what mode the Shop is currently on.$(br)2: Search box. Type an item name to search for it, if the shop is too large. (Hint: you can use your scrolling wheel to see more items!)$(br)3: Account Balance.$(br)4: Buy/Sell area. Click to buy or sell the item. Press Alt for exact number, Control or Shift to buy 16 at a time, and both for 64."
-    },
-    {
-      "type": "patchouli:text",
-      "text": "5: Current Bank Account. Shows the current bank account selected for the Shop.$(br)6: Change account button. Click to change the current bank account selected.$(br)7: Sets current account as new default when you open a shop or place a seller/buyer."
-    },
-    {
-      "type": "patchouli:image",
-      "images": [
-        "adminshop:textures/gui/entries/shopgui.png"
-      ],
-      "text": "This is the GUI of the Shop block"
+      "text": "1: Buy/Sell toggle. Click to change between buy and sell mode.$(br)2: Search box. Type an item name to search for it, if the shop is too large. (you can also scroll up/down)$(br)3: Account Balance.$(br)4: Buy/Sell area. Click to buy or sell the item. Press Shift to buy more at once, and Control for even more (up to a full stack)."
     }
   ]
 }

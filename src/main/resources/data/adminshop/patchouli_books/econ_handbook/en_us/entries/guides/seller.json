@@ -1,5 +1,5 @@
 {
-  "name": "Seller GUI",
+  "name": "Seller",
   "icon": "adminshop:seller",
   "category": "adminshop:introduction",
   "pages": [
@@ -12,7 +12,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The Seller automatically sells items. It will automatically sell any item in it, and items can be piped into it.$(br)1: Seller slot. Items inserted here will get sold. Only sellable items can be put.$(br)2: Current Account. Shows the account items will be sold to.$(br)3: Change account button. Changes account to sell items to."
+      "text": "The Seller automatically sells items. It will automatically sell any item in it, and items can be piped into it."
     }
   ]
 }

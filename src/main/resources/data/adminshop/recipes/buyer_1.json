@@ -10,7 +10,7 @@
       "item": "minecraft:iron_ingot"
     },
     "@": {
-      "item": "minecraft:ender_chest"
+      "item": "minecraft:barrel"
     },
     "#": {
       "item": "minecraft:hopper"

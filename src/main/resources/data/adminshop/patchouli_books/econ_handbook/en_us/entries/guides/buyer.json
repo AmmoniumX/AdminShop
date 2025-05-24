@@ -1,16 +1,8 @@
 {
-  "name": "Buyer GUI",
+  "name": "Buyer",
   "icon": "adminshop:buyer_1",
   "category": "adminshop:introduction",
   "pages": [
-    {
-      "type": "patchouli:text",
-      "text": "The Buyer automatically buys items. It will automatically buy items every second (count depends on tier), and can be extracted from with pipes.$(br)To set an item, have one in your inventory, then open the GUI and click on it. That will set the buyer's target to said item, $(o)if$() it can be bought and isn't locked behind a $(item)permit$()."
-    },
-    {
-      "type": "patchouli:text",
-      "text": "Go to the next page to view the GUI descriptions."
-    },
     {
       "type": "patchouli:image",
       "images": [
@@ -20,7 +12,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "1: Buyer target. Shows what this buyer's target is, none if no target.$(br)2: Output slot. Bought items will be sent here.$(br)3: Current bank account. The bank account from which the items are being bought.$(br)4: Change account. Change the account from which to buy."
+      "text": "The Buyer automatically buys items. It will automatically buy items (speed depends on tier), and can be extracted from with pipes.$(br)To set an item, have one in your inventory, then open the GUI and click on it. That will set the buyer's target, $(o)if$() it can be bought and isn't locked behind a $(item)permit$()."
     }
   ]
 }
