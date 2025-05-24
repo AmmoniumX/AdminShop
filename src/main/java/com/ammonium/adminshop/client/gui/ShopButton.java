@@ -165,7 +165,8 @@ public class ShopButton extends Button {
         );
         tooltip.add(description);
         if (!recipe.getPermit().equals("0") && !recipe.getPermit().isEmpty()) {
-            tooltip.add(Component.translatable("shopbutton.permit", recipe.getPermit()));
+            tooltip.add(Component.translatable("shopbutton.permit",
+                Component.translatable(recipe.getPermitTranslationKey())));
         }
         return tooltip;
     }

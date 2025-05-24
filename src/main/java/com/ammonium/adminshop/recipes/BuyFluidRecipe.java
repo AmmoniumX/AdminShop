@@ -59,6 +59,10 @@ public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
         return permit;
     }
 
+    public String getPermitTranslationKey() {
+        return "adminshop.permit." + permit;
+    }
+
     public long getPrice() {
         return price;
     }

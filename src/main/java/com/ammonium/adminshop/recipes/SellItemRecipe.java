@@ -176,6 +176,10 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
         return permit;
     }
 
+    public String getPermitTranslationKey() {
+        return "adminshop.permit." + permit;
+    }
+
     public Component getName() {
         assert type != null;
         if (type == SellTypes.ITEM) {

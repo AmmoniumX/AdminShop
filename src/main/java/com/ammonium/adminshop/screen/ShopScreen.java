@@ -350,9 +350,37 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
     }
 
+    /**
+     * Compares two ShopRecipes based on their IDs.
+     * IDs may optionally contain numeric suffixes (e.g., "recipe1", "recipe2", "recipe10").
+     * If numeric suffixes are present, they are sorted numerically.
+     *
+     * @param left  The first ShopRecipe to compare.
+     * @param right The second ShopRecipe to compare.
+     * @return A negative integer, zero, or a positive integer as the first argument is less than,
+     * equal to, or greater than the second.
+     */
     private static int compareRecipes(ShopRecipe left, ShopRecipe right) {
-        // Sort by ID
-        return left.getId().toString().compareTo(right.getId().toString());
+        String leftPath = left.getId().toString();
+        String rightPath = right.getId().toString();
+
+        // Extract base and optional numeric suffix
+        String leftBase = leftPath.replaceAll("\\d+$", "");
+        String rightBase = rightPath.replaceAll("\\d+$", "");
+        int baseCompare = leftBase.compareTo(rightBase);
+        if (baseCompare != 0) return baseCompare;
+
+        // Extract numeric suffix, if present
+        String leftNumStr = leftPath.substring(leftBase.length());
+        String rightNumStr = rightPath.substring(rightBase.length());
+        try {
+            int leftNum = leftNumStr.isEmpty() ? -1 : Integer.parseInt(leftNumStr);
+            int rightNum = rightNumStr.isEmpty() ? -1 : Integer.parseInt(rightNumStr);
+            return Integer.compare(leftNum, rightNum);
+        } catch (NumberFormatException e) {
+            // Fallback to string compare if not numeric
+            return leftPath.compareTo(rightPath);
+        }
     }
 
     private void createSearchBar(int x, int y) {

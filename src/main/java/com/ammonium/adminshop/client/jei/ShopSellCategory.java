@@ -17,6 +17,7 @@ import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
@@ -29,7 +30,7 @@ public class ShopSellCategory implements IRecipeCategory<SellRecipe>{
     private final IDrawable icon;
 
     public ShopSellCategory(IGuiHelper guiHelper) {
-        this.background = guiHelper.createDrawable(GUI, 0, 0, 110, 100);
+        this.background = guiHelper.createDrawable(GUI, 0, 0, 110, 50);
         this.icon = guiHelper.createDrawableItemStack(ModBlocks.SELLER.get().asItem().getDefaultInstance());
     }
 
@@ -56,19 +57,21 @@ public class ShopSellCategory implements IRecipeCategory<SellRecipe>{
     @Override
     public void draw(SellRecipe recipe, IRecipeSlotsView recipeSlotsView, PoseStack stack, double mouseX, double mouseY) {
         IRecipeCategory.super.draw(recipe, recipeSlotsView, stack, mouseX, mouseY);
-        int priceX = 8;
-        int priceY = 60;
-        int tierX = 8;
-        int tierY = 80;
+        int priceX = 4;
+        int priceY = 30;
+        int tierX = 4;
+        int tierY = 40;
 
         // Draw the price
         String priceFormatted = MoneyFormat.format(recipe.getPrice(), MoneyFormat.FormatType.SHORT);
-        String priceText = "Sell Price: "+ priceFormatted;
+        String priceText = I18n.get("jei.category.sell.price", priceFormatted);
         Minecraft.getInstance().font.draw(stack, priceText, priceX, priceY, 0xFF555555);
 
-        // Draw the required tier
-        String tierText = "Requires Tier: "+((recipe.getPermit().equals("0") || recipe.getPermit().isEmpty()) ? "None" : recipe.getPermit());
-        Minecraft.getInstance().font.draw(stack, tierText, tierX, tierY, 0xFF555555);
+        // Draw the required permit
+        if (!recipe.getPermit().isEmpty()) {
+            String tierText = I18n.get("jei.requires_permit", I18n.get(recipe.getPermitTranslationKey()));
+            Minecraft.getInstance().font.draw(stack, tierText, tierX, tierY, 0xFF555555);
+        }
     }
 
     @Override

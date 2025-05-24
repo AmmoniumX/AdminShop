@@ -1,7 +1,7 @@
 {
   "type": "adminshop:item_buying",
   "price": 100,
-  "permit": "1",
+  "permit": "gems",
   "result": {
     "item": "minecraft:diamond",
     "count": 16

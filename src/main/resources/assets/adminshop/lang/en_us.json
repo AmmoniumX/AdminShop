@@ -30,9 +30,12 @@
   "item.adminshop.manual": "Economics 101",
   "item.adminshop.tablet": "Shopping Tablet",
   "jei.category.buy.title": "Shop Buy Offers",
+  "jei.category.buy.price": "Price: %s",
   "jei.category.sell.title": "Shop Sell Offers",
+  "jei.category.sell.price": "Price: %s",
+  "jei.requires_permit": "Permit: %s",
   "shopbutton.description": "%1$s %2$s %3$s",
-  "shopbutton.permit": "Requires Permit: %s",
+  "shopbutton.permit": "Permit: %s",
   "sellitem.recipe.tag": "Any of: %s",
   "message.adminshop.no_access": "You don't have access to this machine's account!",
   "gui.adminshop.no_account": "No account",
@@ -56,5 +59,6 @@
   "gui.adminshop.no_permit": "You don't have the necessary permit!",
   "gui.adminshop.tank_empty": "Empty",
   "message.adminshop.no_container": "No container found for fluid",
-  "gui.adminshop.set_threshold": "Set detector threshold to %s"
+  "gui.adminshop.set_threshold": "Set detector threshold to %s",
+  "adminshop.permit.gems": "Gems"
 }

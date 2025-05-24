@@ -80,6 +80,10 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
         return permit;
     }
 
+    public String getPermitTranslationKey() {
+        return "adminshop.permit." + permit;
+    }
+
     public Component getName() {
         return result.getDisplayName();
     }

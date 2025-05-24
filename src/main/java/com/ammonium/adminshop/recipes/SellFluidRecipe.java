@@ -76,6 +76,10 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
         return permit;
     }
 
+    public String getPermitTranslationKey() {
+        return "adminshop.permit." + permit;
+    }
+
     public int getCount() {
         return fluid.getAmount();
     }
