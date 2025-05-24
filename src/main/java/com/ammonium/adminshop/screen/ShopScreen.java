@@ -316,6 +316,20 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                             .toLowerCase().strip().contains(this.search.toLowerCase().strip());
                 }
                 return false;
+            }).sorted((left, right) -> {
+                if (left.getPermit().equals(right.getPermit())) {
+                    // Both have the same permit, sort by id
+                    return left.getId().toString().compareTo(right.getId().toString());
+                } else if (left.getPermit().isEmpty()) {
+                    // left has no permit, comes first
+                    return -1;
+                } else if (right.getPermit().isEmpty()) {
+                    // right has no permit, comes first
+                    return 1;
+                } else {
+                    // Sort by permit
+                    return left.getPermit().compareTo(right.getPermit());
+                }
             }).toList();
         }
 //        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size after filter: "+searchResults.size());

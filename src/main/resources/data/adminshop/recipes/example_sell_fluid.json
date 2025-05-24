@@ -1,7 +1,7 @@
 {
   "type": "adminshop:fluid_selling",
   "price": 100,
-  "fluid": {
+  "result": {
     "fluid": "minecraft:lava",
     "amount": 1000
   }

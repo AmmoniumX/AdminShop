@@ -88,9 +88,17 @@ public class AdminShopCommand {
             return 0;
         }
 
-        String permits = account.permits().stream()
-                        .reduce("", (a, b) -> a + ", " + b);
-        source.sendSuccess(Component.literal(permits), true);
+        StringBuilder permitsBuilder = new StringBuilder();
+        for (String permit : account.permits()) {
+            if (permit == null || permit.isEmpty()) { continue; }
+
+            if (!permitsBuilder.isEmpty()) {
+                permitsBuilder.append(", ");
+            }
+
+            permitsBuilder.append(permit);
+        }
+        source.sendSuccess(Component.literal(permitsBuilder.toString()), true);
         return 1;
     }
 

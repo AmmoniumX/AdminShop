@@ -21,7 +21,7 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.parchmentmc.librarian.forgegradle'
 
 
-version = '1.19.2-2.0BETA2'
+version = '1.19.2-2.0BETA3'
 group = 'com.ammonium.adminshop' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'adminshop'
 

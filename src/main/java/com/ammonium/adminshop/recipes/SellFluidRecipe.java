@@ -130,7 +130,7 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
 
         public SellFluidRecipe fromJson(ResourceLocation id, JsonObject json) {
             long price = GsonHelper.getAsLong(json, "price");
-            JsonObject fluidJson = GsonHelper.getAsJsonObject(json, "fluid");
+            JsonObject fluidJson = GsonHelper.getAsJsonObject(json, "result");
             ResourceLocation fluidId = new ResourceLocation(GsonHelper.getAsString(fluidJson, "fluid"));
             int amount = GsonHelper.getAsInt(fluidJson, "amount", 1000);
             String permit = GsonHelper.getAsString(json, "permit", "");
