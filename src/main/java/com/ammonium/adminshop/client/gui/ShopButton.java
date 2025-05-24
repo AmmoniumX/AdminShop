@@ -156,7 +156,6 @@ public class ShopButton extends Button {
         String priceFormatted = Screen.hasAltDown()
                 ? MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.RAW)
                 : MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.SHORT);
-        AdminShop.LOGGER.debug("Recipe name: {}", recipe.getName().getString());
         String quantityString = numItems + ((recipe instanceof ItemRecipe) ? "x" : "mb");
         Component description = Component.translatable(
             "shopbutton.description",

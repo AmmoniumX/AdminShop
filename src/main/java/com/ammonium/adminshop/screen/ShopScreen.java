@@ -34,10 +34,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private final ResourceLocation GUI = new ResourceLocation(AdminShop.MODID, "textures/gui/shop_gui.png");
@@ -291,11 +288,13 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
             searchResults.addAll(RecipeManager.getAllBuyRecipes(Minecraft.getInstance().level)
                 .stream()
                 .map(recipe -> (ShopRecipe) recipe)
+                .sorted(ShopScreen::compareRecipes)
                 .toList());
         } else {
             searchResults.addAll(RecipeManager.getAllSellRecipes(Minecraft.getInstance().level)
                 .stream()
                 .map(recipe -> (ShopRecipe) recipe)
+                .sorted(ShopScreen::compareRecipes)
                 .toList());
         }
 //        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size: "+searchResults.size());
@@ -316,21 +315,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                             .toLowerCase().strip().contains(this.search.toLowerCase().strip());
                 }
                 return false;
-            }).sorted((left, right) -> {
-                if (left.getPermit().equals(right.getPermit())) {
-                    // Both have the same permit, sort by id
-                    return left.getId().toString().compareTo(right.getId().toString());
-                } else if (left.getPermit().isEmpty()) {
-                    // left has no permit, comes first
-                    return -1;
-                } else if (right.getPermit().isEmpty()) {
-                    // right has no permit, comes first
-                    return 1;
-                } else {
-                    // Sort by permit
-                    return left.getPermit().compareTo(right.getPermit());
-                }
-            }).toList();
+            }).sorted(ShopScreen::compareRecipes).toList();
         }
 //        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size after filter: "+searchResults.size());
         List<ShopButton> shopButtons = isBuy ? buyButtons : sellButtons;
@@ -363,6 +348,22 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
             addRenderableWidget(button);
         }
 
+    }
+
+    private static int compareRecipes(ShopRecipe left, ShopRecipe right) {
+        if (left.getPermit().equals(right.getPermit())) {
+            // Both have the same permit, sort by id
+            return left.getId().toString().compareTo(right.getId().toString());
+        } else if (left.getPermit().isEmpty()) {
+            // left has no permit, comes first
+            return -1;
+        } else if (right.getPermit().isEmpty()) {
+            // right has no permit, comes first
+            return 1;
+        } else {
+            // Sort by permit
+            return left.getPermit().compareTo(right.getPermit());
+        }
     }
 
     private void createSearchBar(int x, int y) {
