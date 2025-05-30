@@ -28,8 +28,8 @@ public class ServerEventListeners {
 
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event){
-        if (event.getEntity().level.isClientSide()) { return; }
-        ServerLevel level = (ServerLevel) event.getEntity().level;
+        if (event.getEntity().level().isClientSide()) { return; }
+        ServerLevel level = (ServerLevel) event.getEntity().level();
         ServerPlayer player = (ServerPlayer) event.getEntity();
         MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
         Messages.sendToPlayer(new PacketSyncMoneyToClient(account), player);

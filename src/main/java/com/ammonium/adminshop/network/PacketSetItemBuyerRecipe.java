@@ -43,7 +43,7 @@ public class PacketSetItemBuyerRecipe {
 
             if (player != null) {
                 AdminShop.LOGGER.debug("Setting buyer recipe for "+this.pos+" to "+this.recipeId);
-                ServerLevel level = player.getLevel();
+                ServerLevel level = player.serverLevel();
                 BlockEntity blockEntity = level.getBlockEntity(this.pos);
                 if (!(blockEntity instanceof ItemBuyerMachine buyerEntity)) {
                     AdminShop.LOGGER.error("BlockEntity at pos is not BuyerMachine");

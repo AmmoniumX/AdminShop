@@ -19,6 +19,7 @@ import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -93,11 +94,11 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     }
 
     @Override
-    public void render(@NotNull PoseStack matrixStack, int mouseX, int mouseY, float partialTicks){
-        this.renderBackground(matrixStack);
-        super.render(matrixStack, mouseX, mouseY, partialTicks);
-        this.searchBar.render(matrixStack, mouseX, mouseY, partialTicks);
-        this.renderTooltip(matrixStack, mouseX, mouseY);
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks){
+        this.renderBackground(guiGraphics);
+        super.render(guiGraphics, mouseX, mouseY, partialTicks);
+        this.searchBar.render(guiGraphics, mouseX, mouseY, partialTicks);
+        this.renderTooltip(guiGraphics, mouseX, mouseY);
         this.tickCounter++;
         if (this.tickCounter > 20) {
             this.tickCounter = 0;
@@ -107,18 +108,19 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         int max_rows_passed = (int) Math.max(Math.ceil(searchResults.size() / (double) NUM_COLS) - 4, 0);
 //        AdminShop.LOGGER.debug("rows_passed:"+rows_passed+", max_rows_passed:"+max_rows_passed+", searchResults.size:"+searchResults.size());
 //        AdminShop.LOGGER.debug("relX:"+relX+", relY:"+relY);
-        matrixStack.pushPose();
+        PoseStack poseStack = guiGraphics.pose();
+        poseStack.pushPose();
         RenderSystem.setShaderTexture(0, GUI);
-        matrixStack.translate(0, 0, 300);
+        poseStack.translate(0, 0, 300);
         // Top scroll indicator
         if (rows_passed > 0) {
-            blit(matrixStack, relX+15, relY+32, 15, 223, 162, 8);
+            guiGraphics.blit(GUI, relX+15, relY+32, 15, 223, 162, 8);
         }
         // Bottom scroll indicator
         if (rows_passed < max_rows_passed) {
-            blit(matrixStack, relX+15, relY+96, 15, 232, 162, 8);
+            guiGraphics.blit(GUI, relX+15, relY+96, 15, 232, 162, 8);
         }
-        matrixStack.popPose();
+        poseStack.popPose();
     }
 
     private void filterSearch() {
@@ -136,14 +138,15 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     }
 
     @Override
-    protected void renderLabels(PoseStack matrixStack, int mouseX, int mouseY) {
-        matrixStack.pushPose();
+    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        PoseStack poseStack = guiGraphics.pose();
+        poseStack.pushPose();
         //Block Title
         String blockName = I18n.get(ShopBlock.SCREEN_ADMINSHOP_SHOP);
-        drawCenteredString(matrixStack, font, blockName, getXSize()/2, 6, 0xffffff);
+        guiGraphics.drawCenteredString(font, blockName, getXSize()/2, 6, 0xffffff);
 
         //Player Inventory Title
-        drawString(matrixStack, font, playerInventoryTitle, 16, getYSize()-94, 0xffffff);
+        guiGraphics.drawString(font, playerInventoryTitle, 16, getYSize()-94, 0xffffff);
 
         //Player Balance
         long balance = -1;
@@ -155,21 +158,21 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         }
         String formatted = Screen.hasAltDown() ? MoneyFormat.forcedFormat(balance, MoneyFormat.FormatType.RAW) :
                 MoneyFormat.forcedFormat(balance, MoneyFormat.FormatType.SHORT);
-        drawString(matrixStack, Minecraft.getInstance().font,
+        guiGraphics.drawString(Minecraft.getInstance().font,
                 formatted,
                 getXSize() - font.width(formatted) - 6,
                 6, 0xffffff);
 
         // Bank account
-        drawString(matrixStack, font, name.getString(),16,112,0xffffff);
+        guiGraphics.drawString(font, name.getString(),16,112,0xffffff);
 
         //Tooltip for item the player is hovering over
         List<ShopButton> shopButtons = isBuy ? buyButtons : sellButtons;
         Optional<ShopButton> button = shopButtons.stream().filter(b -> b.isMouseOn).findFirst();
-        button.ifPresent(shopButton -> renderTooltip(matrixStack, shopButton.getTooltipContent(),
+        button.ifPresent(shopButton -> guiGraphics.renderTooltip(font, shopButton.getTooltipContent(),
                 Optional.empty(), mouseX-(this.width - this.imageWidth)/2,
                 mouseY-(this.height - this.imageHeight)/2));
-        matrixStack.popPose();
+        poseStack.popPose();
 
     }
 
@@ -259,11 +262,11 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     }
 
     @Override
-    protected void renderBg(@NotNull PoseStack matrixStack, float partialTicks, int mouseX, int mouseY){
+    protected void renderBg(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY){
         RenderSystem.setShaderTexture(0, GUI);
         int relX = (this.width - this.imageWidth) / 2;
         int relY = (this.height - this.imageHeight) / 2;
-        this.blit(matrixStack, relX, relY, 0, 0, this.imageWidth, this.imageHeight);
+        guiGraphics.blit(GUI, relX, relY, 0, 0, this.imageWidth, this.imageHeight);
     }
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
@@ -339,7 +342,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
             List<ShopRecipe> finalShopItems = shopItems;
             ShopButton button = new ShopButton(shopItems.get(j),
                     x+SHOP_BUTTON_X+SHOP_BUTTON_SIZE*(j%NUM_COLS),
-                    y+SHOP_BUTTON_Y+SHOP_BUTTON_SIZE*((j/NUM_COLS)%NUM_ROWS), itemRenderer, (b) -> {
+                    y+SHOP_BUTTON_Y+SHOP_BUTTON_SIZE*((j/NUM_COLS)%NUM_ROWS), (b) -> {
                 int quantity = ((ShopButton)b).getQuantity();
                 attemptTransaction(finalShopItems.get(j2), quantity);
             });

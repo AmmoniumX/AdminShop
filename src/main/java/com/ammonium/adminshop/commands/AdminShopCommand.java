@@ -84,7 +84,7 @@ public class AdminShopCommand {
         MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
 
         if (account.permits().isEmpty()) {
-            source.sendSuccess(Component.translatable("message.adminshop.permits.empty"), true);
+            source.sendSuccess(() -> Component.translatable("message.adminshop.permits.empty"), true);
             return 0;
         }
 
@@ -98,7 +98,7 @@ public class AdminShopCommand {
 
             permitsBuilder.append(permit);
         }
-        source.sendSuccess(Component.literal(permitsBuilder.toString()), true);
+        source.sendSuccess(() -> Component.literal(permitsBuilder.toString()), true);
         return 1;
     }
 
@@ -120,7 +120,7 @@ public class AdminShopCommand {
             source.sendFailure(Component.translatable("message.adminshop.permit.give.failure"));
             return 0;
         }
-        source.sendSuccess(Component.translatable("message.adminshop.permit.give.success", tier), true);
+        source.sendSuccess(() -> Component.translatable("message.adminshop.permit.give.success", tier), true);
         return 1;
     }
 
@@ -135,7 +135,7 @@ public class AdminShopCommand {
         // Remove permit
         MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
         MoneyHelper.get(level).removePermit(account.teamId(), tier);
-        source.sendSuccess(Component.translatable("message.adminshop.permit.remove.success", tier), true);
+        source.sendSuccess(() -> Component.translatable("message.adminshop.permit.remove.success", tier), true);
         return 1;
     }
 
@@ -153,7 +153,7 @@ public class AdminShopCommand {
 
         // Give money
         MoneyHelper.get(level).addMoney(account.teamId(), amount);
-        source.sendSuccess(Component.translatable("message.adminshop.give.success", amount), true);
+        source.sendSuccess(() -> Component.translatable("message.adminshop.give.success", amount), true);
         return 1;
     }
 
@@ -176,7 +176,7 @@ public class AdminShopCommand {
             return 0;
         }
         
-        source.sendSuccess(Component.translatable("message.adminshop.remove.success", amount), true);
+        source.sendSuccess(() -> Component.translatable("message.adminshop.remove.success", amount), true);
         return 1;
     }
 }

@@ -32,8 +32,8 @@ public class PacketUpdateRequest {
             // Update machine's account
             ServerPlayer player = ctx.getSender();
             if (player != null) {
-                ServerLevel level = player.getLevel();
-                BlockEntity be = player.level.getBlockEntity(pos);
+                ServerLevel level = player.serverLevel();
+                BlockEntity be = level.getBlockEntity(pos);
                 if (be instanceof ShopMachine autoShopMachine) {
                     autoShopMachine.sendUpdates();
                 }

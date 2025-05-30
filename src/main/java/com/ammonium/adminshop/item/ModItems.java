@@ -13,7 +13,7 @@ public class ModItems {
             DeferredRegister.create(ForgeRegistries.ITEMS, AdminShop.MODID);
 
     public static final RegistryObject<Item> PERMIT = ITEMS.register("permit",
-            () -> new LoreItem(new Item.Properties().tab(ModSetup.ITEM_GROUP), "Shift-click inside a shop to unlock new trades"));
+            () -> new LoreItem(new Item.Properties(), "Shift-click inside a shop to unlock new trades"));
 
     public static final RegistryObject<Item> TABLET = ITEMS.register("tablet", ShopTablet::new);
     public static void register(IEventBus eventBus) {

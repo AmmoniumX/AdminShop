@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 public class ShopTablet extends LoreItem{
     public static final String SCREEN_ADMINSHOP_SHOP = "screen.adminshop.shop";
     public ShopTablet() {
-        super(new Item.Properties().tab(ModSetup.ITEM_GROUP), "A very sophisticated PDA. Right-click to open the Shop");
+        super(new Item.Properties(), "A very sophisticated PDA. Right-click to open the Shop");
     }
 
     @Override

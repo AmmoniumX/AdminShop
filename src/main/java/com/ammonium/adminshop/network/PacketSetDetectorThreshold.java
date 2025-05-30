@@ -41,7 +41,7 @@ public class PacketSetDetectorThreshold {
             ServerPlayer player = ctx.getSender();
             if (player != null) {
                 AdminShop.LOGGER.debug("Setting detector threshold for {} to {}", this.pos, this.threshold);
-                ServerLevel level = player.getLevel();
+                ServerLevel level = player.serverLevel();
                 BlockEntity blockEntity = level.getBlockEntity(this.pos);
                 if (!(blockEntity instanceof Detector detectorBE)) {
                     AdminShop.LOGGER.error("BlockEntity at pos is not Detector");

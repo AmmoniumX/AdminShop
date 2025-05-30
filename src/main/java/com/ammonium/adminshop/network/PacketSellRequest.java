@@ -61,9 +61,9 @@ public class PacketSellRequest {
             //Do NOT call client-only code though, since server needs to access this too
 //            AdminShop.LOGGER.debug("Performing sell transaction: {}, {}, {}", recipeId, slotIndex, quantity);
             ServerPlayer player = ctx.getSender();
-            ServerLevel level = ctx.getSender().getLevel();
-            // Get item handler
             assert player != null;
+            ServerLevel level = player.serverLevel();
+            // Get item handler
             Inventory playerInventory = player.getInventory();
             IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
             if (itemHandler == null) {
@@ -246,7 +246,7 @@ public class PacketSellRequest {
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
         assert player != null;
-        ServerLevel level = player.getLevel();
+        ServerLevel level = player.serverLevel();
         Inventory playerInventory = player.getInventory();
         IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
         int quantity = recipe.getCount() * sellQuantity;
@@ -264,7 +264,7 @@ public class PacketSellRequest {
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
         assert player != null;
-        ServerLevel level = player.getLevel();
+        ServerLevel level = player.serverLevel();
         Inventory playerInventory = player.getInventory();
         IItemHandler itemHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory)).orElse(null);
         ItemStack toExtract = itemHandler.getStackInSlot(slotIndex);

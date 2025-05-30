@@ -23,14 +23,14 @@ public class SellerMenu extends AbstractContainerMenu {
     private final Level level;
 
     public SellerMenu(int windowId, Inventory inv, FriendlyByteBuf extraData) {
-        this(windowId, inv, inv.player.level.getBlockEntity(extraData.readBlockPos()));
+        this(windowId, inv, inv.player.level().getBlockEntity(extraData.readBlockPos()));
     }
 
     public SellerMenu(int windowId, Inventory inv, BlockEntity entity) {
         super(ModMenuTypes.SELLER_MENU.get(), windowId);
         checkContainerSize(inv, 1);
         this.blockEntity = ((SellerEntity) entity);
-        this.level = inv.player.level;
+        this.level = inv.player.level();
 
         addPlayerInventory(inv);
         addPlayerHotbar(inv);

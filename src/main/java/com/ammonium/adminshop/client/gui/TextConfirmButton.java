@@ -3,6 +3,7 @@ package com.ammonium.adminshop.client.gui;
 import com.ammonium.adminshop.AdminShop;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -17,7 +18,7 @@ public class TextConfirmButton extends Button {
     private boolean valid;
 
     public TextConfirmButton(int x, int y, OnPress listener) {
-        super(x, y, 50, 12, Component.translatable("button.adminshop.confirm"), listener);
+        super(x, y, 50, 12, Component.translatable("button.adminshop.confirm"), listener, DEFAULT_NARRATION);
         this.valid = false;
     }
 
@@ -26,15 +27,17 @@ public class TextConfirmButton extends Button {
     }
 
     @Override
-    public void render(@NotNull PoseStack matrix, int mouseX, int mouseY, float partialTicks) {
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
         if(!visible) {
             return;
         }
+        int x = this.getX();
+        int y = this.getY();
         RenderSystem.setShaderTexture(0, GUI);
         if(valid){
-            blit(matrix, x, y,180, 0, 12, 12);
+            guiGraphics.blit(GUI, x, y,180, 0, 12, 12);
         }else{
-            blit(matrix, x, y, 192, 0, 12, 12);
+            guiGraphics.blit(GUI, x, y, 192, 0, 12, 12);
         }
     }
 }

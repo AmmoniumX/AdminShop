@@ -11,6 +11,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
@@ -32,14 +33,12 @@ import java.util.function.Function;
 public class ShopButton extends Button {
 
     private final ShopRecipe recipe;
-    private final ItemRenderer itemRenderer;
     private TextureAtlasSprite fluidTexture;
     private float fluidColorR, fluidColorG, fluidColorB, fluidColorA;
     public boolean isMouseOn = false;
 
-    public ShopButton(ShopRecipe recipe, int x, int y, ItemRenderer renderer, OnPress listener) {
-        super(x, y, 16, 16, Component.empty(), listener);
-        this.itemRenderer = renderer;
+    public ShopButton(ShopRecipe recipe, int x, int y, OnPress listener) {
+        super(x, y, 16, 16, Component.empty(), listener, DEFAULT_NARRATION);
         this.recipe = recipe;
         if(recipe instanceof FluidRecipe fluidRecipe) {
             Function<ResourceLocation, TextureAtlasSprite> spriteAtlas = Minecraft.getInstance()
@@ -56,48 +55,52 @@ public class ShopButton extends Button {
     }
 
     @Override
-    public void renderButton(@NotNull PoseStack matrix, int mouseX, int mouseY, float partialTicks) {
+    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
         //super.renderButton(matrix, x, y, partialTicks);
-        if(!visible)
-            return;
+        if(!visible) { return; }
+
+        int x = getX();
+        int y = getY();
+
+        PoseStack matrix = guiGraphics.pose();
         matrix.pushPose();
 
         //Draw item or fluid
         if(recipe instanceof ItemRecipe itemRecipe) {
-            itemRenderer.renderGuiItem(itemRecipe.getDisplayItem(), x, y);
+            guiGraphics.renderItem(itemRecipe.getDisplayItem(), x, y);
         } else { // Render Fluid
             // Set render for fluid
 //            enableScissor(x, y, x + width, y + height);
             RenderSystem.enableBlend();
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderTexture(0, fluidTexture.atlas().location());
+            RenderSystem.setShaderTexture(0, fluidTexture.atlasLocation());
             RenderSystem.setShaderColor(fluidColorR, fluidColorG, fluidColorB, fluidColorA);
-            blit(matrix, x, y,0, 16, 16, fluidTexture);
+            guiGraphics.blit(x, y,0, 16, 16, fluidTexture);
             RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
             RenderSystem.disableBlend();
 //            RenderSystem.disableScissor();
         }
 
         //Highlight background and write item name if hovered or focused
-        if(isHoveredOrFocused()){
+        if(isHovered()){
             isMouseOn = true;
-            fill(matrix, x, y, x+width, y+height, 0xFFFFFFDF);
+            guiGraphics.fill(x, y, x+width, y+height, 0xFFFFFFDF);
         }else{
             isMouseOn = false;
         }
         //Write quantity based on buttons pressed (sneak & run)
         matrix.pushPose();
-        matrix.translate(0, 0, itemRenderer.blitOffset+200);
+        matrix.translate(0, 0, 201);
         matrix.scale(.5f, .5f, 1);
         Font font = Minecraft.getInstance().font;
         int numItems = getNumItems();
-        drawString(matrix, font, numItems+"", 2*(x+16)- font.width(numItems+""), 2*(y)+24, 0xFFFFFF);
+        guiGraphics.drawString(font, numItems+"", 2*(x+16)- font.width(numItems+""), 2*(y)+24, 0xFFFFFF);
         if( recipe instanceof ItemRecipe itemRecipe) {
             if (itemRecipe instanceof SellItemRecipe sellRecipe && sellRecipe.getSellType() == SellItemRecipe.SellTypes.TAG) {
-                drawString(matrix, font, "#", 2 * x + width * 2 - font.width("#") - 1, 2 * y + 1, 0xFFC921);
+                guiGraphics.drawString(font, "#", 2 * x + width * 2 - font.width("#") - 1, 2 * y + 1, 0xFFC921);
             }
             if (itemRecipe.getItem().isPresent() && itemRecipe.getItem().get().hasTag()) {
-                drawString(matrix, font, "+NBT", 2 * x + width * 2 - font.width("+NBT") - 1, 2 * y + 1, 0xFF55FF);
+                guiGraphics.drawString(font, "+NBT", 2 * x + width * 2 - font.width("+NBT") - 1, 2 * y + 1, 0xFF55FF);
             }
         }
         matrix.popPose();

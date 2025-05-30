@@ -8,6 +8,7 @@ import com.ammonium.adminshop.recipes.ModRecipeTypes;
 import com.ammonium.adminshop.screen.ModMenuTypes;
 import com.ammonium.adminshop.setup.ClientSetup;
 import com.ammonium.adminshop.setup.Config;
+import com.ammonium.adminshop.setup.CreativeTab;
 import com.ammonium.adminshop.setup.ModSetup;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.api.distmarker.Dist;
@@ -40,6 +41,7 @@ public class AdminShop {
         ModMenuTypes.register(eventBus);
         ModRecipeTypes.register(eventBus);
         ModRecipeSerializers.register(eventBus);
+        CreativeTab.register(eventBus);
 
     }
 

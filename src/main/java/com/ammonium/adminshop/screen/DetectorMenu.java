@@ -44,7 +44,7 @@ public abstract class DetectorMenu<Q extends Detector> extends AbstractContainer
 //    }
     // For Super classes
     public DetectorMenu(int windowId, Inventory inv, FriendlyByteBuf extraData, MenuType<?> menuType, Class<Q> pClass){
-        this(windowId, inv, inv.player.level.getBlockEntity(extraData.readBlockPos()), menuType, pClass);
+        this(windowId, inv, inv.player.level().getBlockEntity(extraData.readBlockPos()), menuType, pClass);
     }
     public DetectorMenu(int windowId, Inventory inv, BlockEntity entity, MenuType<?> menuType, Class<Q> pClass) {
         super(menuType, windowId);
@@ -53,7 +53,7 @@ public abstract class DetectorMenu<Q extends Detector> extends AbstractContainer
         }
         this.detectorBE = pClass.cast(entity);
         this.playerEntity = inv.player;
-        this.level = inv.player.level;
+        this.level = inv.player.level();
 
         this.playerInventory = new InvWrapper(inv);
         layoutPlayerInventorySlots(10, 70);

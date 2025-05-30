@@ -17,6 +17,8 @@ import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -55,22 +57,23 @@ public class ShopBuyCategory implements IRecipeCategory<BuyRecipe>{
     }
 
     @Override
-    public void draw(BuyRecipe recipe, IRecipeSlotsView recipeSlotsView, PoseStack stack, double mouseX, double mouseY) {
-        IRecipeCategory.super.draw(recipe, recipeSlotsView, stack, mouseX, mouseY);
+    public void draw(BuyRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
+        IRecipeCategory.super.draw(recipe, recipeSlotsView, guiGraphics, mouseX, mouseY);
         int priceX = 4;
         int priceY = 30;
         int tierX = 4;
         int tierY = 40;
 
         // Draw the price
+        Font font = Minecraft.getInstance().font;
         String priceFormatted = MoneyFormat.format(recipe.getPrice(), MoneyFormat.FormatType.SHORT);
         String priceText = I18n.get("jei.category.buy.price", priceFormatted);
-        Minecraft.getInstance().font.draw(stack, priceText, priceX, priceY, 0xFF555555);
+        guiGraphics.drawString(font, priceText, priceX, priceY, 0xFF555555);
 
         // Draw the required permit
         if (!recipe.getPermit().isEmpty()) {
             String tierText = I18n.get("jei.requires_permit", I18n.get(recipe.getPermitTranslationKey()));
-            Minecraft.getInstance().font.draw(stack, tierText, tierX, tierY, 0xFF555555);
+            guiGraphics.drawString(font, tierText, tierX, tierY, 0xFF555555);
         }
     }
 

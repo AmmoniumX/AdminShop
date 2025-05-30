@@ -14,10 +14,14 @@ import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -45,6 +49,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     private UUID teamId = null;
     private BuyFluidRecipe recipe = null;
     private TextureAtlasSprite fluidTexture = null;
+    private int fluidTextureId = -1; // Texture ID for the fluid texture
     private float fluidColorR, fluidColorG, fluidColorB, fluidColorA;
     private TankGauge tankGauge;
     private ProgressBar progressBar;
@@ -119,22 +124,22 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     }
 
     @Override
-    protected void renderBg(PoseStack poseStack, float partialTicks, int mouseX, int mouseY) {
+    protected void renderBg(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, TEXTURE);
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
 
-        this.blit(poseStack, x, y, 0, 0, imageWidth, imageHeight);
+        guiGraphics.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight);
         if (this.recipe != null) {
-            renderFluid(poseStack, this.recipe.getFluid().getFluid(), x+104, y+24, 16, 16);
+            renderFluid(guiGraphics, this.recipe.getFluid().getFluid(), x+104, y+24, 16, 16);
         }
     }
 
     @Override
-    protected void renderLabels(PoseStack poseStack, int mouseX, int mouseY) {
-        super.renderLabels(poseStack, mouseX, mouseY);
+    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        super.renderLabels(guiGraphics, mouseX, mouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         MoneyHelper.MoneyAccount account = ClientCache.getAccount();
@@ -143,13 +148,14 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
             accAvailable = true;
         }
         int color = accAvailable ? 0xffffff : 0xff0000;
-        drawString(poseStack, font, name.getString(), 7,62,color);
+        guiGraphics.drawString(font, name.getString(), 7,62,color);
+        PoseStack poseStack = guiGraphics.pose();
         poseStack.pushPose();
         if (this.tankGauge == null) {
             AdminShop.LOGGER.debug("TankGauge is null!");
         }
         if (this.tankGauge != null && tankGauge.isMouseOn) {
-            renderTooltip(poseStack, tankGauge.getTooltipContent(),
+            guiGraphics.renderTooltip(font, tankGauge.getTooltipContent(),
                     Optional.empty(), mouseX-(this.width - this.imageWidth)/2,
                     mouseY-(this.height - this.imageHeight)/2);
         }
@@ -157,10 +163,10 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float delta) {
-        renderBackground(poseStack);
-        super.render(poseStack, mouseX, mouseY, delta);
-        renderTooltip(poseStack, mouseX, mouseY);
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
+        renderBackground(guiGraphics);
+        super.render(guiGraphics, mouseX, mouseY, delta);
+        renderTooltip(guiGraphics, mouseX, mouseY);
 
         // Get data from BlockEntity
         this.buyerEntity = this.getMenu().getBlockEntity();
@@ -185,19 +191,18 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         }
     }
 
-    private void renderFluid(PoseStack matrix, Fluid fluid, int x, int y, int width, int height) {
+    private void renderFluid(GuiGraphics guiGraphics, Fluid fluid, int x, int y, int width, int height) {
         // Set fluid texture if null
         if (fluidTexture == null) {
             setFluidTexture(fluid);
         }
         // Render Fluid
-        RenderSystem.enableBlend();
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderTexture(0, fluidTexture.atlas().location());
+        RenderSystem.bindTexture(fluidTextureId);
         RenderSystem.setShaderColor(fluidColorR, fluidColorG, fluidColorB, fluidColorA);
-        blit(matrix, x, y,0, width, height, fluidTexture);
+        RenderSystem.setShaderTexture(0,
+                fluidTexture.atlasLocation());
+        guiGraphics.blit(x, y,0, width, height, fluidTexture);
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-        RenderSystem.disableBlend();
     }
 
     private void setFluidTexture(Fluid fluid) {
@@ -207,6 +212,14 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         IClientFluidTypeExtensions properties = IClientFluidTypeExtensions.of(fluid);
         ResourceLocation resource = properties.getStillTexture();
         fluidTexture = spriteAtlas.apply(resource);
+        TextureManager manager = Minecraft.getInstance().getTextureManager();
+        AbstractTexture abstractTexture = manager.getTexture(InventoryMenu.BLOCK_ATLAS);
+        TextureAtlas atlas = null;
+        if (abstractTexture instanceof TextureAtlas) {
+            atlas = (TextureAtlas) abstractTexture;
+        }
+        assert atlas != null;
+        fluidTextureId = atlas.getId();
         int fcol = properties.getTintColor();
         fluidColorR = ((fcol >> 16) & 0xFF) / 255.0F;
         fluidColorG = ((fcol >> 8) & 0xFF) / 255.0F;

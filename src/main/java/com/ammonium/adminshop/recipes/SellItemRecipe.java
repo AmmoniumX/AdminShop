@@ -8,6 +8,7 @@ import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -233,7 +234,7 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
     }
 
     @Override
-    public @NotNull ItemStack assemble(Container container) {
+    public @NotNull ItemStack assemble(Container container, RegistryAccess registryAccess) {
         return ItemStack.EMPTY;
     }
 
@@ -243,7 +244,7 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
     }
 
     @Override
-    public @NotNull ItemStack getResultItem() {
+    public @NotNull ItemStack getResultItem(RegistryAccess registryAccess) {
         return ItemStack.EMPTY;
     }
 

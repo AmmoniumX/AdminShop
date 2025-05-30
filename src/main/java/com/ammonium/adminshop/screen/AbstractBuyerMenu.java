@@ -26,7 +26,7 @@ public abstract class AbstractBuyerMenu extends AbstractContainerMenu {
     protected abstract Block getBlockType();
 
     protected AbstractBuyerMenu(MenuType<? extends AbstractBuyerMenu> menuType, int slotCount, int slotStartX, int windowId, Inventory inv, FriendlyByteBuf extraData) {
-        this(menuType, slotCount, slotStartX, windowId, inv, inv.player.level.getBlockEntity(extraData.readBlockPos()));
+        this(menuType, slotCount, slotStartX, windowId, inv, inv.player.level().getBlockEntity(extraData.readBlockPos()));
     }
 
     protected AbstractBuyerMenu(MenuType<? extends AbstractBuyerMenu> menuType, int slotCount, int slotStartX, int windowId, Inventory inv, BlockEntity entity) {
@@ -34,7 +34,7 @@ public abstract class AbstractBuyerMenu extends AbstractContainerMenu {
         this.SLOT_COUNT = slotCount;
         this.SLOT_START_X = slotStartX;
         this.blockEntity = ((AbstractBuyerEntity) entity);
-        this.level = inv.player.level;
+        this.level = inv.player.level();
         checkContainerSize(inv, SLOT_COUNT);
 
         addPlayerInventory(inv);

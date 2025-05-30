@@ -20,13 +20,13 @@ public class FluidBuyerMenu extends AbstractContainerMenu {
     private final Level level;
 
     public FluidBuyerMenu(int windowId, Inventory inv, FriendlyByteBuf extraData) {
-        this(windowId, inv, inv.player.level.getBlockEntity(extraData.readBlockPos()));
+        this(windowId, inv, inv.player.level().getBlockEntity(extraData.readBlockPos()));
     }
 
     public FluidBuyerMenu(int windowId, Inventory inv, BlockEntity entity) {
         super(ModMenuTypes.FLUID_BUYER_MENU.get(), windowId);
         this.blockEntity = ((FluidBuyerEntity) entity);
-        this.level = inv.player.level;
+        this.level = inv.player.level();
 
         addPlayerInventory(inv);
         addPlayerHotbar(inv);

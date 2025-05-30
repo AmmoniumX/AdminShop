@@ -50,7 +50,7 @@ public class PacketAccountAddPermit {
             AdminShop.LOGGER.info("Adding permit tier "+permit+" to "+teamId);
             ServerPlayer player = ctx.getSender();
             assert player != null;
-            ServerLevel level = player.getLevel();
+            ServerLevel level = player.serverLevel();
             // Add permit
             MoneyHelper.get(level).addPermit(teamId, permit);
             player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.0f);

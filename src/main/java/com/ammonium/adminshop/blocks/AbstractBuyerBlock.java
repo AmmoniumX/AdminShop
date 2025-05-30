@@ -23,10 +23,13 @@ import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -56,12 +59,15 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
     public AbstractBuyerBlock( @NotNull BlockEntityFactory<?> blockEntityFactory,
                                @NotNull MenuFactory<?> menuFactory) {
 
-        super(Properties.of(ModBlocks.machineBlock)
+        super(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
                 .lightLevel(state -> 0)
                 .dynamicShape()
+                .forceSolidOn()
                 .noOcclusion()
+                .pushReaction(PushReaction.BLOCK)
         );
         this.BLOCK_ENTITY_FACTORY = blockEntityFactory;
         this.MENU_FACTORY = menuFactory;

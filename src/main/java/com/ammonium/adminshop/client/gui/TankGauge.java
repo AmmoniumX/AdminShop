@@ -4,10 +4,13 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
@@ -24,8 +27,8 @@ public class TankGauge extends AbstractWidget {
 
     private IFluidTank tank;
     private TextureAtlasSprite fluidTexture;
+    private int fluidTextureId;
     private float fluidColorR, fluidColorG, fluidColorB, fluidColorA;
-    private int textureWidth, textureHeight;
     public boolean isMouseOn = false;
 
     private Fluid getFluid() {
@@ -40,17 +43,23 @@ public class TankGauge extends AbstractWidget {
             IClientFluidTypeExtensions properties = IClientFluidTypeExtensions.of(getFluid());
             ResourceLocation resource = properties.getStillTexture();
             fluidTexture = spriteAtlas.apply(resource);
+            TextureManager manager = Minecraft.getInstance().getTextureManager();
+            AbstractTexture abstractTexture = manager.getTexture(InventoryMenu.BLOCK_ATLAS);
+            TextureAtlas atlas = null;
+            if (abstractTexture instanceof TextureAtlas) {
+                atlas = (TextureAtlas) abstractTexture;
+            }
+            assert atlas != null;
+            fluidTextureId = atlas.getId();
             int fcol = properties.getTintColor();
             fluidColorR = ((fcol >> 16) & 0xFF) / 255.0F;
             fluidColorG = ((fcol >> 8) & 0xFF) / 255.0F;
             fluidColorB = (fcol & 0xFF) / 255.0F;
             fluidColorA = ((fcol >> 24) & 0xFF) / 255.0F;
-            textureWidth = fluidTexture.getWidth();
-            textureHeight = fluidTexture.getHeight();
         }
     }
     public TankGauge(FluidTank tank, int x, int y, int width, int height) {
-        super(x, y, width, height, Component.translatable("gui.adminshop.tank_gauge"));
+        super(x, y, width, height, Component.literal("Tank Gauge"));
         setTank(tank);
     }
 
@@ -64,54 +73,31 @@ public class TankGauge extends AbstractWidget {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
-        super.render(poseStack, mouseX, mouseY, partialTicks);
+    public void render(GuiGraphics guiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+        super.render(guiGraphics, pMouseX, pMouseY, pPartialTick);
     }
 
     @Override
-    public void renderToolTip(PoseStack pPoseStack, int pMouseX, int pMouseY) {
-        super.renderToolTip(pPoseStack, pMouseX, pMouseY);
-    }
-
-    @Override
-    protected void renderBg(PoseStack pPoseStack, Minecraft pMinecraft, int pMouseX, int pMouseY) {
-        super.renderBg(pPoseStack, pMinecraft, pMouseX, pMouseY);
-    }
-
-    @Override
-    public void renderButton(@NotNull PoseStack matrix, int mouseX, int mouseY, float partialTicks) {
+    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        int x = getX();
+        int y = getY();
+        PoseStack matrix = guiGraphics.pose();
         //super.renderButton(matrix, x, y, partialTicks);
         if(!visible) return;
         matrix.pushPose();
 //        AdminShop.LOGGER.debug("Tank contents: "+tank.getFluid().getAmount()+"mb "+tank.getFluid().getDisplayName().getString());
 
-        // Render Tank Contents
+        // Render Fluid
         if(!tank.getFluid().isEmpty()) {
             setFluidTextures();
-            // Set render for fluid
-            enableScissor(x, y, x + width, y + height);
-            RenderSystem.enableBlend();
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderTexture(0, fluidTexture.atlas().location());
+            RenderSystem.bindTexture(fluidTextureId);
             RenderSystem.setShaderColor(fluidColorR, fluidColorG, fluidColorB, fluidColorA);
-            // Get height value proportional to filled capacity
+            RenderSystem.setShaderTexture(0,
+                    fluidTexture.atlasLocation());
             float pixelsPerMb = height / (float) tank.getCapacity();
             int filledHeight = (int) (pixelsPerMb * getQuantity());
-            // Calculate the number of full tiles and the remainder
-            int fullTiles = filledHeight / textureHeight;
-            int remainderHeight = filledHeight % textureHeight;
-            // Render tiled texture
-            for(int j = 0; j < fullTiles; j++) {
-                blit(matrix, x, y + height - ((j+1) * textureHeight), getBlitOffset() + 100, width, textureHeight, fluidTexture);
-            }
-            // Render remainder
-            if (remainderHeight > 0) {
-                blit(matrix, x, y + height - (fullTiles * textureHeight) - remainderHeight, getBlitOffset() + 100, width, remainderHeight, fluidTexture);
-            }
-            // Reset render
+            guiGraphics.blit(x, y+(height-filledHeight),0, width, filledHeight, fluidTexture);
             RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-            RenderSystem.disableBlend();
-            RenderSystem.disableScissor();
         }
 
         //Highlight background and write fluid name if hovered or focused
@@ -121,11 +107,17 @@ public class TankGauge extends AbstractWidget {
         matrix.pushPose();
         matrix.translate(0, 0, 201);
         matrix.scale(.5f, .5f, 1);
-        Font font = Minecraft.getInstance().font;
-        drawString(matrix, font, getQuantity()+"", 2*(x+16)- font.width(getQuantity()+""), 2*(y)+92, 0xFFFFFF);
+        Minecraft mc = Minecraft.getInstance();
+        Font font = mc.font;
+        guiGraphics.drawString(font, getQuantity()+"", 2*(x+16)- font.width(getQuantity()+""), 2*(y)+92, 0xFFFFFF);
         matrix.popPose();
 
         matrix.popPose();
+    }
+
+    @Override
+    protected void updateWidgetNarration(NarrationElementOutput pNarrationElementOutput) {
+        return;
     }
 
     public int getQuantity(){
@@ -137,16 +129,11 @@ public class TankGauge extends AbstractWidget {
         List<Component> tootlip;
         if (tank.getFluid().isEmpty()) {
             tootlip = List.of(Component.literal("0/"+tank.getCapacity()),
-                    Component.translatable("gui.adminshop.tank_empty"));
+                    Component.literal("Empty"));
         } else {
             tootlip = List.of(Component.literal(getQuantity()+"/"+tank.getCapacity()),
-                    tank.getFluid().getDisplayName());
+                    Component.literal(tank.getFluid().getDisplayName().getString()));
         }
         return tootlip;
-    }
-
-    @Override
-    public void updateNarration(NarrationElementOutput pNarrationElementOutput) {
-        return;
     }
 }

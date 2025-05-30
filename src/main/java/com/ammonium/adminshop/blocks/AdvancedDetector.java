@@ -27,10 +27,13 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -43,12 +46,15 @@ public class AdvancedDetector extends BaseEntityBlock {
 
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0, 0, 0, 1, 0.125, 1);
     public AdvancedDetector() {
-        super(Properties.of(ModBlocks.machineBlock)
+        super(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
                 .lightLevel(state -> 0)
                 .dynamicShape()
+                .forceSolidOn()
                 .noOcclusion()
+                .pushReaction(PushReaction.BLOCK)
         );
     }
 

@@ -1,6 +1,6 @@
 package com.ammonium.adminshop.money;
 
-import dev.ftb.mods.ftbteams.FTBTeamsAPI;
+import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,7 +23,7 @@ public class ClientCache {
 
     public static void setAccount(UUID teamId, long balance, Collection<String> permits) {
 //        AdminShop.LOGGER.debug("Set account: {} {} {}", teamId, balance, permits);
-        Component name = FTBTeamsAPI.getClientManager().selfTeam.getName();
+        Component name = FTBTeamsAPI.api().getClientManager().selfTeam().getName();
         account = new MoneyHelper.MoneyAccount(teamId, name, balance, permits);
 //        AdminShop.LOGGER.debug("Set account: {}", account);
     }

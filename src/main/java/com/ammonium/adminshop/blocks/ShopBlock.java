@@ -23,11 +23,15 @@ import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -45,17 +49,20 @@ public class ShopBlock extends BaseEntityBlock {
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.1, 0.1, 0.1, 0.9, 0.9, 0.9);
 
     public ShopBlock(){
-        super(Properties.of(ModBlocks.machineBlock)
+        super(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
                 .lightLevel(state -> 0)
                 .dynamicShape()
+                .forceSolidOn()
                 .noOcclusion()
+                .pushReaction(PushReaction.BLOCK)
         );
     }
 
     @Override
-    public List<ItemStack> getDrops(BlockState pState, LootContext.Builder pBuilder) {
+    public List<ItemStack> getDrops(BlockState pState, LootParams.Builder pBuilder) {
         return super.getDrops(pState, pBuilder);
     }
 

@@ -13,6 +13,7 @@ import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
@@ -93,38 +94,50 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
     }
 
     @Override
-    protected void renderBg(PoseStack poseStack, float ppartialticks, int mouseX, int mouseY) {
+    protected void renderBg(GuiGraphics guiGraphics, float pPartialTicks, int pMouseX, int pMouseY) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, TEXTURE);
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
 
-        this.blit(poseStack, x, y, 0, 0, imageWidth, imageHeight);
+        guiGraphics.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight);
         if (this.recipe != null) {
             ItemStack item = this.recipe.getItem().orElseThrow();
-            renderTargetItem(poseStack, item, x, y);
+            renderTargetItem(guiGraphics, item, x, y);
         }
     }
 
-    private void renderTargetItem(PoseStack poseStack, ItemStack item, int x, int y) {
+    private void renderTargetItem(GuiGraphics guiGraphics, ItemStack item, int x, int y) {
         assert this.minecraft != null;
         ItemRenderer itemRenderer = this.minecraft.getItemRenderer();
-        itemRenderer.renderAndDecorateFakeItem(item, x+104, y+14);
+//        itemRenderer.renderAndDecorateFakeItem(item, x+104, y+14);
+        guiGraphics.renderFakeItem(item, x+104, y+14);
         if (item.hasTag()) {
+//            poseStack.pushPose();
+
+//            poseStack.translate(x + 104, y + 16, guiGraphics.+200);
+//            poseStack.scale(0.5F, 0.5F, 1.0F);
+//            drawString(poseStack, font, "+NBT", 0, 0, 0xFF55FF);
+
+//            poseStack.popPose();
+            // Render scaled text
+            PoseStack poseStack = guiGraphics.pose();
             poseStack.pushPose();
 
-            poseStack.translate(x + 104, y + 16, itemRenderer.blitOffset+200);
+            poseStack.translate(x + 104, y + 16, 200);
             poseStack.scale(0.5F, 0.5F, 1.0F);
-            drawString(poseStack, font, "+NBT", 0, 0, 0xFF55FF);
+
+            // When using scaled text, you need to use coordinates relative to the translation point (0, 0)
+            guiGraphics.drawString(font, "+NBT", 0, 0, 0xFF55FF);
 
             poseStack.popPose();
         }
     }
 
     @Override
-    protected void renderLabels(PoseStack poseStack, int mouseX, int mouseY) {
-        super.renderLabels(poseStack, mouseX, mouseY);
+    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        super.renderLabels(guiGraphics, mouseX, mouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         MoneyHelper.MoneyAccount account = ClientCache.getAccount();
@@ -133,14 +146,14 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
             accAvailable = true;
         }
         int color = accAvailable ? 0xffffff : 0xff0000;
-        drawString(poseStack, font, name.getString(), 7,62,color);
+        guiGraphics.drawString(font, name.getString(), 7,62,color);
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float delta) {
-        renderBackground(poseStack);
-        super.render(poseStack, mouseX, mouseY, delta);
-        renderTooltip(poseStack, mouseX, mouseY);
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
+        renderBackground(guiGraphics);
+        super.render(guiGraphics, mouseX, mouseY, delta);
+        renderTooltip(guiGraphics, mouseX, mouseY);
 
         // Get data from BlockEntity
         this.buyerEntity = this.getMenu().getBlockEntity();

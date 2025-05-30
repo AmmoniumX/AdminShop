@@ -59,7 +59,7 @@ public class PacketBuyRequest {
             //Do NOT call client-only code though, since server needs to access this too
             ServerPlayer player = ctx.getSender();
             assert player != null;
-            ServerLevel level = ctx.getSender().getLevel();
+            ServerLevel level = player.serverLevel();
 
             Recipe<?> rawRecipe = level.getRecipeManager().byKey(recipeId).orElse(null);
             if (!(rawRecipe instanceof BuyRecipe recipe)) {
@@ -113,7 +113,7 @@ public class PacketBuyRequest {
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
         assert player != null;
-        ServerLevel level = player.getLevel();
+        ServerLevel level = player.serverLevel();
         // Get item handler
         Inventory playerInventory = player.getInventory();
         LazyOptional<IItemHandler> mainInventoryHandler = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory));
@@ -146,7 +146,7 @@ public class PacketBuyRequest {
         NetworkEvent.Context ctx = supplier.get();
         ServerPlayer player = ctx.getSender();
         assert player != null;
-        ServerLevel level = player.getLevel();
+        ServerLevel level = player.serverLevel();
         // Get item handler
         Inventory playerInventory = player.getInventory();
         LazyOptional<IItemHandler> playerInventoryHandlerCap = LazyOptional.of(() -> new PlayerMainInvWrapper(playerInventory));

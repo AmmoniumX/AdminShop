@@ -11,6 +11,7 @@ import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
@@ -126,19 +127,19 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
     }
 
     @Override
-    protected void renderBg(PoseStack pPoseStack, float pPartialTicks, int pMouseX, int pMouseY) {
+    protected void renderBg(GuiGraphics guiGraphics, float pPartialTicks, int pMouseX, int pMouseY) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, getTexture());
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
 
-        this.blit(pPoseStack, x, y, 0, 0, imageWidth, imageHeight);
+        guiGraphics.blit(getTexture(), x, y, 0, 0, imageWidth, imageHeight);
     }
 
     @Override
-    protected void renderLabels(PoseStack pPoseStack, int pMouseX, int pMouseY) {
-        super.renderLabels(pPoseStack, pMouseX, pMouseY);
+    protected void renderLabels(GuiGraphics guiGraphics, int pMouseX, int pMouseY) {
+        super.renderLabels(guiGraphics, pMouseX, pMouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         MoneyHelper.MoneyAccount account = ClientCache.getAccount();
@@ -147,14 +148,14 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
             accAvailable = true;
         }
         int color = accAvailable ? 0xffffff : 0xff0000;
-        drawString(pPoseStack, font, name.getString(), 7,48,color);
+        guiGraphics.drawString(font, name.getString(), 7,48,color);
     }
 
     @Override
-    public void render(PoseStack pPoseStack, int mouseX, int mouseY, float delta) {
-        renderBackground(pPoseStack);
-        super.render(pPoseStack, mouseX, mouseY, delta);
-        renderTooltip(pPoseStack, mouseX, mouseY);
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
+        renderBackground(guiGraphics);
+        super.render(guiGraphics, mouseX, mouseY, delta);
+        renderTooltip(guiGraphics, mouseX, mouseY);
 
         // Get data from BlockEntity
         this.detectorBE = this.detectorClass.cast(this.getMenu().getBlockEntity());

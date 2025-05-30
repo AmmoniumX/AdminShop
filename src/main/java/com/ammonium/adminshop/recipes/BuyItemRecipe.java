@@ -6,6 +6,7 @@ import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
 import com.ammonium.adminshop.recipes.interfaces.ItemRecipe;
 import com.google.gson.JsonObject;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -102,7 +103,7 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
     }
 
     @Override
-    public @NotNull ItemStack assemble(Container container) {
+    public @NotNull ItemStack assemble(Container container, RegistryAccess registryAccess) {
         return ItemStack.EMPTY;
     }
 
@@ -112,7 +113,7 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
     }
 
     @Override
-    public @NotNull ItemStack getResultItem() {
+    public @NotNull ItemStack getResultItem(RegistryAccess registryAccess) {
         return ItemStack.EMPTY;
     }
 

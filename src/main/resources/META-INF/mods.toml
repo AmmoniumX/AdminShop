@@ -54,13 +54,13 @@ Can buy and sell Items and Fluids
     modId="minecraft"
     mandatory=true
 # This version range declares a minimum of the current minecraft version up to but not including the next major version
-    versionRange="[1.19.2,1.19.3)"
+    versionRange="[1.20.1,1.21.0)"
     ordering="NONE"
     side="BOTH"
 [[dependencies.adminshop]]
     modId="patchouli"
     mandatory=true
-    versionRange="[1.19.2,)"
+    versionRange="[1.20.1,)"
     side="BOTH"
 [[dependencies.adminshop]]
     modId="jei"
@@ -71,5 +71,5 @@ Can buy and sell Items and Fluids
 [[dependencies.adminshop]]
     modId="ftbteams"
     mandatory=true
-    versionRange="[1902.2.14-build.123,)"
+    versionRange="[2001.3.1,)"
     side="BOTH"

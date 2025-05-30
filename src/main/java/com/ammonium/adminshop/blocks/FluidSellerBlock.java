@@ -22,19 +22,25 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.Nullable;
 
 public class FluidSellerBlock extends BaseEntityBlock {
     public FluidSellerBlock() {
-        super(Properties.of(ModBlocks.machineBlock)
+        super(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
                 .lightLevel(state -> 0)
                 .dynamicShape()
+                .forceSolidOn()
                 .noOcclusion()
+                .pushReaction(PushReaction.BLOCK)
         );
     }
 

@@ -5,9 +5,9 @@ import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
 import com.ammonium.adminshop.setup.Config;
 import com.ammonium.adminshop.setup.Messages;
 import com.google.common.collect.ImmutableSet;
-import dev.ftb.mods.ftbteams.FTBTeamsAPI;
-import dev.ftb.mods.ftbteams.data.Team;
-import dev.ftb.mods.ftbteams.data.TeamManager;
+import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
+import dev.ftb.mods.ftbteams.api.Team;
+import dev.ftb.mods.ftbteams.api.TeamManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -133,7 +133,7 @@ public class MoneyHelper extends SavedData {
         this.setDirty();
 
         // Sync the data to all players
-        Team team = manager.getTeamByID(account.teamId);
+        Team team = manager.getTeamByID(account.teamId).orElse(null);
         if (team == null) {
             AdminShop.LOGGER.warn("Team not found for UUID: {}", account.teamId);
             return;
@@ -146,8 +146,8 @@ public class MoneyHelper extends SavedData {
 
     public @NotNull MoneyAccount getPlayerAccount(@NotNull ServerPlayer player) {
 //        AdminShop.LOGGER.debug("getPlayerAccount: {}", player.getName().getString());
-        TeamManager manager = FTBTeamsAPI.getManager();
-        Team team = manager.getPlayerTeam(player);
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Team team = manager.getTeamForPlayer(player).orElse(null);
         CompoundTag managerTag = manager.getExtraData();
 
         // Check if there is an account for the team
@@ -168,8 +168,8 @@ public class MoneyHelper extends SavedData {
     }
 
     public @Nullable MoneyAccount getAccountById(UUID teamId) {
-        TeamManager manager = FTBTeamsAPI.getManager();
-        Team team = manager.getTeamByID(teamId);
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Team team = manager.getTeamByID(teamId).orElse(null);
         if (team == null) {
             AdminShop.LOGGER.debug("Team not found for UUID: {}", teamId);
             return null;
@@ -184,8 +184,8 @@ public class MoneyHelper extends SavedData {
         if (amount < 0) {
             throw new IllegalArgumentException("Amount cannot be negative");
         }
-        TeamManager manager = FTBTeamsAPI.getManager();
-        Team team = manager.getTeamByID(teamId);
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Team team = manager.getTeamByID(teamId).orElse(null);
         if (team == null) {
             AdminShop.LOGGER.debug("Team not found for UUID: {}", teamId);
             return;
@@ -202,8 +202,8 @@ public class MoneyHelper extends SavedData {
         if (amount < 0) {
             throw new IllegalArgumentException("Amount cannot be negative");
         }
-        TeamManager manager = FTBTeamsAPI.getManager();
-        Team team = manager.getTeamByID(teamId);
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Team team = manager.getTeamByID(teamId).orElse(null);
         MoneyAccount account = getAccountById(teamId);
         if (team == null || account == null) {
             AdminShop.LOGGER.debug("Team not found for UUID: {}", teamId);
@@ -221,8 +221,8 @@ public class MoneyHelper extends SavedData {
         if (amount < 0) {
             throw new IllegalArgumentException("Amount cannot be negative");
         }
-        TeamManager manager = FTBTeamsAPI.getManager();
-        Team team = manager.getTeamByID(teamId);
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Team team = manager.getTeamByID(teamId).orElse(null);
         MoneyAccount account = getAccountById(teamId);
         if (team == null || account == null) {
             AdminShop.LOGGER.debug("Team not found for UUID: {}", teamId);
@@ -243,8 +243,8 @@ public class MoneyHelper extends SavedData {
         if (permit == null || permit.isEmpty()) {
             return true;
         }
-        TeamManager manager = FTBTeamsAPI.getManager();
-        Team team = manager.getTeamByID(teamId);
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Team team = manager.getTeamByID(teamId).orElse(null);
         MoneyAccount account = getAccountById(teamId);
         if (team == null || account == null) {
             AdminShop.LOGGER.debug("Team not found for UUID: {}", teamId);
@@ -257,8 +257,8 @@ public class MoneyHelper extends SavedData {
         if (permit.isEmpty()) {
             throw new IllegalArgumentException("Permit cannot be empty");
         }
-        TeamManager manager = FTBTeamsAPI.getManager();
-        Team team = manager.getTeamByID(teamId);
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Team team = manager.getTeamByID(teamId).orElse(null);
         MoneyAccount account = getAccountById(teamId);
         if (team == null || account == null) {
             AdminShop.LOGGER.debug("Team not found for UUID: {}", teamId);
@@ -275,8 +275,8 @@ public class MoneyHelper extends SavedData {
         if (permit.isEmpty()) {
             throw new IllegalArgumentException("Permit cannot be empty");
         }
-        TeamManager manager = FTBTeamsAPI.getManager();
-        Team team = manager.getTeamByID(teamId);
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Team team = manager.getTeamByID(teamId).orElse(null);
         MoneyAccount account = getAccountById(teamId);
         if (team == null || account == null) {
             AdminShop.LOGGER.debug("Team not found for UUID: {}", teamId);
@@ -291,12 +291,13 @@ public class MoneyHelper extends SavedData {
 
     public boolean isMemberOfTeam(UUID teamId, ServerPlayer player) {
         assert teamId != null && player != null;
-        TeamManager manager = FTBTeamsAPI.getManager();
-        Team team = manager.getTeamByID(teamId);
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Team team = manager.getTeamByID(teamId).orElse(null);
         if (team == null) {
             AdminShop.LOGGER.debug("Team not found for UUID: {}", teamId);
             return false;
         }
-        return team.isMember(player.getUUID());
+//        return team.isMember(player.getUUID());
+        return team.getMembers().contains(player.getUUID());
     }
 }

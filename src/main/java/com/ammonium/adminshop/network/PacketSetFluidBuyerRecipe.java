@@ -43,7 +43,7 @@ public class PacketSetFluidBuyerRecipe {
 
             if (player != null) {
                 AdminShop.LOGGER.debug("Setting buyer recipe for "+this.pos+" to "+this.recipeId);
-                ServerLevel level = ctx.getSender().getLevel();
+                ServerLevel level = ctx.getSender().serverLevel();
                 BlockEntity blockEntity = level.getBlockEntity(this.pos);
                 if (!(blockEntity instanceof FluidBuyerMachine buyerEntity)) {
                     AdminShop.LOGGER.error("BlockEntity at pos is not FluidBuyerMachine");
