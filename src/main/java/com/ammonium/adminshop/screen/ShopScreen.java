@@ -36,6 +36,7 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private final ResourceLocation GUI = new ResourceLocation(AdminShop.MODID, "textures/gui/shop_gui.png");
@@ -178,6 +179,12 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+
+        // De-focus search bar if clicked outside
+        if (this.searchBar.isFocused() && !this.searchBar.isMouseOver(mouseX, mouseY)) {
+            this.searchBar.setFocused(false);
+        }
+
         assert minecraft != null;
         Slot slot = this.getSlotUnderMouse();
         if (slot != null && Screen.hasShiftDown()) {
@@ -270,9 +277,22 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     }
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (this.searchBar.keyPressed(keyCode, scanCode, modifiers) || this.searchBar.canConsumeInput()) {
+        // Check if the Escape key is pressed
+        if (keyCode == 256) { // 256 is the key code for Escape
+            // If the search bar has focus, clear focus but don't close the screen
+            if (this.searchBar.isFocused()) {
+                this.searchBar.setFocused(false);
+                return true; // Indicate that we've handled the key press
+            }
+            // Otherwise, let the screen handle it (closes the screen)
+        }
+
+        // If the search bar has focus, let it handle the key press first
+        if (this.searchBar.isFocused() && this.searchBar.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
+
+        // Let the parent class handle other key presses
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -303,22 +323,10 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 //        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size: "+searchResults.size());
         // Filter by search if it is set
         if (!this.search.isEmpty()) {
-            searchResults = searchResults.stream().filter(recipe -> {
-                if (recipe instanceof BuyItemRecipe) {
-                    return ((BuyItemRecipe) recipe).getItem().get().getDisplayName().getString()
-                            .toLowerCase().strip().contains(this.search.toLowerCase().strip());
-                } else if (recipe instanceof SellItemRecipe) {
-                    return ((SellItemRecipe) recipe).getItem().get().getDisplayName().getString()
-                            .toLowerCase().strip().contains(this.search.toLowerCase().strip());
-                } else if (recipe instanceof BuyFluidRecipe) {
-                    return ((BuyFluidRecipe) recipe).getFluid().getDisplayName().getString()
-                            .toLowerCase().strip().contains(this.search.toLowerCase().strip());
-                } else if (recipe instanceof SellFluidRecipe) {
-                    return ((SellFluidRecipe) recipe).getFluid().getDisplayName().getString()
-                            .toLowerCase().strip().contains(this.search.toLowerCase().strip());
-                }
-                return false;
-            }).sorted(ShopScreen::compareRecipes).toList();
+            searchResults = searchResults.stream().filter(recipe ->
+                recipe.getSearchTerm().contains( this.search.toLowerCase().strip()) )
+                .sorted(ShopScreen::compareRecipes)
+                .collect(Collectors.toList());
         }
 //        AdminShop.LOGGER.debug("ShopScreen: createShopButtons: searchResults.size after filter: "+searchResults.size());
         List<ShopButton> shopButtons = isBuy ? buyButtons : sellButtons;
@@ -333,8 +341,8 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         if (numPassed < searchResults.size()) {
             shopItems = shopItems.subList(numPassed, Math.min(numPassed+NUM_ROWS*NUM_COLS, shopItems.size()));
         } else {
-            AdminShop.LOGGER.debug("Scrolled farther down that should've!");
-            shopItems = new ArrayList<>(); // or however you want to handle this case
+            // If we scrolled past the end, clear the list
+            shopItems = new ArrayList<>();
         }
         // Add buttons
         for(int j = 0; j < shopItems.size(); j++){

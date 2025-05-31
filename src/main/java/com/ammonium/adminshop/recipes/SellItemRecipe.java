@@ -194,6 +194,20 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
         }
     }
 
+    @Override
+    public String getSearchTerm() {
+        assert type != null;
+        if (type == SellTypes.ITEM) {
+            return item.getDisplayName().getString().toLowerCase().strip();
+        } else if (type == SellTypes.TAG) {
+            assert tagId != null;
+            return tagId.toString().toLowerCase().strip();
+        } else {
+            AdminShop.LOGGER.debug("ShopBuyItemRecipe.getName: type is null");
+            return "";
+        }
+    }
+
     public boolean matches(MoneyHelper.MoneyAccount account, ItemSellerMachine machine) {
         if (account == null) {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account is null");
@@ -212,6 +226,7 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
             return false;
         }
         for (int slot = 0; slot < handler.getSlots(); slot++) {
+            if (!isMatchingItemNoCount(handler.getStackInSlot(slot))) { continue; }
             ItemStack simulatedResult = handler.extractItem(slot, item.getCount(), true);
             if (!simulatedResult.isEmpty() && simulatedResult.getCount() == item.getCount()) {
                 return true;

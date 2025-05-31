@@ -80,6 +80,11 @@ public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
         return fluid.getDisplayName();
     }
 
+    @Override
+    public String getSearchTerm() {
+        return getName().getString().toLowerCase().strip();
+    }
+
     public FluidStack buy(ServerLevel level, FluidBuyerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds

@@ -89,6 +89,11 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
         return fluid.getDisplayName();
     }
 
+    @Override
+    public String getSearchTerm() {
+        return getName().getString().toLowerCase().strip();
+    }
+
     public void sell(ServerLevel level, FluidSellerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds

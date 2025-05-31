@@ -10,4 +10,5 @@ public interface ShopRecipe extends Recipe<Container> {
     long getPrice();
     int getCount();
     Component getName();
+    String getSearchTerm();
 }
