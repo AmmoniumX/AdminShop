@@ -88,6 +88,11 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
         return result.getDisplayName();
     }
 
+    @Override
+    public String getSearchTerm() {
+        return getName().getString().toLowerCase().strip();
+    }
+
     public ItemStack buy(ServerLevel level, ItemBuyerMachine machine) {
         // Get account information from server side
         // Important: we assume that this is only ever called after matches() succeeds
