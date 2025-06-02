@@ -284,8 +284,8 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         }
 
         // If the search bar has focus, let it handle the key press first
-        if (this.searchBar.isFocused() && this.searchBar.keyPressed(keyCode, scanCode, modifiers)) {
-            return true;
+        if (this.searchBar.isFocused()) {
+            return this.searchBar.keyPressed(keyCode, scanCode, modifiers);
         }
 
         // Let the parent class handle other key pressesAdd commentMore actions
