@@ -224,11 +224,15 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: handler is null");
             return false;
         }
+        int requiredCount = item.getCount();
+        int totalCount = 0;
         for (int slot = 0; slot < handler.getSlots(); slot++) {
-            if (!isMatchingItemNoCount(handler.getStackInSlot(slot))) { continue; }
-            ItemStack simulatedResult = handler.extractItem(slot, item.getCount(), true);
-            if (!simulatedResult.isEmpty() && simulatedResult.getCount() == item.getCount()) {
-                return true;
+            ItemStack slotItem = handler.getStackInSlot(slot);
+            if (!isMatchingItemNoCount(slotItem)) { continue; }
+            totalCount += slotItem.getCount();
+
+            if (totalCount >= requiredCount) { return true; } else {
+                AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: not enough items in slot {}, required {}, found {}", slot, requiredCount, totalCount);
             }
         }
 
