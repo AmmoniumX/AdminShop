@@ -1,27 +1,27 @@
 package com.ammonium.adminshop.setup;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class Config {
 
-    public static ForgeConfigSpec.LongValue STARTING_MONEY;
-    public static ForgeConfigSpec.BooleanValue balanceDisplay;
-    public static ForgeConfigSpec.BooleanValue displayFormat;
-    public static ForgeConfigSpec.BooleanValue ignoreDecimalOffset;
-    public static ForgeConfigSpec.IntValue balanceDelta;
+    public static ModConfigSpec.LongValue STARTING_MONEY;
+    public static ModConfigSpec.BooleanValue balanceDisplay;
+    public static ModConfigSpec.BooleanValue displayFormat;
+    public static ModConfigSpec.BooleanValue ignoreDecimalOffset;
+    public static ModConfigSpec.IntValue balanceDelta;
 
-    public static void register(){
-        ForgeConfigSpec.Builder serverConfig = new ForgeConfigSpec.Builder();
+    public static void register(ModContainer modContainer){
+        ModConfigSpec.Builder serverConfig = new ModConfigSpec.Builder();
         registerServerConfigs(serverConfig);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, serverConfig.build());
-        ForgeConfigSpec.Builder clientConfig = new ForgeConfigSpec.Builder();
+        modContainer.registerConfig(ModConfig.Type.SERVER, serverConfig.build());
+        ModConfigSpec.Builder clientConfig = new ModConfigSpec.Builder();
         registerClientConfigs(clientConfig);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, clientConfig.build());
+        modContainer.registerConfig(ModConfig.Type.CLIENT, clientConfig.build());
     }
 
-    private static void registerServerConfigs(ForgeConfigSpec.Builder config){
+    private static void registerServerConfigs(ModConfigSpec.Builder config){
         config.comment("General configurations. Shop contents stored in \"adminshop.csv\"")
                 .push("server_config");
         STARTING_MONEY = config
@@ -30,7 +30,7 @@ public class Config {
         config.pop();
     }
 
-    private static void registerClientConfigs(ForgeConfigSpec.Builder config){
+    private static void registerClientConfigs(ModConfigSpec.Builder config){
         config.comment("Client configurations. Options for changing display view")
                 .push("display_config");
 

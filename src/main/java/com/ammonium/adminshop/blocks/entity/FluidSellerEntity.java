@@ -6,6 +6,7 @@ import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.recipes.SellFluidRecipe;
 import com.ammonium.adminshop.screen.FluidSellerMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
@@ -18,10 +19,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.fluids.capability.FluidHandlerBlockEntity;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.templates.FluidTank;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -112,43 +111,27 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
         if (recipe == null) { return; }
 
         // Sell the fluid
-        IFluidHandler handler = sellerBE.getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);
+//        IFluidHandler handler = sellerBE.getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);
+        @Nullable IFluidHandler handler = sellerBE.fluidHandler.getCapability();
         if (handler == null) {
             AdminShop.LOGGER.debug("Fluid handler is null");
             return;
         }
+
         handler.drain(recipe.getFluid().copy(), IFluidHandler.FluidAction.EXECUTE);
         recipe.sell((ServerLevel) level, sellerBE);
-        return;
     }
-
-
-//    @Nonnull
-//    @Override
-//    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @javax.annotation.Nullable Direction side) {
-//        if (cap == ForgeCapabilities.FLUID_HANDLER) {
-//            return lazyItemHandler.cast();
-//        }
-//        return super.getCapability(cap, side);
-//    }
 
     @Override
     public void onLoad() {
         super.onLoad();
-//        lazyItemHandler = LazyOptional.of(() -> itemHandler);
     }
 
     @Override
-    public void invalidateCaps()  {
-        super.invalidateCaps();
-//        lazyItemHandler.invalidate();
-    }
-
-    @Override
-    public @NotNull CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
+        CompoundTag tag = super.getUpdateTag(provider);
 //        tag.put("inventory", this.itemHandler.serializeNBT());
-        tank.writeToNBT(tag);
+        tank.writeToNBT(provider, tag);
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }

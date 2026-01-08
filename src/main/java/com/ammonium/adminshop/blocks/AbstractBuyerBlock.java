@@ -4,12 +4,13 @@ import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.AbstractBuyerEntity;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.AbstractBuyerMenu;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.LivingEntity;
@@ -34,7 +35,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -87,8 +87,8 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos,
-                                 Player player, InteractionHand hand, BlockHitResult hit) {
+    public @NotNull ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                                    Player player, InteractionHand hand, BlockHitResult hit)  {
         if (!level.isClientSide()) {
             assert level instanceof ServerLevel;
             ServerLevel serverLevel = (ServerLevel) level;
@@ -98,7 +98,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
                 if (MoneyHelper.get(serverLevel).isMemberOfTeam(buyerEntity.getTeamId(), serverPlayer)) {
                     AdminShop.LOGGER.debug("Found account: {}", buyerEntity.getTeamId());
                     // Open menu
-                    NetworkHooks.openScreen((ServerPlayer) player, buyerEntity, pos);
+                    serverPlayer.openMenu(buyerEntity, pos);
                 } else {
                     AdminShop.LOGGER.debug("Account not found");
                     // Wrong user
@@ -110,7 +110,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
                 throw new IllegalStateException("Our Container provider is missing!");
             }
         }
-        return InteractionResult.sidedSuccess(level.isClientSide());
+        return ItemInteractionResult.sidedSuccess(level.isClientSide());
     }
 
 
@@ -172,6 +172,11 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return null;
     }
 
 

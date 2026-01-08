@@ -7,6 +7,7 @@ import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.screen.AbstractBuyerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
@@ -220,14 +221,9 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     @Override
-    public void invalidateCaps()  {
-        super.invalidateCaps();
-    }
-
-    @Override
-    public @NotNull CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        ContainerHelper.saveAllItems(tag, this.stacks);
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
+        CompoundTag tag = super.getUpdateTag(provider);
+        ContainerHelper.saveAllItems(tag, this.stacks, provider);
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
