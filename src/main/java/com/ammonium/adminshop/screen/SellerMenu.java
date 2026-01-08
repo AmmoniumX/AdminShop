@@ -15,30 +15,33 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 
 public class SellerMenu extends AbstractContainerMenu {
 
     private final SellerEntity blockEntity;
     private final Level level;
+//    private final ContainerData data; // TODO use this for progress bar syncing
 
+    // Client-side constructor (called by the screen)
     public SellerMenu(int windowId, Inventory inv, FriendlyByteBuf extraData) {
         this(windowId, inv, inv.player.level().getBlockEntity(extraData.readBlockPos()));
     }
 
+    // Server-side constructor
     public SellerMenu(int windowId, Inventory inv, BlockEntity entity) {
         super(ModMenuTypes.SELLER_MENU.get(), windowId);
-        checkContainerSize(inv, 1);
-        this.blockEntity = ((SellerEntity) entity);
+        if (!(entity instanceof SellerEntity seller)) {
+            throw new IllegalStateException("BlockEntity is not a SellerEntity!");
+        }
+
+        this.blockEntity = seller;
         this.level = inv.player.level();
 
         addPlayerInventory(inv);
         addPlayerHotbar(inv);
 
-        this.blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).ifPresent(handler -> {
-            this.addSlot(new ShopItemInputSlot(level, handler, 0, 55, 30));
-        });
-
+        // Use SlotItemHandler directly with the inventory field
+        this.addSlot(new ShopItemInputSlot(level, blockEntity.inventory, 0, 55, 30));
     }
 
     public SellerEntity getBlockEntity() {
@@ -85,7 +88,8 @@ public class SellerMenu extends AbstractContainerMenu {
     @Override
     public ItemStack quickMoveStack(Player playerIn, int index) {
         Slot sourceSlot = slots.get(index);
-        if (sourceSlot == null || !sourceSlot.hasItem()) return ItemStack.EMPTY;  //EMPTY_ITEM
+        assert(sourceSlot != null);
+        if (!sourceSlot.hasItem()) return ItemStack.EMPTY;  //EMPTY_ITEM
         ItemStack sourceStack = sourceSlot.getItem();
         ItemStack copyOfSourceStack = sourceStack.copy();
 
@@ -135,3 +139,4 @@ public class SellerMenu extends AbstractContainerMenu {
         return RecipeManager.isSellItemRecipe(this.level, stack).isPresent();
     }
 }
+

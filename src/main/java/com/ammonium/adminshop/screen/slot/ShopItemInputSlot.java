@@ -4,12 +4,12 @@ import com.ammonium.adminshop.recipes.RecipeManager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.SlotItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.SlotItemHandler;
 
 public class ShopItemInputSlot extends SlotItemHandler {
     private final Level level;
-    public ShopItemInputSlot(Level level, IItemHandler itemHandler, int index, int x, int y) {
+    public ShopItemInputSlot(Level level, ItemStackHandler itemHandler, int index, int x, int y) {
         super(itemHandler, index, x, y);
         this.level = level;
     }

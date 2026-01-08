@@ -17,12 +17,15 @@ import com.mojang.logging.LogUtils;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLLoader;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -64,6 +67,14 @@ public class AdminShop {
     // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the FORGE
     // Event bus for receiving Forge Events)
     @EventBusSubscriber(modid = MODID)
-    public static class ForgeEvents {
+    public static class ModEvents {
+        @SubscribeEvent
+        public static void registerCapabilities(RegisterCapabilitiesEvent event) {
+            event.registerBlockEntity(
+                    Capabilities.FluidHandler.BLOCK, // The capability to register
+                    ModBlockEntities..FLUID_HANDLER_BE.get(), // Your BlockEntityType
+                    (be, side) -> be.tank // A lambda pointing to your FluidTank
+            );
+        }
     }
 }

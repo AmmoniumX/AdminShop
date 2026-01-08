@@ -20,6 +20,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,15 +33,15 @@ import java.util.function.Function;
  */
 public class ShopButton extends Button {
 
-    private final ShopRecipe recipe;
+    private final RecipeHolder<ShopRecipe> recipe;
     private TextureAtlasSprite fluidTexture;
     private float fluidColorR, fluidColorG, fluidColorB, fluidColorA;
     public boolean isMouseOn = false;
 
-    public ShopButton(ShopRecipe recipe, int x, int y, OnPress listener) {
+    public ShopButton(RecipeHolder<ShopRecipe> recipe, int x, int y, OnPress listener) {
         super(x, y, 16, 16, Component.empty(), listener, DEFAULT_NARRATION);
         this.recipe = recipe;
-        if(recipe instanceof FluidRecipe fluidRecipe) {
+        if(recipe.value() instanceof FluidRecipe fluidRecipe) {
             Function<ResourceLocation, TextureAtlasSprite> spriteAtlas = Minecraft.getInstance()
                     .getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
             IClientFluidTypeExtensions properties = IClientFluidTypeExtensions.of(fluidRecipe.getFluid().getFluid());

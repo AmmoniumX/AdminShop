@@ -12,12 +12,13 @@ import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
 @JeiPlugin
 public class AdminShopJEI implements IModPlugin {
     @Override
     public ResourceLocation getPluginUid() {
-        return new ResourceLocation(AdminShop.MODID, "jei_plugin");
+        return ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "jei_plugin");
     }
 
     @Override
@@ -29,8 +30,9 @@ public class AdminShopJEI implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        registration.addRecipes(ShopBuyCategory.SHOP_RECIPE_TYPE, RecipeManager.getAllBuyRecipes(Minecraft.getInstance().level));
-        registration.addRecipes(ShopSellCategory.SHOP_RECIPE_TYPE, RecipeManager.getAllSellRecipes(Minecraft.getInstance().level));
+        assert Minecraft.getInstance().level != null;
+        registration.addRecipes(ShopBuyCategory.SHOP_RECIPE_TYPE, RecipeManager.getAllBuyRecipes(Minecraft.getInstance().level).map(RecipeHolder::value).toList());
+        registration.addRecipes(ShopSellCategory.SHOP_RECIPE_TYPE, RecipeManager.getAllSellRecipes(Minecraft.getInstance().level).map(RecipeHolder::value).toList());
     }
 
     @Override

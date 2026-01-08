@@ -6,8 +6,7 @@ import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.screen.SellerMenu;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.NonNullList;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
@@ -15,29 +14,56 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Containers;
-import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.UUID;
 
-public class SellerEntity extends BaseContainerBlockEntity implements ItemSellerMachine, WorldlyContainer {
-    private static final int slotSize = 1;
+public class SellerEntity extends BlockEntity implements ItemSellerMachine {
+    private static final int SLOT_SIZE = 1;
     public static final int TICK_COOLDOWN = 20;
-    private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
-    private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
+//    private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
+//    private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
+
+    public final ItemStackHandler inventory = new ItemStackHandler(SLOT_SIZE) {
+        @Override
+        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            // 1. Basic safety check (optional, ItemStackHandler handles nulls/empty)
+            if (stack.isEmpty()) return false;
+
+            // 2. Your custom logic
+            Level level = getLevel(); // BlockEntity method to get current level
+            if (level == null) {
+                return false;
+            }
+
+            // Return your RecipeManager result
+            return RecipeManager.canPlaceItemInSeller(level, stack);
+        }
+
+        @Override
+        protected void onContentsChanged(int slot) {
+            super.onContentsChanged(slot);
+            setChanged();
+            sendUpdates();
+        }
+    };
+
+    public ItemStackHandler getInventory() {
+        return this.inventory;
+    }
 
     private UUID teamId = null;
     private int tickCounter = 0;    // unsynced
@@ -85,58 +111,31 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         return Component.translatable("container.adminshop.seller");
     }
 
-    @Override
-    protected Component getDefaultName() {
-        return getDisplayName();
-    }
+//    @Override
+//    protected Component getDefaultName() {
+//        return getDisplayName();
+//    }
 
-    @Override
-    public int getContainerSize() {
-        return slotSize;
-    }
+//    @Override
+//    public int getContainerSize() {
+//        return SLOT_SIZE;
+//    }
 
-    @Override
-    public boolean isEmpty() {
-        return this.stacks.stream().allMatch(ItemStack::isEmpty);
-    }
-
-    @Override
-    public ItemStack getItem(int i) {
-        return this.stacks.get(i);
-    }
-
-    @Override
-    public ItemStack removeItem(int slot, int amount) {
-        ItemStack stack = ContainerHelper.removeItem(stacks, slot, amount);
-        if (!stack.isEmpty()) {
-            this.setChanged();
-        }
-        this.sendUpdates();
-        return stack;
-    }
-
-    @Override
-    public ItemStack removeItemNoUpdate(int slot) {
-        ItemStack stack = ContainerHelper.takeItem(stacks, slot);
-        this.sendUpdates();
-        return stack;
-    }
-
-    @Override
-    public void setItem(int slot, ItemStack stack) {
-        stacks.set(slot, stack);
-        this.sendUpdates();
-    }
+//    @Override
+//    public boolean isEmpty() {
+//        return java.util.stream.IntStream.range(0, SLOT_SIZE)
+//                .allMatch(i -> inventory.getStackInSlot(i).isEmpty());
+//    }
 
     @Override
     public void setChanged() {
         super.setChanged();
     }
 
-    @Override
-    public boolean stillValid(Player player) {
-        return true;
-    }
+//    @Override
+//    public boolean stillValid(Player player) {
+//        return true;
+//    }
 
     @Nullable
     @Override
@@ -144,10 +143,10 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         return new SellerMenu(pContainerId, pInventory, this);
     }
 
-    @Override
-    protected AbstractContainerMenu createMenu(int i, Inventory inventory) {
-        return new SellerMenu(i, inventory, this);
-    }
+//    @Override
+//    protected AbstractContainerMenu createMenu(int i, Inventory inventory) {
+//        return new SellerMenu(i, inventory, this);
+//    }
 
     public static void tick(Level level, BlockPos pos, BlockState state, SellerEntity sellerBE) {
 
@@ -168,7 +167,8 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         if (recipe == null) { return; }
 
         // Sell the item
-        IItemHandler handler = sellerBE.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
+//        IItemHandler handler = sellerBE.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
+        @Nullable IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, state, sellerBE, null);
         if (handler == null) {
             AdminShop.LOGGER.debug("Handler is null");
             return;
@@ -190,14 +190,17 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         super.onLoad();
     }
 
+//    @Override
+//    public void invalidateCaps()  {
+//        super.invalidateCaps();
+//    }
+
     @Override
-    public void invalidateCaps()  {
-        super.invalidateCaps();
-    }
-    @Override
-    public @NotNull CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        ContainerHelper.saveAllItems(tag, this.stacks);
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
+        CompoundTag tag = super.getUpdateTag(provider);
+
+        tag.put("Inventory", this.inventory.serializeNBT(provider));
+
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
@@ -211,9 +214,9 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
-        super.onDataPacket(net, pkt);
-        this.load(Objects.requireNonNull(pkt.getTag()));
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider provider) {
+        super.onDataPacket(net, pkt, provider);
+        this.loadAdditional(Objects.requireNonNull(pkt.getTag()), provider);
     }
 
     public void sendUpdates() {
@@ -223,9 +226,14 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        super.handleUpdateTag(tag);
-        ContainerHelper.loadAllItems(tag, this.stacks);
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider provider) {
+        super.handleUpdateTag(tag, provider);
+
+        // Replace ContainerHelper with this:
+        if (tag.contains("Inventory")) {
+            this.inventory.deserializeNBT(provider, tag.getCompound("Inventory"));
+        }
+
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }
@@ -235,9 +243,12 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
     }
 
     @Override
-    protected void saveAdditional(@NotNull CompoundTag tag) {
-        super.saveAdditional(tag);
-        ContainerHelper.saveAllItems(tag, this.stacks);
+    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.saveAdditional(tag, provider);
+//        ContainerHelper.saveAllItems(tag, this.inventory);
+
+        tag.put("Inventory", this.inventory.serializeNBT(provider));
+
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
@@ -245,9 +256,14 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
     }
 
     @Override
-    public void load(@NotNull CompoundTag tag) {
-        super.load(tag);
-        ContainerHelper.loadAllItems(tag, this.stacks);
+    public void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.loadAdditional(tag, provider);
+//        ContainerHelper.loadAllItems(tag, this.inventory);
+
+        if (tag.contains("Inventory")) {
+            this.inventory.deserializeNBT(provider, tag.getCompound("Inventory"));
+        }
+
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }
@@ -257,30 +273,36 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
     }
 
     public void drops() {
-        Containers.dropContents(this.level, this.worldPosition, stacks);
-    }
+//        Containers.dropContents(this.level, this.worldPosition, inventory);
+        if (this.level == null) return;
 
-    @Override
-    public int[] getSlotsForFace(Direction direction) {
-        return slots;
-    }
-
-    @Override
-    public boolean canPlaceItem(int i, ItemStack itemStack) {
-        boolean fits = super.canPlaceItem(i, itemStack);
-        if (!fits) { return false; }
-        Level level = this.level;
-        if (level == null) {
-            AdminShop.LOGGER.debug("Level is null");
-            return false;
+        for (int i = 0; i < inventory.getSlots(); i++) {
+            // Use the handler to get the stacks
+            Containers.dropItemStack(this.level, this.worldPosition.getX(), this.worldPosition.getY(), this.worldPosition.getZ(), inventory.getStackInSlot(i));
         }
-        return RecipeManager.canPlaceItemInSeller(level, itemStack);
     }
 
-    @Override
-    public boolean canPlaceItemThroughFace(int i, ItemStack itemStack, @Nullable Direction direction) {
-        return this.canPlaceItem(i, itemStack);
-    }
+//    @Override
+//    public int[] getSlotsForFace(Direction direction) {
+//        return slots;
+//    }
+
+//    @Override
+//    public boolean canPlaceItem(int i, ItemStack itemStack) {
+//        boolean fits = super.canPlaceItem(i, itemStack);
+//        if (!fits) { return false; }
+//        Level level = this.level;
+//        if (level == null) {
+//            AdminShop.LOGGER.debug("Level is null");
+//            return false;
+//        }
+//        return RecipeManager.canPlaceItemInSeller(level, itemStack);
+//    }
+
+//    @Override
+//    public boolean canPlaceItemThroughFace(int i, ItemStack itemStack, @Nullable Direction direction) {
+//        return this.canPlaceItem(i, itemStack);
+//    }
 
     // TODO: enable once we have recipe system fully working
 //    @Override
@@ -288,13 +310,16 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
 //        return false;
 //    }
 
-    @Override
-    public boolean canTakeItemThroughFace(int i, ItemStack itemStack, Direction direction) {
-        return true;
-    }
+//    @Override
+//    public boolean canTakeItemThroughFace(int i, ItemStack itemStack, Direction direction) {
+//        return true;
+//    }
 
-    @Override
-    public void clearContent() {
-        this.stacks.replaceAll(ignored -> ItemStack.EMPTY);
-    }
+//    @Override
+//    public void clearContent() {
+////        this.inventory.replaceAll(ignored -> ItemStack.EMPTY);
+//        for (int i = 0; i < this.inventory.getSlots(); i++) {
+//            this.inventory.setStackInSlot(i, ItemStack.EMPTY);
+//        }
+//    }
 }

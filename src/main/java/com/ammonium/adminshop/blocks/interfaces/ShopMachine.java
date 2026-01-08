@@ -2,11 +2,11 @@ package com.ammonium.adminshop.blocks.interfaces;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.MenuProvider;
-import net.minecraftforge.common.extensions.IForgeBlockEntity;
+import net.neoforged.neoforge.common.extensions.IBlockEntityExtension;
 
 import java.util.UUID;
 
-public interface ShopMachine extends MenuProvider, IForgeBlockEntity {
+public interface ShopMachine extends MenuProvider, IBlockEntityExtension {
     void setTeamId(UUID teamId);
     UUID getTeamId();
     void sendUpdates();

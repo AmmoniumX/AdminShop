@@ -8,7 +8,9 @@ import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -20,18 +22,19 @@ import net.minecraft.world.Container;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.StreamSupport;
 
 public class SellItemRecipe implements SellRecipe, ItemRecipe {
     public static final int TAG_DISPLAY_ROTATION_TICKS = 30;
@@ -138,11 +141,18 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
         } else if (type == SellTypes.TAG) {
             assert tagId != null;
             TagKey<Item> tag = ItemTags.create(tagId);
-            return ForgeRegistries.ITEMS.getValues().stream()
-                    .map(i -> new ItemStack(i, tagCount))
-                    .filter(i -> i.is(tag))
-                    .filter(i -> i.getMaxStackSize() >= tagCount)
-                    .toList();
+//            return ForgeRegistries.ITEMS.getValues().stream()
+//                    .map(i -> new ItemStack(i, tagCount))
+//                    .filter(i -> i.is(tag))
+//                    .filter(i -> i.getMaxStackSize() >= tagCount)
+//                    .toList();
+            // Get the stream of items directly from the registry for this tag
+            return BuiltInRegistries.ITEM.getTag(tag)
+                    .map(holderSet -> holderSet.stream()
+                            .map(holder -> new ItemStack(holder.value(), tagCount))
+                            .filter(stack -> stack.getMaxStackSize() >= tagCount)
+                            .toList()
+                    ).orElse(List.of()); // Return empty list if tag doesn't exist
         } else {
             AdminShop.LOGGER.debug("ShopRecipeManager.getValidItemStacks: unknown recipe type {}", type);
             return List.of();
@@ -249,12 +259,12 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
     }
 
     @Override
-    public boolean matches(Container container, Level level) {
+    public boolean matches(RecipeInput input, Level level) {
         return false;
     }
 
     @Override
-    public @NotNull ItemStack assemble(Container container, RegistryAccess registryAccess) {
+    public @NotNull ItemStack assemble(RecipeInput input, HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
     }
 
@@ -264,7 +274,7 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
     }
 
     @Override
-    public @NotNull ItemStack getResultItem(RegistryAccess registryAccess) {
+    public @NotNull ItemStack getResultItem(HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
     }
 

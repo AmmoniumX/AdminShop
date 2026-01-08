@@ -30,16 +30,14 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandlerItem;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
-    private final ResourceLocation GUI = new ResourceLocation(AdminShop.MODID, "textures/gui/shop_gui.png");
+    private final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/shop_gui.png");
     private final String GUI_BUY = "gui.buy";
     private final String GUI_SELL = "gui.sell";
     private static final int NUM_ROWS = 4, NUM_COLS = 9;
@@ -50,7 +48,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private final ShopMenu shopMenu;
     private final List<ShopButton> buyButtons;
     private final List<ShopButton> sellButtons;
-    private List<ShopRecipe> searchResults = new ArrayList<>();
+    private List<RecipeHolder<ShopRecipe>> searchResults = new ArrayList<>();
     private boolean isBuy; //Whether the Buy option is currently selected
     private BuySellButton buySellButton;
     private EditBox searchBar;
@@ -250,17 +248,18 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                 }
 
                 // Check if item is in sell item map
-                SellItemRecipe itemRecipe = RecipeManager.isSellItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
-                if (itemRecipe != null) {
+                @Nullable RecipeHolder<SellItemRecipe> holder = RecipeManager.isSellItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
+                if (holder != null) {
+                    AdminShop.LOGGER.debug("Found recipe: {}", holder.id());
                     // Attempt to sell it
-                    AdminShop.LOGGER.debug("Found recipe: {}", itemRecipe.getId());
+                    SellItemRecipe itemRecipe = holder.value();
                     int maxFit = itemStack.getCount() / itemRecipe.getCount();
                     if (maxFit < 1) {
                         AdminShop.LOGGER.debug("Not enough items to sell");
                         return false;
                     }
-                    Messages.sendToServer(new PacketSellRequest(this.teamId, itemRecipe.getId(), slot.getSlotIndex(),
-                            maxFit));
+                    Messages.sendToServer(new PacketSellRequest(this.teamId, holder.id(), slot.getSlotIndex(),
+                            maxFit)); // broken too
                     return false;
                 }
             }
@@ -309,14 +308,12 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         searchResults.clear();
         if (isBuy) {
             searchResults.addAll(RecipeManager.getAllBuyRecipes(Minecraft.getInstance().level)
-                .stream()
-                .map(recipe -> (ShopRecipe) recipe)
+                .map(hol -> new RecipeHolder<ShopRecipe>(hol.id(), hol.value()))
                 .sorted(ShopScreen::compareRecipes)
                 .toList());
         } else {
             searchResults.addAll(RecipeManager.getAllSellRecipes(Minecraft.getInstance().level)
-                .stream()
-                .map(recipe -> (ShopRecipe) recipe)
+                .map(hol -> new RecipeHolder<ShopRecipe>(hol.id(), hol.value()))
                 .sorted(ShopScreen::compareRecipes)
                 .toList());
         }
@@ -324,7 +321,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         // Filter by search if it is set
         if (!this.search.isEmpty()) {
             searchResults = searchResults.stream().filter(recipe ->
-                recipe.getSearchTerm().contains( this.search.toLowerCase().strip()) )
+                recipe.value().getSearchTerm().contains( this.search.toLowerCase().strip()) )
                 .sorted(ShopScreen::compareRecipes)
                 .collect(Collectors.toList());
         }
@@ -336,7 +333,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
         // Create new shop buttons
         // Skip rows scrolled past
-        List<ShopRecipe> shopItems = new ArrayList<>(searchResults);
+        List<RecipeHolder<ShopRecipe>> shopItems = new ArrayList<>(searchResults);
         int numPassed = rows_passed*NUM_COLS;
         if (numPassed < searchResults.size()) {
             shopItems = shopItems.subList(numPassed, Math.min(numPassed+NUM_ROWS*NUM_COLS, shopItems.size()));
@@ -347,7 +344,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         // Add buttons
         for(int j = 0; j < shopItems.size(); j++){
             final int j2 = j;
-            List<ShopRecipe> finalShopItems = shopItems;
+            List<RecipeHolder<ShopRecipe>> finalShopItems = shopItems;
             ShopButton button = new ShopButton(shopItems.get(j),
                     x+SHOP_BUTTON_X+SHOP_BUTTON_SIZE*(j%NUM_COLS),
                     y+SHOP_BUTTON_Y+SHOP_BUTTON_SIZE*((j/NUM_COLS)%NUM_ROWS), (b) -> {
@@ -366,14 +363,14 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
      * IDs may optionally contain numeric suffixes (e.g., "recipe1", "recipe2", "recipe10").
      * If numeric suffixes are present, they are sorted numerically.
      *
-     * @param left  The first ShopRecipe to compare.
-     * @param right The second ShopRecipe to compare.
+     * @param leftHolder  The first recipe to compare.
+     * @param rightHolder The second recipe to compare.
      * @return A negative integer, zero, or a positive integer as the first argument is less than,
      * equal to, or greater than the second.
      */
-    private static int compareRecipes(ShopRecipe left, ShopRecipe right) {
-        String leftPath = left.getId().toString();
-        String rightPath = right.getId().toString();
+    private static int compareRecipes(RecipeHolder<ShopRecipe> leftHolder, RecipeHolder<ShopRecipe> rightHolder) {
+        String leftPath = leftHolder.id().toString();
+        String rightPath = rightHolder.id().toString();
 
         // Extract base and optional numeric suffix
         String leftBase = leftPath.replaceAll("\\d+$", "");
@@ -442,11 +439,11 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         return super.mouseScrolled(pMouseX, pMouseY, pDelta);
     }
 
-    private void attemptTransaction(ShopRecipe recipe, int quantity){
-        if (recipe instanceof BuyRecipe buyRecipe) {
-            Messages.sendToServer(new PacketBuyRequest(this.teamId, buyRecipe.getId(), quantity));
-        } else if (recipe instanceof SellRecipe sellRecipe) {
-            Messages.sendToServer(new PacketSellRequest(this.teamId, sellRecipe.getId(), -1, quantity));
+    private void attemptTransaction(RecipeHolder<ShopRecipe> recipe, int quantity){
+        if (recipe.value() instanceof BuyRecipe buyRecipe) {
+            Messages.sendToServer(new PacketBuyRequest(this.teamId, recipe.id(), quantity));
+        } else if (recipe.value() instanceof SellRecipe sellRecipe) {
+            Messages.sendToServer(new PacketSellRequest(this.teamId, recipe.id(), -1, quantity));
         }
     }
 }

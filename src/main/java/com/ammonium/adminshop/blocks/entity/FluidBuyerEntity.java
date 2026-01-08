@@ -95,10 +95,6 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         super.setChanged();
     }
 
-    public FluidTank getTank() {
-        return this.tank;
-    }
-
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int pContainerId, Inventory pInventory, Player pPlayer) {
