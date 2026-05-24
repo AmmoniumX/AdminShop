@@ -145,7 +145,7 @@ public class PacketBuyRequest implements CustomPacketPayload {
         long price = recipe.getPrice() * buyQuantity;
         boolean success = MoneyHelper.get(level).removeMoney(teamId, price);
         if (success) {
-            AdminShop.LOGGER.debug("Attempt to fill with {}, {}", toInsert.getDisplayName().getString(), toInsert.getAmount());
+            AdminShop.LOGGER.debug("Attempt to fill with {}, {}", toInsert.getHoverName().getString(), toInsert.getAmount());
             int filled = containerHandler.fill(toInsert, IFluidHandler.FluidAction.EXECUTE);
             AdminShop.LOGGER.debug("Filled with {} mb", filled);
             ItemStack newContainer = containerHandler.getContainer();
