@@ -9,6 +9,7 @@ import com.ammonium.adminshop.screen.ModMenuTypes;
 import com.ammonium.adminshop.setup.ClientSetup;
 import com.ammonium.adminshop.setup.Config;
 import com.ammonium.adminshop.setup.CreativeTab;
+import com.ammonium.adminshop.setup.Messages;
 import com.ammonium.adminshop.setup.ModSetup;
 import com.mojang.logging.LogUtils;
 //import net.minecraftforge.eventbus.api.IEventBus;
@@ -26,6 +27,7 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -50,6 +52,8 @@ public class AdminShop {
         }
 //        MinecraftForge.EVENT_BUS.register(ServerEventListeners.class);
 
+        eventBus.addListener(Messages::register);
+
         ModItems.register(eventBus);
         ModBlocks.register(eventBus);
         ModBlockEntities.register(eventBus);
@@ -66,14 +70,24 @@ public class AdminShop {
 
     // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the FORGE
     // Event bus for receiving Forge Events)
-    @EventBusSubscriber(modid = MODID)
+    @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD)
     public static class ModEvents {
         @SubscribeEvent
         public static void registerCapabilities(RegisterCapabilitiesEvent event) {
             event.registerBlockEntity(
-                    Capabilities.FluidHandler.BLOCK, // The capability to register
-                    ModBlockEntities..FLUID_HANDLER_BE.get(), // Your BlockEntityType
-                    (be, side) -> be.tank // A lambda pointing to your FluidTank
+                    Capabilities.ItemHandler.BLOCK,
+                    ModBlockEntities.SELLER.get(),
+                    (be, side) -> be.inventory
+            );
+            event.registerBlockEntity(
+                    Capabilities.FluidHandler.BLOCK,
+                    ModBlockEntities.FLUID_BUYER.get(),
+                    (be, side) -> be.getTank()
+            );
+            event.registerBlockEntity(
+                    Capabilities.FluidHandler.BLOCK,
+                    ModBlockEntities.FLUID_SELLER.get(),
+                    (be, side) -> be.getTank()
             );
         }
     }

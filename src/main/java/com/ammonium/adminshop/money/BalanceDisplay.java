@@ -5,17 +5,17 @@ import com.ammonium.adminshop.setup.Config;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 
 @OnlyIn(Dist.CLIENT)
-@Mod.EventBusSubscriber(modid = AdminShop.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+@EventBusSubscriber(modid = AdminShop.MODID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public class BalanceDisplay {
     private static long balance = 0;
     private static final long[] history = new long[]{0, 0};
@@ -57,7 +57,7 @@ public class BalanceDisplay {
         displayString = Component.translatable("gui.balance", str.toString()).getString();
     }
 
-    @Mod.EventBusSubscriber(modid = AdminShop.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+    @EventBusSubscriber(modid = AdminShop.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ModEvents {
         @SubscribeEvent
         public static void onConfigLoad(ModConfigEvent event) {
@@ -68,9 +68,8 @@ public class BalanceDisplay {
     }
 
     @SubscribeEvent
-    public static void onTick(TickEvent.ClientTickEvent event) {
+    public static void onTick(ClientTickEvent.Post event) {
         if (!shouldRun()) return;
-        if (event.phase != TickEvent.Phase.END) return;
         if (Minecraft.getInstance().player == null) return;
 
         // Update display string every second (20 ticks)
@@ -100,8 +99,11 @@ public class BalanceDisplay {
     }
 
     @SubscribeEvent
-    public static void onRenderGUI(CustomizeGuiOverlayEvent.DebugText event) {
+    public static void onRenderGUI(RenderGuiEvent.Post event) {
         if (!shouldRun()) return;
-        event.getLeft().add(displayString);
+        if (displayString.isEmpty()) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        event.getGuiGraphics().drawString(mc.font, displayString, 2, 2, 0xFFFFFF);
     }
 }

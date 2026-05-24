@@ -10,7 +10,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -29,14 +28,13 @@ import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -126,6 +124,18 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     @Override
+    protected NonNullList<ItemStack> getItems() {
+        return stacks;
+    }
+
+    @Override
+    protected void setItems(NonNullList<ItemStack> items) {
+        for (int i = 0; i < items.size() && i < stacks.size(); i++) {
+            stacks.set(i, items.get(i));
+        }
+    }
+
+    @Override
     public boolean isEmpty() {
         return this.stacks.stream().allMatch(ItemStack::isEmpty);
     }
@@ -203,7 +213,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         }
 
         // Check for space
-        IItemHandler handler = buyer.getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(NullPointerException::new);
+        IItemHandler handler = new InvWrapper(buyer);
         ItemStack simulated = ItemHandlerHelper.insertItemStacked(handler, recipe.getItem().get().copy(), true);
         if (simulated.isEmpty()) {
 
@@ -240,12 +250,6 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         return ClientboundBlockEntityDataPacket.create(this);
     }
 
-    @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
-        super.onDataPacket(net, pkt);
-        this.load(Objects.requireNonNull(pkt.getTag()));
-    }
-
     public void sendUpdates() {
         if (this.level != null) {
             this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
@@ -253,27 +257,9 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        super.handleUpdateTag(tag);
-        ContainerHelper.loadAllItems(tag, this.stacks);
-        if (tag.contains("team")) {
-            this.teamId = tag.getUUID("team");
-        }
-        if (tag.contains("recipe")) {
-            this.recipeId = new ResourceLocation(tag.getString("recipe"));
-        } else {
-//            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
-            this.recipeId = null;
-        }
-        if (tag.contains("tickProgress")) {
-            this.tickProgress = tag.getInt("tickProgress");
-        }
-    }
-
-    @Override
-    protected void saveAdditional(@NotNull CompoundTag tag) {
-        super.saveAdditional(tag);
-        ContainerHelper.saveAllItems(tag, this.stacks);
+    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.saveAdditional(tag, provider);
+        ContainerHelper.saveAllItems(tag, this.stacks, provider);
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
@@ -284,16 +270,15 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     @Override
-    public void load(@NotNull CompoundTag tag) {
-        super.load(tag);
-        ContainerHelper.loadAllItems(tag, this.stacks);
+    public void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.loadAdditional(tag, provider);
+        ContainerHelper.loadAllItems(tag, this.stacks, provider);
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }
         if (tag.contains("recipe")) {
-            this.recipeId = new ResourceLocation(tag.getString("recipe"));
+            this.recipeId = ResourceLocation.parse(tag.getString("recipe"));
         } else {
-//            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
         }
         if (tag.contains("tickProgress")) {

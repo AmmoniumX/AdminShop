@@ -36,10 +36,15 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.network.NetworkHooks;
+import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Nullable;
 
 public class BasicDetector extends BaseEntityBlock {
+    public static final MapCodec<BasicDetector> CODEC = simpleCodec(p -> new BasicDetector());
+
+    @Override
+    public MapCodec<BasicDetector> codec() { return CODEC; }
+
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final BooleanProperty LIT = BlockStateProperties.LIT;
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.375, 0, 0.375, 0.625, 0.625, 0.625);
@@ -117,8 +122,8 @@ public class BasicDetector extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos,
-                                 Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
+    protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos,
+                                 Player pPlayer, BlockHitResult pHit) {
         if (!pLevel.isClientSide()) {
             ServerLevel serverLevel = (ServerLevel) pLevel;
 
@@ -128,7 +133,7 @@ public class BasicDetector extends BaseEntityBlock {
                 if (MoneyHelper.get(serverLevel).isMemberOfTeam(basicDetectorBE.getTeamId(), serverPlayer)) {
                     // Open menu
                     AdminShop.LOGGER.debug("Opening screen");
-                    NetworkHooks.openScreen((ServerPlayer) pPlayer, basicDetectorBE, pPos);
+                    serverPlayer.openMenu(basicDetectorBE, pPos);
                 } else {
                     // No access
                     pPlayer.sendSystemMessage(Component.translatable("message.adminshop.no_access"));

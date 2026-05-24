@@ -3,7 +3,7 @@ package com.ammonium.adminshop.setup;
 import com.ammonium.adminshop.blocks.ModBlocks;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import org.jetbrains.annotations.NotNull;
 
 public class ModSetup {
@@ -16,7 +16,6 @@ public class ModSetup {
 //        }
 //    };
     public static void init(FMLCommonSetupEvent event){
-        Messages.register();
 
     }
 }

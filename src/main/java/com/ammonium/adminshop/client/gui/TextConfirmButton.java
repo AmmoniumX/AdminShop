@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class TextConfirmButton extends Button {
 
-    private final ResourceLocation GUI = new ResourceLocation(AdminShop.MODID, "textures/gui/detector.png");
+    private final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/detector.png");
     private boolean valid;
 
     public TextConfirmButton(int x, int y, OnPress listener) {
@@ -27,7 +27,7 @@ public class TextConfirmButton extends Button {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
         if(!visible) {
             return;
         }

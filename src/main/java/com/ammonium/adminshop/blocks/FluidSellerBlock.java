@@ -27,10 +27,15 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.network.NetworkHooks;
+import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Nullable;
 
 public class FluidSellerBlock extends BaseEntityBlock {
+    public static final MapCodec<FluidSellerBlock> CODEC = simpleCodec(p -> new FluidSellerBlock());
+
+    @Override
+    public MapCodec<FluidSellerBlock> codec() { return CODEC; }
+
     public FluidSellerBlock() {
         super(BlockBehaviour.Properties.of()
                 .mapColor(MapColor.METAL)
@@ -57,8 +62,8 @@ public class FluidSellerBlock extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos,
-                                 Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
+    protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos,
+                                 Player pPlayer, BlockHitResult pHit) {
         if (!pLevel.isClientSide()) {
             ServerLevel serverLevel = (ServerLevel) pLevel;
             if(pLevel.getBlockEntity(pPos) instanceof FluidSellerEntity fSellerEntity
@@ -66,7 +71,7 @@ public class FluidSellerBlock extends BaseEntityBlock {
 
                 if (MoneyHelper.get(serverLevel).isMemberOfTeam(fSellerEntity.getTeamId(), serverPlayer)) {
                     // Open menu
-                    NetworkHooks.openScreen((ServerPlayer) pPlayer, fSellerEntity, pPos);
+                    serverPlayer.openMenu(fSellerEntity, pPos);
                 } else {
                     // No access
                     pPlayer.sendSystemMessage(Component.translatable("message.adminshop.no_access"));

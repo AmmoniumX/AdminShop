@@ -33,10 +33,15 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.network.NetworkHooks;
+import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Nullable;
 
 public class SellerBlock extends BaseEntityBlock {
+    public static final MapCodec<SellerBlock> CODEC = simpleCodec(p -> new SellerBlock());
+
+    @Override
+    public MapCodec<SellerBlock> codec() { return CODEC; }
+
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public SellerBlock() {
         super(BlockBehaviour.Properties.of()
@@ -66,8 +71,8 @@ public class SellerBlock extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos,
-                                 Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
+    protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos,
+                                 Player pPlayer, BlockHitResult pHit) {
         if (!pLevel.isClientSide()) {
             assert pLevel instanceof ServerLevel;
             ServerLevel serverLevel = (ServerLevel) pLevel;
@@ -77,7 +82,7 @@ public class SellerBlock extends BaseEntityBlock {
                 if (MoneyHelper.get(serverLevel).isMemberOfTeam(buyerEntity.getTeamId(), serverPlayer)) {
 //                    AdminShop.LOGGER.debug("Found account");
                     // Open menu
-                    NetworkHooks.openScreen((ServerPlayer) pPlayer, buyerEntity, pPos);
+                    serverPlayer.openMenu(buyerEntity, pPos);
                 } else {
                     // No access
                     pPlayer.sendSystemMessage(Component.translatable("message.adminshop.no_access"));

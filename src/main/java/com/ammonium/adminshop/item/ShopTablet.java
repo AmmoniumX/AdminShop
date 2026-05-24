@@ -17,7 +17,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
 
 public class ShopTablet extends LoreItem{
@@ -50,7 +49,7 @@ public class ShopTablet extends LoreItem{
             // Update usable accounts
             MoneyHelper.MoneyAccount account = MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer);
             Messages.sendToPlayer(new PacketSyncMoneyToClient(account), (ServerPlayer) player);
-            NetworkHooks.openScreen((ServerPlayer) player, containerProvider);
+            ((ServerPlayer) player).openMenu(containerProvider);
         }
         return super.use(level, player, pUsedHand);
     }

@@ -5,20 +5,20 @@ import com.ammonium.adminshop.blocks.interfaces.ItemSellerMachine;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.interfaces.ItemRecipe;
 import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
-import com.google.gson.JsonObject;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.world.Container;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -26,9 +26,7 @@ import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,9 +82,9 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
             // Check if both items match
             if (item.isEmpty()) { return false; }
             if (item.getItem() != toMatch.getItem()) { return false; }
-            // Check if item tags match
-            if (item.hasTag()) {
-                if (toMatch.getTag() == null || !toMatch.getTag().equals(item.getTag())) {
+            // Check if item components match (replaces 1.20 NBT tag check)
+            if (!item.getComponentsPatch().isEmpty()) {
+                if (!item.getComponentsPatch().equals(toMatch.getComponentsPatch())) {
                     return false;
                 }
             }
@@ -113,9 +111,9 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
             // Check if both items match
             if (item.isEmpty()) { return false; }
             if (item.getItem() != toMatch.getItem()) { return false; }
-            // Check if item tags match
-            if (item.hasTag()) {
-                if (toMatch.getTag() == null || !toMatch.getTag().equals(item.getTag())) {
+            // Check if item components match (replaces 1.20 NBT tag check)
+            if (!item.getComponentsPatch().isEmpty()) {
+                if (!item.getComponentsPatch().equals(toMatch.getComponentsPatch())) {
                     return false;
                 }
             }
@@ -197,7 +195,7 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
             return item.getDisplayName();
         } else if (type == SellTypes.TAG) {
             assert tagId != null;
-            return Component.translatable("sellitem.recipe.tag", tagId);
+            return Component.translatable("sellitem.recipe.tag", tagId.toString());
         } else {
             AdminShop.LOGGER.debug("ShopBuyItemRecipe.getName: type is null");
             return Component.empty();
@@ -220,19 +218,19 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
 
     public boolean matches(MoneyHelper.MoneyAccount account, ItemSellerMachine machine) {
         if (account == null) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account is null");
+            AdminShop.LOGGER.info("SellItemRecipe.matches: account is null");
             return false;
         }
         // Check permit status
         if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
+            AdminShop.LOGGER.info("SellItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }
 
         // Check if machine contains at least said number of items
-        IItemHandler handler = machine.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
+        IItemHandler handler = machine.getItemHandler();
         if (handler == null) {
-            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: handler is null");
+            AdminShop.LOGGER.info("SellItemRecipe.matches: machine {} returned null handler", machine.getClass().getSimpleName());
             return false;
         }
 
@@ -244,7 +242,7 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
             totalCount += slotItem.getCount();
 
             if (totalCount >= requiredCount) { return true; } else {
-                AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: not enough items in slot {}, required {}, found {}", slot, requiredCount, totalCount);
+                AdminShop.LOGGER.info("SellItemRecipe.matches: not enough items — required {}, found {}", requiredCount, totalCount);
             }
         }
 
@@ -278,7 +276,6 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
         return ItemStack.EMPTY;
     }
 
-    @Override
     public ResourceLocation getId() {
         return id;
     }
@@ -294,52 +291,42 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
     }
 
     public static class Serializer implements RecipeSerializer<SellItemRecipe> {
+        private static final MapCodec<SellItemRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
+            instance.group(
+                Codec.LONG.fieldOf("price").forGetter(r -> r.price),
+                ItemStack.OPTIONAL_CODEC.optionalFieldOf("item", ItemStack.EMPTY).forGetter(r -> r.type == SellTypes.ITEM ? r.item : ItemStack.EMPTY),
+                ResourceLocation.CODEC.optionalFieldOf("tag").forGetter(r -> java.util.Optional.ofNullable(r.tagId)),
+                Codec.INT.optionalFieldOf("count", 1).forGetter(r -> r.tagCount > 0 ? r.tagCount : 1),
+                Codec.STRING.optionalFieldOf("permit", "").forGetter(r -> r.permit)
+            ).apply(instance, (price, item, tagOpt, count, permit) ->
+                new SellItemRecipe(null, price, item, permit, tagOpt.orElse(null), count)
+            )
+        );
 
-        public @NotNull SellItemRecipe fromJson(@NotNull ResourceLocation id, @NotNull JsonObject json) {
-            long price = GsonHelper.getAsLong(json, "price");
-            ItemStack item = ItemStack.EMPTY;
-            ResourceLocation tagId = null;
-            int tagCount = -1;
-            JsonObject inputJson = GsonHelper.getAsJsonObject(json, "input");
-            if (inputJson.has("item")) {
-                item = CraftingHelper.getItemStack(GsonHelper.getAsJsonObject(inputJson, "item"), true, true);
-                if (item.getCount() > item.getMaxStackSize()) {
-                    AdminShop.LOGGER.warn("ItemStack count {} exceeds max stack size {} for item {}", item.getCount(), item.getMaxStackSize(), item.getItem());
-                    item.setCount(item.getMaxStackSize());
-                }
-            } else if (inputJson.has("tag")) {
-                JsonObject innerTag = GsonHelper.getAsJsonObject(inputJson, "tag");
-                tagId = new ResourceLocation(
-                        GsonHelper.getAsString(innerTag, "tag")
-                );
-                tagCount = GsonHelper.getAsInt(innerTag, "count", 1);
-
-            } else {
-                AdminShop.LOGGER.warn("No item or tag found in recipe {}", id);
-                return null;
+        private static final StreamCodec<RegistryFriendlyByteBuf, SellItemRecipe> STREAM_CODEC = StreamCodec.of(
+            (buf, r) -> {
+                buf.writeLong(r.price);
+                ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, r.item);
+                buf.writeUtf(r.permit);
+                buf.writeBoolean(r.tagId != null);
+                if (r.tagId != null) { buf.writeResourceLocation(r.tagId); }
+                buf.writeInt(r.tagCount);
+            },
+            buf -> {
+                long price = buf.readLong();
+                ItemStack item = ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
+                String permit = buf.readUtf();
+                boolean hasTag = buf.readBoolean();
+                ResourceLocation tag = hasTag ? buf.readResourceLocation() : null;
+                int tagCount = buf.readInt();
+                return new SellItemRecipe(null, price, item, permit, tag, tagCount);
             }
-            String permit = GsonHelper.getAsString(json, "permit", "");
-            return new SellItemRecipe(id, price, item, permit, tagId, tagCount);
-        }
+        );
 
-        public SellItemRecipe fromNetwork(@NotNull ResourceLocation id, FriendlyByteBuf buffer) {
-            long price = buffer.readLong();
-            ItemStack item = buffer.readItem();
-            String permit = buffer.readUtf();
-            boolean hasTag = buffer.readBoolean();
-            ResourceLocation tag = null;
-            if (hasTag) { tag = buffer.readResourceLocation(); }
-            int tagCount = buffer.readInt();
-            return new SellItemRecipe(id, price, item, permit, tag, tagCount);
-        }
+        @Override
+        public MapCodec<SellItemRecipe> codec() { return CODEC; }
 
-        public void toNetwork(FriendlyByteBuf buffer, SellItemRecipe pRecipe) {
-            buffer.writeLong(pRecipe.price);
-            buffer.writeItem(pRecipe.item);
-            buffer.writeUtf(pRecipe.permit);
-            buffer.writeBoolean(pRecipe.tagId != null);
-            if (pRecipe.tagId != null) { buffer.writeResourceLocation(pRecipe.tagId); }
-            buffer.writeInt(pRecipe.tagCount);
-        }
+        @Override
+        public StreamCodec<RegistryFriendlyByteBuf, SellItemRecipe> streamCodec() { return STREAM_CODEC; }
     }
 }

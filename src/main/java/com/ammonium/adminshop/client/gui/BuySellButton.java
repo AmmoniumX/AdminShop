@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class BuySellButton extends Button {
 
-    private final ResourceLocation GUI = new ResourceLocation(AdminShop.MODID, "textures/gui/shop_gui.png");
+    private final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/shop_gui.png");
     private static final int TYPE_BUY = 0;
     private static final int TYPE_SELL = 1;
 
@@ -41,7 +41,7 @@ public class BuySellButton extends Button {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
         if(!visible) {
             return;
         }

@@ -63,21 +63,20 @@ public class RecipeManager {
         return ItemStack.isSameItemSameComponents(item, recipeItem);
     }
 
-    public static Optional<BuyItemRecipe> isBuyItemRecipe(Level level, ItemStack item) {
+    public static Optional<RecipeHolder<BuyItemRecipe>> isBuyItemRecipe(Level level, ItemStack item) {
         return level.getRecipeManager()
                 .getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get())
                 .stream()
-                .filter(recipe -> matches(item, recipe))
+                .filter(recipe -> matches(item, recipe.value()))
                 .findFirst();
     }
 
     public static Optional<BuyItemRecipe> getShopBuyItemRecipe(Level level, ResourceLocation id) {
         if (id == null) { return Optional.empty(); }
-        Optional<? extends Recipe<?>> recipe = level.getRecipeManager().byKey(id);
-        if (recipe.isEmpty() || !(recipe.get() instanceof BuyItemRecipe)) {
-            return Optional.empty();
-        }
-        return Optional.of((BuyItemRecipe) recipe.get());
+        return level.getRecipeManager().byKey(id)
+                .map(RecipeHolder::value)
+                .filter(v -> v instanceof BuyItemRecipe)
+                .map(v -> (BuyItemRecipe) v);
     }
 
     public static boolean checkForBuyItemRecipe(ServerLevel level, ItemBuyerMachine machine, BuyItemRecipe recipe) {

@@ -8,7 +8,6 @@ import com.ammonium.adminshop.screen.FluidSellerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -19,12 +18,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
 import java.util.UUID;
 
 public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidSellerMachine {
@@ -107,19 +106,29 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
         sellerBE.setTickCounter(0);
 
         // Check for valid recipe
-        SellFluidRecipe recipe = RecipeManager.checkForSellFluidRecipe((ServerLevel) level, sellerBE).orElse(null);
-        if (recipe == null) { return; }
+        FluidStack tankContents = sellerBE.getTank().getFluid();
+        AdminShop.LOGGER.info("[FluidSeller] Tick — teamId={}, tank={} x{}mB", sellerBE.teamId,
+                tankContents.isEmpty() ? "empty" : tankContents.getDescriptionId(), tankContents.getAmount());
+        net.minecraft.world.item.crafting.RecipeHolder<SellFluidRecipe> recipeHolder = RecipeManager.checkForSellFluidRecipe((ServerLevel) level, sellerBE).orElse(null);
+        if (recipeHolder == null) {
+            AdminShop.LOGGER.info("[FluidSeller] No matching recipe found");
+            return;
+        }
+        SellFluidRecipe recipe = recipeHolder.value();
+        AdminShop.LOGGER.info("[FluidSeller] Matched recipe: price={}, fluid={} x{}mB", recipe.getPrice(),
+                recipe.getFluid().getDescriptionId(), recipe.getFluid().getAmount());
 
         // Sell the fluid
-//        IFluidHandler handler = sellerBE.getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);
-        @Nullable IFluidHandler handler = sellerBE.fluidHandler.getCapability();
+        @Nullable IFluidHandler handler = sellerBE.getTank();
         if (handler == null) {
-            AdminShop.LOGGER.debug("Fluid handler is null");
+            AdminShop.LOGGER.info("[FluidSeller] Fluid handler is null");
             return;
         }
 
         handler.drain(recipe.getFluid().copy(), IFluidHandler.FluidAction.EXECUTE);
         recipe.sell((ServerLevel) level, sellerBE);
+        sellerBE.setChanged();
+        sellerBE.sendUpdates();
     }
 
     @Override
@@ -127,28 +136,12 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
         super.onLoad();
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
-        CompoundTag tag = super.getUpdateTag(provider);
-//        tag.put("inventory", this.itemHandler.serializeNBT());
-        tank.writeToNBT(provider, tag);
-        if (this.teamId != null) {
-            tag.putUUID("team", this.teamId);
-        }
-        tag.putInt("tickProgress", this.tickProgress);
-        return tag;
-    }
-
     @Nullable
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
     }
-    @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
-        super.onDataPacket(net, pkt);
-        this.load(Objects.requireNonNull(pkt.getTag()));
-    }
+
     public void sendUpdates() {
         if (this.level != null) {
             this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
@@ -156,22 +149,8 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        super.handleUpdateTag(tag);
-//        this.itemHandler.deserializeNBT(tag.getCompound("inventory"));
-        this.tank.readFromNBT(tag);
-        if (tag.contains("team")) {
-            this.teamId = tag.getUUID("team");
-        }
-        if (tag.contains("tickProgress")) {
-            this.tickProgress = tag.getInt("tickProgress");
-        }
-    }
-
-    @Override
-    protected void saveAdditional(@NotNull CompoundTag tag) {
-        super.saveAdditional(tag);
-//        tank.writeToNBT(tag);
+    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.saveAdditional(tag, provider);
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
@@ -179,9 +158,8 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
     }
 
     @Override
-    public void load(@NotNull CompoundTag tag) {
-        super.load(tag);
-//        tank.readFromNBT(tag);
+    public void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.loadAdditional(tag, provider);
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }

@@ -9,7 +9,7 @@ import net.minecraft.world.entity.player.Inventory;
 
 public class AdvancedDetectorScreen extends DetectorScreen<AdvancedDetectorMenu, AdvancedDetectorEntity> {
     private static final ResourceLocation TEXTURE =
-    new ResourceLocation(AdminShop.MODID, "textures/gui/adv_detector.png");
+    ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/adv_detector.png");
 
     public AdvancedDetectorScreen(AdvancedDetectorMenu pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle, blockPos, AdvancedDetectorEntity.class);

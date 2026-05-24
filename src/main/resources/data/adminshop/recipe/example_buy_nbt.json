@@ -1,0 +1,11 @@
+{
+  "type": "adminshop:item_buying",
+  "price": 100,
+  "result": {
+    "id": "minecraft:paper",
+    "count": 1,
+    "components": {
+      "minecraft:custom_name": "{\"text\":\"Special Paper!\",\"italic\":false}"
+    }
+  }
+}

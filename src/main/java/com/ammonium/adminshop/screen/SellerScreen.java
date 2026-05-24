@@ -21,7 +21,7 @@ import java.util.UUID;
 
 public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
     private static final ResourceLocation TEXTURE =
-            new ResourceLocation(AdminShop.MODID, "textures/gui/seller.png");
+            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/seller.png");
     private final BlockPos blockPos;
     private SellerEntity sellerEntity;
     private UUID teamId = null;
@@ -75,7 +75,7 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        renderBackground(guiGraphics);
+        renderBackground(guiGraphics, mouseX, mouseY, delta);
         super.render(guiGraphics, mouseX, mouseY, delta);
         renderTooltip(guiGraphics, mouseX, mouseY);
 

@@ -15,17 +15,16 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraftforge.fluids.capability.templates.FluidTank;
+import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
 import java.util.Optional;
 import java.util.UUID;
 
 public class FluidSellerScreen extends AbstractContainerScreen<FluidSellerMenu> {
     private static final ResourceLocation TEXTURE =
-            new ResourceLocation(AdminShop.MODID, "textures/gui/fluid_seller.png");
+            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/fluid_seller.png");
     private final BlockPos blockPos;
     private FluidSellerEntity sellerEntity;
     private UUID teamId = null;
@@ -95,7 +94,7 @@ public class FluidSellerScreen extends AbstractContainerScreen<FluidSellerMenu> 
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        renderBackground(guiGraphics);
+        renderBackground(guiGraphics, mouseX, mouseY, delta);
         super.render(guiGraphics, mouseX, mouseY, delta);
         renderTooltip(guiGraphics, mouseX, mouseY);
 

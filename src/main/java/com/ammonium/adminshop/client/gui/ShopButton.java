@@ -21,7 +21,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -67,9 +67,9 @@ public class ShopButton extends Button {
         matrix.pushPose();
 
         //Draw item or fluid
-        if(recipe instanceof ItemRecipe itemRecipe) {
+        if(recipe.value() instanceof ItemRecipe itemRecipe) {
             guiGraphics.renderItem(itemRecipe.getDisplayItem(), x, y);
-        } else { // Render Fluid
+        } else if (recipe.value() instanceof FluidRecipe) { // Render Fluid
             // Set render for fluid
 //            enableScissor(x, y, x + width, y + height);
             RenderSystem.enableBlend();
@@ -96,11 +96,11 @@ public class ShopButton extends Button {
         Font font = Minecraft.getInstance().font;
         int numItems = getNumItems();
         guiGraphics.drawString(font, numItems+"", 2*(x+16)- font.width(numItems+""), 2*(y)+24, 0xFFFFFF);
-        if( recipe instanceof ItemRecipe itemRecipe) {
+        if(recipe.value() instanceof ItemRecipe itemRecipe) {
             if (itemRecipe instanceof SellItemRecipe sellRecipe && sellRecipe.getSellType() == SellItemRecipe.SellTypes.TAG) {
                 guiGraphics.drawString(font, "#", 2 * x + width * 2 - font.width("#") - 1, 2 * y + 1, 0xFFC921);
             }
-            if (itemRecipe.getItem().isPresent() && itemRecipe.getItem().get().hasTag()) {
+            if (itemRecipe.getItem().isPresent() && !itemRecipe.getItem().get().getComponentsPatch().isEmpty()) {
                 guiGraphics.drawString(font, "+NBT", 2 * x + width * 2 - font.width("+NBT") - 1, 2 * y + 1, 0xFF55FF);
             }
         }
@@ -111,12 +111,12 @@ public class ShopButton extends Button {
 
     // Returns the number of items to be placed based on the recipe type
     private int getNumItems() {
-        return recipe.getCount() * getQuantity();
+        return recipe.value().getCount() * getQuantity();
     }
 
     // Returns the quantity of **orders** to be placed based on the recipe type, **not** the quantity of items
     public int getQuantity(){
-        if (recipe instanceof ItemRecipe itemRecipe) {
+        if (recipe.value() instanceof ItemRecipe itemRecipe) {
 
             // Get max fits based on stack size
             int maxFits;
@@ -144,10 +144,10 @@ public class ShopButton extends Button {
                 return Math.max(maxFits / 2, 1);
             }
             return 1;
-        } else if (recipe instanceof FluidRecipe) {
+        } else if (recipe.value() instanceof FluidRecipe) {
             return 1;
         } else {
-            AdminShop.LOGGER.error("ShopButton: Unknown recipe type: {}", recipe.getClass());
+            AdminShop.LOGGER.error("ShopButton: Unknown recipe type: {}", recipe.value().getClass());
             return 0;
         }
     }
@@ -155,27 +155,27 @@ public class ShopButton extends Button {
     public List<Component> getTooltipContent(){
         int quantity = getQuantity();
         int numItems = getNumItems();
-        long price = recipe.getPrice() * quantity;
+        long price = recipe.value().getPrice() * quantity;
         List<Component> tooltip = new ArrayList<>();
         String priceFormatted = Screen.hasAltDown()
                 ? MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.RAW)
                 : MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.SHORT);
-        String quantityString = numItems + ((recipe instanceof ItemRecipe) ? "x" : "mb");
+        String quantityString = numItems + ((recipe.value() instanceof ItemRecipe) ? "x" : "mb");
         Component description = Component.translatable(
             "shopbutton.description",
             priceFormatted,
             quantityString,
-            recipe.getName()
+            recipe.value().getName()
         );
         tooltip.add(description);
-        if (!recipe.getPermit().equals("0") && !recipe.getPermit().isEmpty()) {
+        if (!recipe.value().getPermit().equals("0") && !recipe.value().getPermit().isEmpty()) {
             tooltip.add(Component.translatable("shopbutton.permit",
-                Component.translatable(recipe.getPermitTranslationKey())));
+                Component.translatable(recipe.value().getPermitTranslationKey())));
         }
         return tooltip;
     }
 
     public ShopRecipe getRecipe(){
-        return recipe;
+        return recipe.value();
     }
 }

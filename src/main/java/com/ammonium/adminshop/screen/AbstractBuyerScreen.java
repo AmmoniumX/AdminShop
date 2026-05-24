@@ -9,6 +9,7 @@ import com.ammonium.adminshop.network.PacketSetItemBuyerRecipe;
 import com.ammonium.adminshop.network.PacketUpdateRequest;
 import com.ammonium.adminshop.recipes.BuyItemRecipe;
 import com.ammonium.adminshop.recipes.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -39,7 +40,7 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
     public AbstractBuyerScreen(String texturePath, T pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle);
         this.blockPos = blockPos;
-        this.TEXTURE = new ResourceLocation(AdminShop.MODID, texturePath);
+        this.TEXTURE = ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, texturePath);
     }
 
     @Override
@@ -69,18 +70,19 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
             if (!itemStack.isEmpty() && !isMachineSlot) {
                 // Get item clicked on
                 AdminShop.LOGGER.debug("Clicked on item: {}", itemStack.getDisplayName().getString());
-                BuyItemRecipe recipe = RecipeManager.isBuyItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
+                RecipeHolder<BuyItemRecipe> recipeHolder = RecipeManager.isBuyItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
                 // Return super if not in buy map
-                if (recipe == null) {
+                if (recipeHolder == null) {
                     AdminShop.LOGGER.debug("Item not in buy recipes: {}", itemStack.getDisplayName().getString());
                     return super.mouseClicked(mouseX, mouseY, button);
                 }
+                BuyItemRecipe recipe = recipeHolder.value();
                 // Set buyer target
                 // Check if account has permit to buy item
                 if (ClientCache.hasPermit(recipe.getPermit())) {
-                    this.buyerEntity.setRecipe(recipe.getId());
+                    this.buyerEntity.setRecipe(recipeHolder.id());
                     this.recipe = recipe;
-                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, this.recipe.getId()));
+                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, recipeHolder.id()));
                     return false;
                 } else {
                     LocalPlayer player = Minecraft.getInstance().player;
@@ -113,7 +115,7 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
         ItemRenderer itemRenderer = this.minecraft.getItemRenderer();
 //        itemRenderer.renderAndDecorateFakeItem(item, x+104, y+14);
         guiGraphics.renderFakeItem(item, x+104, y+14);
-        if (item.hasTag()) {
+        if (!item.getComponentsPatch().isEmpty()) {
 //            poseStack.pushPose();
 
 //            poseStack.translate(x + 104, y + 16, guiGraphics.+200);
@@ -151,7 +153,7 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        renderBackground(guiGraphics);
+        renderBackground(guiGraphics, mouseX, mouseY, delta);
         super.render(guiGraphics, mouseX, mouseY, delta);
         renderTooltip(guiGraphics, mouseX, mouseY);
 

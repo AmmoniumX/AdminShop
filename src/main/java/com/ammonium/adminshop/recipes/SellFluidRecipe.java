@@ -1,35 +1,34 @@
 package com.ammonium.adminshop.recipes;
 
 import com.ammonium.adminshop.AdminShop;
+import com.ammonium.adminshop.blocks.entity.FluidHandlerBlockEntity;
 import com.ammonium.adminshop.blocks.interfaces.FluidSellerMachine;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.interfaces.FluidRecipe;
 import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
-import com.google.gson.JsonObject;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.network.FriendlyByteBuf;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 
 public class SellFluidRecipe implements SellRecipe, FluidRecipe {
-    private final ResourceLocation id;
     private final long price;
     private final FluidStack fluid;
     private final String permit;
 
-    public SellFluidRecipe(ResourceLocation id, long price, FluidStack fluid, String permit) {
-        this.id = id;
+    public SellFluidRecipe(long price, FluidStack fluid, String permit) {
         this.price = price;
         this.fluid = fluid;
         this.permit = permit != null ? permit : "";
@@ -43,20 +42,18 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
         }
 
         // Check permit status
-        if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) { // TODO switch permits to strings
+        if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
             AdminShop.LOGGER.debug("ShopSellFluidRecipe: account does not have permit {}", permit);
             return false;
         }
 
         // Check if machine contains fluid
-        LazyOptional<IFluidHandler> lazyHandler = machine.getCapability(ForgeCapabilities.FLUID_HANDLER);
-        if (!lazyHandler.isPresent()) {
-            AdminShop.LOGGER.debug("ShopSellFluidRecipe: machine does not have fluid handler");
+        if (!(machine instanceof FluidHandlerBlockEntity be)) {
+            AdminShop.LOGGER.debug("ShopSellFluidRecipe: machine is not FluidHandlerBlockEntity");
             return false;
         }
-        IFluidHandler handler = lazyHandler.orElseThrow(IllegalStateException::new);
-        if (handler.drain(fluid, IFluidHandler.FluidAction.SIMULATE).getAmount() < fluid.getAmount()) {
-//            AdminShop.LOGGER.debug("ShopSellFluidRecipe: machine does not have enough fluid");
+        IFluidHandler handler = be.getTank();
+        if (handler.drain(fluid.copy(), IFluidHandler.FluidAction.SIMULATE).getAmount() < fluid.getAmount()) {
             return false;
         }
         return true;
@@ -92,19 +89,16 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
     }
 
     public void sell(ServerLevel level, FluidSellerMachine machine) {
-        // Get account information from server side
-        // Important: we assume that this is only ever called after matches() succeeds
         MoneyHelper.get(level).addMoney(machine.getTeamId(), price);
-        return;
     }
 
     @Override
-    public boolean matches(Container container, Level level) {
+    public boolean matches(RecipeInput input, Level level) {
         return false;
     }
 
     @Override
-    public @NotNull ItemStack assemble(Container container, RegistryAccess registryAccess) {
+    public @NotNull ItemStack assemble(RecipeInput input, HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
     }
 
@@ -114,13 +108,8 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
     }
 
     @Override
-    public @NotNull ItemStack getResultItem(RegistryAccess registryAccess) {
+    public @NotNull ItemStack getResultItem(HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
-    }
-
-    @Override
-    public ResourceLocation getId() {
-        return id;
     }
 
     @Override
@@ -134,41 +123,32 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
     }
 
     public static class Serializer implements RecipeSerializer<SellFluidRecipe> {
+        private static final MapCodec<SellFluidRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
+            instance.group(
+                Codec.LONG.fieldOf("price").forGetter(r -> r.price),
+                FluidStack.CODEC.fieldOf("result").forGetter(r -> r.fluid),
+                Codec.STRING.optionalFieldOf("permit", "").forGetter(r -> r.permit)
+            ).apply(instance, SellFluidRecipe::new)
+        );
 
-        public SellFluidRecipe fromJson(ResourceLocation id, JsonObject json) {
-            long price = GsonHelper.getAsLong(json, "price");
-            JsonObject fluidJson = GsonHelper.getAsJsonObject(json, "result");
-            ResourceLocation fluidId = new ResourceLocation(GsonHelper.getAsString(fluidJson, "fluid"));
-            int amount = GsonHelper.getAsInt(fluidJson, "amount", 1000);
-            String permit = GsonHelper.getAsString(json, "permit", "");
+        private static final StreamCodec<RegistryFriendlyByteBuf, SellFluidRecipe> STREAM_CODEC = StreamCodec.of(
+            (buf, r) -> {
+                buf.writeLong(r.price);
+                FluidStack.STREAM_CODEC.encode(buf, r.fluid);
+                buf.writeUtf(r.permit);
+            },
+            buf -> {
+                long price = buf.readLong();
+                FluidStack fluid = FluidStack.STREAM_CODEC.decode(buf);
+                String permit = buf.readUtf();
+                return new SellFluidRecipe(price, fluid, permit);
+            }
+        );
 
-            Fluid fluid = ForgeRegistries.FLUIDS.getValue(fluidId);
-            if (fluid == null) { throw new IllegalArgumentException("Unknown fluid: " + fluidId); }
-            FluidStack result = new FluidStack(fluid, amount);
+        @Override
+        public MapCodec<SellFluidRecipe> codec() { return CODEC; }
 
-            return new SellFluidRecipe(id, price, result, permit);
-        }
-
-        public SellFluidRecipe fromNetwork(ResourceLocation id, FriendlyByteBuf buffer) {
-            long price = buffer.readLong();
-            ResourceLocation fluidId = buffer.readResourceLocation();
-            int amount = buffer.readInt();
-            String permit = buffer.readUtf();
-
-            Fluid fluid = ForgeRegistries.FLUIDS.getValue(fluidId);
-            if (fluid == null) { throw new IllegalArgumentException("Unknown fluid: " + fluidId); }
-            FluidStack result = new FluidStack(fluid, amount);
-
-            return new SellFluidRecipe(id, price, result, permit);
-        }
-
-        public void toNetwork(FriendlyByteBuf buffer, SellFluidRecipe recipe) {
-            buffer.writeLong(recipe.price);
-            ResourceLocation fluidId = ForgeRegistries.FLUIDS.getKey(recipe.fluid.getFluid());
-            if (fluidId == null) { throw new IllegalArgumentException("Unknown fluid: " + recipe.fluid.getFluid()); }
-            buffer.writeResourceLocation(fluidId);
-            buffer.writeInt(recipe.fluid.getAmount());
-            buffer.writeUtf(recipe.permit);
-        }
+        @Override
+        public StreamCodec<RegistryFriendlyByteBuf, SellFluidRecipe> streamCodec() { return STREAM_CODEC; }
     }
 }

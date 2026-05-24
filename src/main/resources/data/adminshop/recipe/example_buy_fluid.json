@@ -2,7 +2,7 @@
   "type": "adminshop:fluid_buying",
   "price": 100,
   "result": {
-    "fluid": "minecraft:water",
+    "id": "minecraft:water",
     "amount": 1000
   }
 }

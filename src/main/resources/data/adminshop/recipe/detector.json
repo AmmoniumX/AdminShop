@@ -10,10 +10,10 @@
       "item": "minecraft:stick"
     },
     "#": {
-      "item": "adminshop:shop"
+      "item": "minecraft:emerald"
     }
   },
   "result": {
-    "item": "adminshop:tablet"
+    "id": "adminshop:detector"
   }
 }

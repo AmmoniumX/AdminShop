@@ -1,48 +1,47 @@
 package com.ammonium.adminshop.network;
 
+import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.interfaces.ShopMachine;
 import com.ammonium.adminshop.money.MoneyHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public class PacketUpdateRequest implements CustomPacketPayload {
 
-public class PacketUpdateRequest {
+    public static final Type<PacketUpdateRequest> TYPE = new Type<>(
+            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "update_request"));
+    public static final StreamCodec<FriendlyByteBuf, PacketUpdateRequest> STREAM_CODEC = StreamCodec.of(
+            (buf, pkt) -> buf.writeBlockPos(pkt.pos),
+            buf -> new PacketUpdateRequest(buf.readBlockPos())
+    );
+
     private final BlockPos pos;
+
     public PacketUpdateRequest(BlockPos pos) {
         this.pos = pos;
     }
-    public PacketUpdateRequest(FriendlyByteBuf buf) {
-        this.pos = buf.readBlockPos();
-    }
-    public void toBytes(FriendlyByteBuf buf) {
-        buf.writeBlockPos(this.pos);
-    }
 
-    public boolean handle(Supplier<NetworkEvent.Context> supplier){
-        NetworkEvent.Context ctx = supplier.get();
-        ctx.enqueueWork(() -> {
-            //Client side accessed here
-            //Do NOT call client-only code though, since server needs to access this too
-
-            // Update machine's account
-            ServerPlayer player = ctx.getSender();
-            if (player != null) {
-                ServerLevel level = player.serverLevel();
-                BlockEntity be = level.getBlockEntity(pos);
-                if (be instanceof ShopMachine autoShopMachine) {
-                    autoShopMachine.sendUpdates();
-                }
-                // Update player's client cache
-                // Getting the account innately updates to the owners
-                MoneyHelper.MoneyAccount ignored = MoneyHelper.get(level).getPlayerAccount(player);
+    public static void handle(PacketUpdateRequest packet, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            ServerPlayer player = (ServerPlayer) context.player();
+            ServerLevel level = player.serverLevel();
+            BlockEntity be = level.getBlockEntity(packet.pos);
+            if (be instanceof ShopMachine autoShopMachine) {
+                autoShopMachine.sendUpdates();
             }
-
+            MoneyHelper.MoneyAccount ignored = MoneyHelper.get(level).getPlayerAccount(player);
         });
-        return true;
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

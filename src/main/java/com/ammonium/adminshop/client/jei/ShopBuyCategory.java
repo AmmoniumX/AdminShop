@@ -26,8 +26,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class ShopBuyCategory implements IRecipeCategory<BuyRecipe>{
     public static final RecipeType<BuyRecipe> SHOP_RECIPE_TYPE =
-            new RecipeType<>(new ResourceLocation(AdminShop.MODID, "jei_buy_recipe"), BuyRecipe.class);
-    private final ResourceLocation GUI = new ResourceLocation(AdminShop.MODID, "textures/gui/jei_buy_category.png");
+            new RecipeType<>(ResourceLocation.fromNamespaceAndPath(AdminShop.MODID,"jei_buy_recipe"), BuyRecipe.class);
+    private final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(AdminShop.MODID,"textures/gui/jei_buy_category.png");
     private final IDrawable background;
     private final IDrawable icon;
 

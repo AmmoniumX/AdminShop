@@ -1,9 +1,8 @@
 {
   "type": "adminshop:item_buying",
   "price": 100,
-  "permit": "gems",
   "result": {
-    "item": "minecraft:diamond",
-    "count": 16
+    "id": "minecraft:iron_ingot",
+    "count": 1
   }
 }

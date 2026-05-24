@@ -12,8 +12,10 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.selector.EntitySelector;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -111,9 +113,9 @@ public class AdminShopCommand {
 
         // Give item
         ItemStack permit = new ItemStack(ModItems.PERMIT.get());
-        CompoundTag key = permit.getOrCreateTag();
+        CompoundTag key = new CompoundTag();
         key.putString("key", tier);
-        permit.setTag(key);
+        permit.set(DataComponents.CUSTOM_DATA, CustomData.of(key));
 
         boolean success = player.getInventory().add(permit);
         if (!success) {

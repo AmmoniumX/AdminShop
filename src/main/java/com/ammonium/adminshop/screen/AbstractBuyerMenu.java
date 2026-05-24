@@ -15,7 +15,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 
 public abstract class AbstractBuyerMenu extends AbstractContainerMenu {
     private final AbstractBuyerEntity blockEntity;
@@ -40,11 +41,10 @@ public abstract class AbstractBuyerMenu extends AbstractContainerMenu {
         addPlayerInventory(inv);
         addPlayerHotbar(inv);
 
-        this.blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).ifPresent(handler -> {
-            for (int i = 0; i < SLOT_COUNT; i++) {
-                this.addSlot(new ResultSlot(handler, i, SLOT_START_X + (i * 18), 42));
-            }
-        });
+        IItemHandler handler = new InvWrapper(this.blockEntity);
+        for (int i = 0; i < SLOT_COUNT; i++) {
+            this.addSlot(new ResultSlot(handler, i, SLOT_START_X + (i * 18), 42));
+        }
 
     }
 

@@ -5,15 +5,26 @@ import com.ammonium.adminshop.blocks.interfaces.ItemBuyerMachine;
 import com.ammonium.adminshop.money.MoneyHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public class PacketSetItemBuyerRecipe implements CustomPacketPayload {
 
-public class PacketSetItemBuyerRecipe {
+    public static final Type<PacketSetItemBuyerRecipe> TYPE = new Type<>(
+            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "set_item_buyer_recipe"));
+    public static final StreamCodec<FriendlyByteBuf, PacketSetItemBuyerRecipe> STREAM_CODEC = StreamCodec.of(
+            (buf, pkt) -> {
+                buf.writeBlockPos(pkt.pos);
+                buf.writeResourceLocation(pkt.recipeId);
+            },
+            buf -> new PacketSetItemBuyerRecipe(buf.readBlockPos(), buf.readResourceLocation())
+    );
+
     private final BlockPos pos;
     private final ResourceLocation recipeId;
 
@@ -22,43 +33,26 @@ public class PacketSetItemBuyerRecipe {
         this.recipeId = recipeId;
     }
 
-    public PacketSetItemBuyerRecipe(FriendlyByteBuf buf) {
-        this.pos = buf.readBlockPos();
-        this.recipeId = buf.readResourceLocation();
-    }
-
-    public void toBytes(FriendlyByteBuf buf) {
-        buf.writeBlockPos(this.pos);
-        buf.writeResourceLocation(this.recipeId);
-    }
-
-    public boolean handle(Supplier<NetworkEvent.Context> supplier){
-        NetworkEvent.Context ctx = supplier.get();
-        ctx.enqueueWork(() -> {
-            //Client side accessed here
-            //Do NOT call client-only code though, since server needs to access this too
-
-            // Change machine's account
-            ServerPlayer player = ctx.getSender();
-
-            if (player != null) {
-                AdminShop.LOGGER.debug("Setting buyer recipe for "+this.pos+" to "+this.recipeId);
-                ServerLevel level = player.serverLevel();
-                BlockEntity blockEntity = level.getBlockEntity(this.pos);
-                if (!(blockEntity instanceof ItemBuyerMachine buyerEntity)) {
-                    AdminShop.LOGGER.error("BlockEntity at pos is not BuyerMachine");
-                    return;
-                }
-
-                // Check if player has access to the machine's account
-                if (!MoneyHelper.get(level).isMemberOfTeam(buyerEntity.getTeamId(), player)) {
-                    AdminShop.LOGGER.error("Player does not have access to this machine's account");
-                    return;
-                }
-                // Apply changes to buyerEntity
-                buyerEntity.setRecipe(this.recipeId);
+    public static void handle(PacketSetItemBuyerRecipe packet, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            ServerPlayer player = (ServerPlayer) context.player();
+            AdminShop.LOGGER.debug("Setting buyer recipe for " + packet.pos + " to " + packet.recipeId);
+            ServerLevel level = player.serverLevel();
+            BlockEntity blockEntity = level.getBlockEntity(packet.pos);
+            if (!(blockEntity instanceof ItemBuyerMachine buyerEntity)) {
+                AdminShop.LOGGER.error("BlockEntity at pos is not BuyerMachine");
+                return;
             }
+            if (!MoneyHelper.get(level).isMemberOfTeam(buyerEntity.getTeamId(), player)) {
+                AdminShop.LOGGER.error("Player does not have access to this machine's account");
+                return;
+            }
+            buyerEntity.setRecipe(packet.recipeId);
         });
-        return true;
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

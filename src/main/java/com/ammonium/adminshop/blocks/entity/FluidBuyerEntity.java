@@ -6,8 +6,8 @@ import com.ammonium.adminshop.recipes.BuyFluidRecipe;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.screen.FluidBuyerMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -19,11 +19,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -82,7 +83,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
 
     @Override
     public Optional<BuyFluidRecipe> getRecipe(Level level) {
-        return RecipeManager.getShopBuyFluidRecipe(level, recipeId);
+        return RecipeManager.getShopBuyFluidRecipe(level, recipeId).map(net.minecraft.world.item.crafting.RecipeHolder::value);
     }
 
     @Override
@@ -116,19 +117,28 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
 
         // Check for valid recipe
         BuyFluidRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
-        if (recipe == null) { return; }
+        if (recipe == null) {
+            AdminShop.LOGGER.info("[FluidBuyer] No recipe set (recipeId={})", buyerBE.recipeId);
+            return;
+        }
         boolean isValid = RecipeManager.checkForBuyFluidRecipe((ServerLevel) level, buyerBE, recipe);
-        if (!isValid) { return; }
+        if (!isValid) {
+            AdminShop.LOGGER.info("[FluidBuyer] Recipe invalid (teamId={}, price={}, permit={})", buyerBE.teamId, recipe.getPrice(), recipe.getPermit());
+            return;
+        }
 
         // Check for space
-        IFluidHandler handler = buyerBE.getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);
+        net.neoforged.neoforge.fluids.capability.IFluidHandler handler = buyerBE.getTank();
         if (handler == null) {
-            AdminShop.LOGGER.debug("Buyer has no fluid handler");
+            AdminShop.LOGGER.info("[FluidBuyer] No fluid handler");
             return;
         }
         FluidStack simulate = recipe.getFluid();
+//        AdminShop.LOGGER.info("[FluidBuyer] Tank: {}mB / {}mB", handler.getFluidInTank(0).getAmount(), handler.getTankCapacity(0));
         int filled = handler.fill(simulate, IFluidHandler.FluidAction.SIMULATE);
-        AdminShop.LOGGER.debug("Filled: " + filled + " / " + simulate.getAmount());
+//        if (filled != simulate.getAmount()) {
+//            AdminShop.LOGGER.info("[FluidBuyer] Fill simulate: filled={}/{} fluid={} (tank full or invalid)", filled, simulate.getAmount(), simulate.getDescriptionId());
+//        }
         if (filled == simulate.getAmount()) {
 
             // Buy the fluid
@@ -156,37 +166,12 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
 //        lazyItemHandler = LazyOptional.of(() -> itemHandler);
     }
 
-    @Override
-    public void invalidateCaps()  {
-        super.invalidateCaps();
-//        lazyItemHandler.invalidate();
-    }
-
-    @Override
-    public @NotNull CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-//        tag.put("inventory", this.itemHandler.serializeNBT());
-        tank.writeToNBT(tag);
-        if (this.teamId != null) {
-            tag.putUUID("team", this.teamId);
-        }
-        if (this.recipeId != null) {
-            tag.putString("recipe", this.recipeId.toString());
-        }
-        tag.putInt("tickProgress", this.tickProgress);
-        return tag;
-    }
-
     @Nullable
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
     }
-    @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
-        super.onDataPacket(net, pkt);
-        this.load(Objects.requireNonNull(pkt.getTag()));
-    }
+
     public void sendUpdates() {
         if (this.level != null) {
             this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
@@ -194,29 +179,8 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        super.handleUpdateTag(tag);
-//        this.itemHandler.deserializeNBT(tag.getCompound("inventory"));
-        this.tank.readFromNBT(tag);
-        if (tag.contains("team")) {
-            this.teamId = tag.getUUID("team");
-        }
-        if (tag.contains("recipe")) {
-            this.recipeId = new ResourceLocation(tag.getString("recipe"));
-        } else {
-//            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
-            this.recipeId = null;
-        }
-        if (tag.contains("tickProgress")) {
-            this.tickProgress = tag.getInt("tickProgress");
-        }
-//        AdminShop.LOGGER.debug("Updated FluidBuyer with targetShopItem "+((this.targetShopItem != null) ? this.targetShopItem.getFluid().getDisplayName() : "none"));
-    }
-
-    @Override
-    protected void saveAdditional(@NotNull CompoundTag tag) {
-        super.saveAdditional(tag);
-//        tank.writeToNBT(tag);
+    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.saveAdditional(tag, provider);
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
@@ -227,22 +191,19 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
     }
 
     @Override
-    public void load(@NotNull CompoundTag tag) {
-        super.load(tag);
-//        tank.readFromNBT(tag);
+    public void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.loadAdditional(tag, provider);
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }
         if (tag.contains("recipe")) {
-            this.recipeId = new ResourceLocation(tag.getString("recipe"));
+            this.recipeId = ResourceLocation.parse(tag.getString("recipe"));
         } else {
-//            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
         }
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");
         }
-//        AdminShop.LOGGER.debug("Loaded FluidBuyer with targetShopItem "+((this.targetShopItem != null) ? this.targetShopItem.getFluid().getDisplayName().getString() : "none"));
     }
 
 //    public void drops() {

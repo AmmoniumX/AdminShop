@@ -6,8 +6,8 @@ import com.ammonium.adminshop.blocks.interfaces.Detector;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.AdvancedDetectorMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -22,7 +22,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
 import java.util.UUID;
 
 public class AdvancedDetectorEntity extends BlockEntity implements Detector {
@@ -105,54 +104,30 @@ public class AdvancedDetectorEntity extends BlockEntity implements Detector {
         super.setChanged();
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        if (this.teamId != null) {
-            tag.putUUID("team", this.teamId);
-        }
-        tag.putLong("threshold", this.threshold);
-        return tag;
-    }
-
     @Nullable
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
     }
 
-    @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
-        super.onDataPacket(net, pkt);
-        this.load(Objects.requireNonNull(pkt.getTag()));
-    }
     public void sendUpdates() {
         if (this.level != null) {
             this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
         }
     }
-    @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        super.handleUpdateTag(tag);
-        if (tag.contains("team")) {
-            this.teamId = tag.getUUID("team");
-        }
-        if (tag.contains("threshold")) {
-            this.threshold = tag.getLong("threshold");
-        }
-    }
 
     @Override
-    protected void saveAdditional(@NotNull CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.saveAdditional(tag, provider);
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
         tag.putLong("threshold", this.threshold);
     }
+
     @Override
-    public void load(@NotNull CompoundTag tag) {
-        super.load(tag);
+    public void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
+        super.loadAdditional(tag, provider);
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }

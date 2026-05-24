@@ -30,11 +30,13 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.templates.FluidTank;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
+import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -43,7 +45,7 @@ import java.util.function.Function;
 
 public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     private static final ResourceLocation TEXTURE =
-            new ResourceLocation(AdminShop.MODID, "textures/gui/fluid_buyer.png");
+            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/fluid_buyer.png");
     private final BlockPos blockPos;
     private FluidBuyerEntity buyerEntity;
     private UUID teamId = null;
@@ -88,36 +90,27 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         if (slot != null) {
             ItemStack itemStack = slot.getItem();
             if (!itemStack.isEmpty()) {
-                // Get item clicked on
                 AdminShop.LOGGER.debug("Clicked on item: {}", itemStack.getDisplayName().getString());
-                // Check if item is container and has fluid
-                // Check if item is fluid container
-                itemStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).ifPresent(fluidHandler -> {
+                IFluidHandlerItem fluidHandler = itemStack.getCapability(Capabilities.FluidHandler.ITEM);
+                if (fluidHandler != null) {
                     FluidStack fluid = fluidHandler.getFluidInTank(0);
-                    // Return if container is empty
-                    if (fluid.isEmpty()) {
-                        return;
+                    if (!fluid.isEmpty()) {
+                        net.minecraft.world.item.crafting.RecipeHolder<BuyFluidRecipe> recipeHolder =
+                                RecipeManager.isBuyFluidRecipe(Minecraft.getInstance().level, fluid).orElse(null);
+                        if (recipeHolder == null) {
+                            AdminShop.LOGGER.debug("Fluid not in buy recipes: {}", fluid.getDisplayName().getString());
+                        } else if (ClientCache.hasPermit(recipeHolder.value().getPermit())) {
+                            this.buyerEntity.setRecipe(recipeHolder.id());
+                            this.recipe = recipeHolder.value();
+                            Messages.sendToServer(new PacketSetFluidBuyerRecipe(this.blockPos, recipeHolder.id()));
+                            override.set(true);
+                        } else {
+                            LocalPlayer player = Minecraft.getInstance().player;
+                            assert player != null;
+                            player.sendSystemMessage(Component.translatable("gui.adminshop.no_permit"));
+                        }
                     }
-                    // Check if fluid is in recipes
-                    BuyFluidRecipe recipe = RecipeManager.isBuyFluidRecipe(Minecraft.getInstance().level, fluid).orElse(null);
-                    // Return super if not in buy map
-                    if (recipe == null) {
-                        AdminShop.LOGGER.debug("Fluid not in buy recipes: {}", fluid.getDisplayName().getString());
-                        return;
-                    }
-                    // Set buyer target
-                    // Check if account has permit to buy item
-                    if (ClientCache.hasPermit(recipe.getPermit())) {
-                        this.buyerEntity.setRecipe(recipe.getId());
-                        this.recipe = recipe;
-                        Messages.sendToServer(new PacketSetFluidBuyerRecipe(this.blockPos, this.recipe.getId()));
-                        override.set(true);
-                    } else {
-                        LocalPlayer player = Minecraft.getInstance().player;
-                        assert player != null;
-                        player.sendSystemMessage(Component.translatable("gui.adminshop.no_permit"));
-                    }
-                });
+                }
             }
         }
         return (!override.get() && super.mouseClicked(mouseX, mouseY, button));
@@ -164,7 +157,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        renderBackground(guiGraphics);
+        renderBackground(guiGraphics, mouseX, mouseY, delta);
         super.render(guiGraphics, mouseX, mouseY, delta);
         renderTooltip(guiGraphics, mouseX, mouseY);
 

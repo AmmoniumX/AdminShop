@@ -18,7 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,11 +46,11 @@ public class MoneyHelper extends SavedData {
         ServerLevel level = serv.getLevel(Level.OVERWORLD);
         assert level != null;
         DimensionDataStorage storage = level.getDataStorage();
-        return storage.computeIfAbsent(MoneyHelper::new, MoneyHelper::new, "adminshop:accounts");
+        return storage.computeIfAbsent(new SavedData.Factory<>(MoneyHelper::new, (tag, provider) -> new MoneyHelper(tag), null), "adminshop:accounts");
     }
 
     @Override
-    public @NotNull CompoundTag save(@NotNull CompoundTag compoundTag) {
+    public @NotNull CompoundTag save(@NotNull CompoundTag compoundTag, net.minecraft.core.HolderLookup.Provider provider) {
         AdminShop.LOGGER.debug("Saving ledger: {}", ledger);
         if (ledger != null) {
             compoundTag.put(DATA_NAME, ledger);

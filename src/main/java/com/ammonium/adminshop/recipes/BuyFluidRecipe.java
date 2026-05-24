@@ -5,30 +5,28 @@ import com.ammonium.adminshop.blocks.interfaces.FluidBuyerMachine;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
 import com.ammonium.adminshop.recipes.interfaces.FluidRecipe;
-import com.google.gson.JsonObject;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.network.FriendlyByteBuf;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
 
 public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
-    private final ResourceLocation id;
     private final long price;
     private final FluidStack fluid;
     private final String permit;
 
-    public BuyFluidRecipe(ResourceLocation id, long price, FluidStack fluid, String permit) {
-        this.id = id;
+    public BuyFluidRecipe(long price, FluidStack fluid, String permit) {
         this.price = price;
         this.fluid = fluid;
         this.permit = permit != null ? permit : "";
@@ -85,20 +83,18 @@ public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
     }
 
     public FluidStack buy(ServerLevel level, FluidBuyerMachine machine) {
-        // Get account information from server side
-        // Important: we assume that this is only ever called after matches() succeeds
         MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getAccountById(machine.getTeamId());
         MoneyHelper.get(level).removeMoney(account.teamId(), price);
         return fluid.copy();
     }
 
     @Override
-    public boolean matches(Container container, Level level) {
+    public boolean matches(RecipeInput input, Level level) {
         return false;
     }
 
     @Override
-    public @NotNull ItemStack assemble(Container container, RegistryAccess registryAccess) {
+    public @NotNull ItemStack assemble(RecipeInput input, HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
     }
 
@@ -108,13 +104,8 @@ public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
     }
 
     @Override
-    public @NotNull ItemStack getResultItem(RegistryAccess registryAccess) {
+    public @NotNull ItemStack getResultItem(HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
-    }
-
-    @Override
-    public ResourceLocation getId() {
-        return id;
     }
 
     @Override
@@ -128,41 +119,32 @@ public class BuyFluidRecipe implements BuyRecipe, FluidRecipe {
     }
 
     public static class Serializer implements RecipeSerializer<BuyFluidRecipe> {
+        private static final MapCodec<BuyFluidRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
+            instance.group(
+                Codec.LONG.fieldOf("price").forGetter(r -> r.price),
+                FluidStack.CODEC.fieldOf("result").forGetter(r -> r.fluid),
+                Codec.STRING.optionalFieldOf("permit", "").forGetter(r -> r.permit)
+            ).apply(instance, BuyFluidRecipe::new)
+        );
 
-        public BuyFluidRecipe fromJson(ResourceLocation id, JsonObject json) {
-            long price = GsonHelper.getAsLong(json, "price");
-            JsonObject resultJson = GsonHelper.getAsJsonObject(json, "result");
-            ResourceLocation fluidId = new ResourceLocation(GsonHelper.getAsString(resultJson, "fluid"));
-            int amount = GsonHelper.getAsInt(resultJson, "amount", 1000);
-            String permit = GsonHelper.getAsString(json, "permit", "");
+        private static final StreamCodec<RegistryFriendlyByteBuf, BuyFluidRecipe> STREAM_CODEC = StreamCodec.of(
+            (buf, r) -> {
+                buf.writeLong(r.price);
+                FluidStack.STREAM_CODEC.encode(buf, r.fluid);
+                buf.writeUtf(r.permit);
+            },
+            buf -> {
+                long price = buf.readLong();
+                FluidStack fluid = FluidStack.STREAM_CODEC.decode(buf);
+                String permit = buf.readUtf();
+                return new BuyFluidRecipe(price, fluid, permit);
+            }
+        );
 
-            Fluid fluid = ForgeRegistries.FLUIDS.getValue(fluidId);
-            if (fluid == null) { throw new IllegalArgumentException("Unknown fluid: " + fluidId); }
-            FluidStack result = new FluidStack(fluid, amount);
+        @Override
+        public MapCodec<BuyFluidRecipe> codec() { return CODEC; }
 
-            return new BuyFluidRecipe(id, price, result, permit);
-        }
-
-        public BuyFluidRecipe fromNetwork(ResourceLocation id, FriendlyByteBuf buffer) {
-            long price = buffer.readLong();
-            ResourceLocation fluidId = buffer.readResourceLocation();
-            int amount = buffer.readInt();
-            String permit = buffer.readUtf();
-
-            Fluid fluid = ForgeRegistries.FLUIDS.getValue(fluidId);
-            if (fluid == null) { throw new IllegalArgumentException("Unknown fluid: " + fluidId); }
-            FluidStack result = new FluidStack(fluid, amount);
-
-            return new BuyFluidRecipe(id, price, result, permit);
-        }
-
-        public void toNetwork(FriendlyByteBuf buffer, BuyFluidRecipe recipe) {
-            buffer.writeLong(recipe.price);
-            ResourceLocation fluidId = ForgeRegistries.FLUIDS.getKey(recipe.fluid.getFluid());
-            if (fluidId == null) { throw new IllegalArgumentException("Unknown fluid: " + recipe.fluid.getFluid()); }
-            buffer.writeResourceLocation(fluidId);
-            buffer.writeInt(recipe.fluid.getAmount());
-            buffer.writeUtf(recipe.permit);
-        }
+        @Override
+        public StreamCodec<RegistryFriendlyByteBuf, BuyFluidRecipe> streamCodec() { return STREAM_CODEC; }
     }
 }

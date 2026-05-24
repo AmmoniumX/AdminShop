@@ -1,8 +1,8 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "I#I",
     "I@I",
+    "I#I",
     "III"
   ],
   "key": {
@@ -17,6 +17,6 @@
     }
   },
   "result": {
-    "item": "adminshop:seller"
+    "id": "adminshop:buyer_1"
   }
 }

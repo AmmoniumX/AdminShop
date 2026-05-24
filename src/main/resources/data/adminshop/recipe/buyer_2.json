@@ -7,13 +7,13 @@
   ],
   "key": {
     "I": {
-      "item": "minecraft:gold_ingot"
+      "item": "minecraft:iron_ingot"
     },
     "T": {
-      "item": "minecraft:diamond"
+      "item": "minecraft:gold_ingot"
     },
     "@": {
-      "item": "adminshop:buyer_2"
+      "item": "adminshop:buyer_1"
     },
     "#": {
       "item": "minecraft:hopper"
@@ -23,6 +23,6 @@
     }
   },
   "result": {
-    "item": "adminshop:buyer_3"
+    "id": "adminshop:buyer_2"
   }
 }

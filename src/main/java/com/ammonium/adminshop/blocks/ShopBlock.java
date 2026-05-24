@@ -33,15 +33,16 @@ import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.phys.BlockHitResult;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.network.NetworkHooks;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
 public class ShopBlock extends BaseEntityBlock {
+    public static final MapCodec<ShopBlock> CODEC = simpleCodec(p -> new ShopBlock());
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final String MESSAGE_SHOP = "message.shop";
     public static final String SCREEN_ADMINSHOP_SHOP = "screen.adminshop.shop";
@@ -60,6 +61,9 @@ public class ShopBlock extends BaseEntityBlock {
                 .pushReaction(PushReaction.BLOCK)
         );
     }
+
+    @Override
+    public MapCodec<ShopBlock> codec() { return CODEC; }
 
     @Override
     public List<ItemStack> getDrops(BlockState pState, LootParams.Builder pBuilder) {
@@ -116,9 +120,8 @@ public class ShopBlock extends BaseEntityBlock {
         };
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult trace) {
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult trace) {
         if (!level.isClientSide) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof ShopEntity) {
@@ -138,7 +141,7 @@ public class ShopBlock extends BaseEntityBlock {
                 ServerPlayer serverPlayer = (ServerPlayer) player;
                 MoneyHelper.MoneyAccount account = MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer);
                 Messages.sendToPlayer(new PacketSyncMoneyToClient(account), (ServerPlayer) player);
-                NetworkHooks.openScreen((ServerPlayer) player, containerProvider);
+                ((ServerPlayer) player).openMenu(containerProvider);
             } else {
                 throw new IllegalStateException("Our named container provider is missing!");
             }

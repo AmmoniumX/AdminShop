@@ -13,10 +13,10 @@
       "item": "minecraft:barrel"
     },
     "#": {
-      "item": "minecraft:bucket"
+      "item": "minecraft:crafting_table"
     }
   },
   "result": {
-    "item": "adminshop:fluid_seller"
+    "id": "adminshop:shop"
   }
 }

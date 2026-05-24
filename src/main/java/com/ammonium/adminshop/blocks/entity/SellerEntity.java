@@ -8,7 +8,6 @@ import com.ammonium.adminshop.screen.SellerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -28,7 +27,6 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
 import java.util.UUID;
 
 public class SellerEntity extends BlockEntity implements ItemSellerMachine {
@@ -62,6 +60,11 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
     };
 
     public ItemStackHandler getInventory() {
+        return this.inventory;
+    }
+
+    @Override
+    public IItemHandler getItemHandler() {
         return this.inventory;
     }
 
@@ -163,26 +166,42 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
         sellerBE.setTickCounter(0);
 
         // Check for valid recipe
-        SellItemRecipe recipe = RecipeManager.checkForSellItemRecipe((ServerLevel) level, sellerBE).orElse(null);
-        if (recipe == null) { return; }
-
-        // Sell the item
-//        IItemHandler handler = sellerBE.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
-        @Nullable IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, state, sellerBE, null);
-        if (handler == null) {
-            AdminShop.LOGGER.debug("Handler is null");
+        AdminShop.LOGGER.info("[Seller] Tick — teamId={}, slot0={}", sellerBE.teamId,
+                sellerBE.inventory.getStackInSlot(0).isEmpty() ? "empty" : sellerBE.inventory.getStackInSlot(0).getDisplayName().getString());
+        net.minecraft.world.item.crafting.RecipeHolder<SellItemRecipe> recipeHolder =
+                RecipeManager.checkForSellItemRecipe((ServerLevel) level, sellerBE).orElse(null);
+        if (recipeHolder == null) {
+            AdminShop.LOGGER.info("[Seller] No matching recipe found");
             return;
         }
+        SellItemRecipe recipe = recipeHolder.value();
+        AdminShop.LOGGER.info("[Seller] Matched recipe: {}", recipeHolder.id());
+
+        // Sell the item
+        @Nullable IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, state, sellerBE, null);
+        if (handler == null) {
+            AdminShop.LOGGER.info("[Seller] Handler is null — capability not registered?");
+            return;
+        }
+        AdminShop.LOGGER.info("[Seller] Handler slots={}", handler.getSlots());
         for (int slot = 0; slot < handler.getSlots(); slot++) {
-            if (!recipe.isMatchingItemStack(handler.getStackInSlot(slot))) { continue; }
+            ItemStack slotStack = handler.getStackInSlot(slot);
+            AdminShop.LOGGER.info("[Seller] Slot {}: {} x{}", slot,
+                    slotStack.isEmpty() ? "empty" : slotStack.getDisplayName().getString(), slotStack.getCount());
+            if (!recipe.isMatchingItemStack(slotStack)) {
+                AdminShop.LOGGER.info("[Seller] Slot {} doesn't match recipe", slot);
+                continue;
+            }
             ItemStack simulatedResult = handler.extractItem(slot, recipe.getCount(), true);
+            AdminShop.LOGGER.info("[Seller] Simulate extract {}: got {}", recipe.getCount(), simulatedResult.getCount());
             if (!simulatedResult.isEmpty() && simulatedResult.getCount() == recipe.getCount()) {
                 ItemStack itemResult = handler.extractItem(slot, recipe.getCount(), false);
                 recipe.sell((ServerLevel) level, sellerBE);
-                AdminShop.LOGGER.debug("Sold item: {}", itemResult);
+                AdminShop.LOGGER.info("[Seller] Sold {} x{}", itemResult.getDisplayName().getString(), itemResult.getCount());
                 return;
             }
         }
+        AdminShop.LOGGER.info("[Seller] No slot had enough items to sell");
     }
 
     @Override
@@ -213,32 +232,9 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
         return ClientboundBlockEntityDataPacket.create(this);
     }
 
-    @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider provider) {
-        super.onDataPacket(net, pkt, provider);
-        this.loadAdditional(Objects.requireNonNull(pkt.getTag()), provider);
-    }
-
     public void sendUpdates() {
         if (this.level != null) {
             this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
-        }
-    }
-
-    @Override
-    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider provider) {
-        super.handleUpdateTag(tag, provider);
-
-        // Replace ContainerHelper with this:
-        if (tag.contains("Inventory")) {
-            this.inventory.deserializeNBT(provider, tag.getCompound("Inventory"));
-        }
-
-        if (tag.contains("team")) {
-            this.teamId = tag.getUUID("team");
-        }
-        if (tag.contains("tickProgress")) {
-            this.tickProgress = tag.getInt("tickProgress");
         }
     }
 

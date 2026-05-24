@@ -5,32 +5,30 @@ import com.ammonium.adminshop.blocks.interfaces.ItemBuyerMachine;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.recipes.interfaces.BuyRecipe;
 import com.ammonium.adminshop.recipes.interfaces.ItemRecipe;
-import com.google.gson.JsonObject;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.network.FriendlyByteBuf;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.crafting.CraftingHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Optional;
 
 public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
-    private final ResourceLocation id;
     private final long price;
     private final String permit;
     private final ItemStack result;
 
-    public BuyItemRecipe(ResourceLocation id, long price, ItemStack result, String permit) {
-        this.id = id;
+    public BuyItemRecipe(long price, ItemStack result, String permit) {
         this.price = price;
         this.result = result;
         this.permit = permit != null ? permit : "";
@@ -45,12 +43,10 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
 
         // Check permit status
         if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
-//            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }
         // Check account balance
         if (account.balance() < price) {
-//            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have enough money");
             return false;
         }
         return true;
@@ -95,20 +91,18 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
     }
 
     public ItemStack buy(ServerLevel level, ItemBuyerMachine machine) {
-        // Get account information from server side
-        // Important: we assume that this is only ever called after matches() succeeds
         MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getAccountById(machine.getTeamId());
         MoneyHelper.get(level).removeMoney(account.teamId(), price);
         return result.copy();
     }
 
     @Override
-    public boolean matches(Container container, Level level) {
+    public boolean matches(RecipeInput input, Level level) {
         return false;
     }
 
     @Override
-    public @NotNull ItemStack assemble(Container container, RegistryAccess registryAccess) {
+    public @NotNull ItemStack assemble(RecipeInput input, HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
     }
 
@@ -118,13 +112,8 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
     }
 
     @Override
-    public @NotNull ItemStack getResultItem(RegistryAccess registryAccess) {
+    public @NotNull ItemStack getResultItem(HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
-    }
-
-    @Override
-    public @NotNull ResourceLocation getId() {
-        return id;
     }
 
     @Override
@@ -138,30 +127,40 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
     }
 
     public static class Serializer implements RecipeSerializer<BuyItemRecipe> {
+        public static final MapCodec<BuyItemRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
+            instance.group(
+                Codec.LONG.fieldOf("price").forGetter(r -> r.price),
+                ItemStack.CODEC.fieldOf("result").forGetter(r -> r.result),
+                Codec.STRING.optionalFieldOf("permit", "").forGetter(r -> r.permit)
+            ).apply(instance, BuyItemRecipe::new)
+        );
 
-        public @NotNull BuyItemRecipe fromJson(@NotNull ResourceLocation id, @NotNull JsonObject json) {
-            long price = GsonHelper.getAsLong(json, "price");
-            ItemStack item = CraftingHelper.getItemStack(GsonHelper.getAsJsonObject(json, "result"), true, true);
-            if (item.getCount() > item.getMaxStackSize()) {
-                AdminShop.LOGGER.warn("ItemStack count {} exceeds max stack size {} for item {}", item.getCount(), item.getMaxStackSize(), item.getItem());
-                item.setCount(item.getMaxStackSize());
+        public static final StreamCodec<RegistryFriendlyByteBuf, BuyItemRecipe> STREAM_CODEC = StreamCodec.of(
+            (buf, r) -> {
+                buf.writeLong(r.price);
+                ItemStack.STREAM_CODEC.encode(buf, r.result);
+                buf.writeUtf(r.permit);
+            },
+            buf -> {
+                long price = buf.readLong();
+                ItemStack result = ItemStack.STREAM_CODEC.decode(buf);
+                String permit = buf.readUtf();
+                return new BuyItemRecipe(price, result, permit);
             }
-            String permit = GsonHelper.getAsString(json, "permit", "");
-            return new BuyItemRecipe(id, price, item, permit);
+        );
+
+        public Serializer() {
+            AdminShop.LOGGER.info("[AdminShop] BuyItemRecipe.Serializer instantiated");
         }
 
-        public BuyItemRecipe fromNetwork(@NotNull ResourceLocation id, FriendlyByteBuf buffer) {
-            long price = buffer.readLong();
-            ItemStack result = buffer.readItem();
-            String permit = buffer.readUtf();
-            return new BuyItemRecipe(id, price, result, permit);
+        @Override
+        public MapCodec<BuyItemRecipe> codec() {
+            AdminShop.LOGGER.info("[AdminShop] BuyItemRecipe.Serializer.codec() called");
+            return CODEC;
         }
 
-        public void toNetwork(FriendlyByteBuf buffer, BuyItemRecipe pRecipe) {
-            buffer.writeLong(pRecipe.price);
-            buffer.writeItem(pRecipe.result);
-            buffer.writeUtf(pRecipe.permit);
-        }
+        @Override
+        public StreamCodec<RegistryFriendlyByteBuf, BuyItemRecipe> streamCodec() { return STREAM_CODEC; }
     }
 
 }

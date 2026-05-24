@@ -24,13 +24,18 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -94,7 +99,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks){
-        this.renderBackground(guiGraphics);
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.searchBar.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
@@ -192,10 +197,11 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                 // Get item clicked on
                 // Check if item is trade permit
                   if (itemStack.is(ModItems.PERMIT.get())) {
-                    // Check if it has a “key” value
-                    if (itemStack.hasTag()) {
-                        CompoundTag compoundTag = itemStack.getTag();
-                        if (compoundTag == null || !compoundTag.contains("key")) {
+                    // Check if it has a "key" value
+                    CustomData customData = itemStack.get(DataComponents.CUSTOM_DATA);
+                    if (customData != null) {
+                        CompoundTag compoundTag = customData.getUnsafe();
+                        if (!compoundTag.contains("key")) {
                             AdminShop.LOGGER.error("Trade permit has no key!");
                             return false;
                         }
@@ -221,10 +227,9 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                     }
                 }
                 // Check if item is fluid container
-                boolean isFluidContainer = itemStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent();
-                AdminShop.LOGGER.debug("Item is fluid container: {}", isFluidContainer);
-                if (isFluidContainer) {
-                    IFluidHandlerItem fluidHandler = itemStack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).orElse(null);
+                IFluidHandlerItem fluidHandler = itemStack.getCapability(Capabilities.FluidHandler.ITEM);
+                AdminShop.LOGGER.debug("Item is fluid container: {}", fluidHandler != null);
+                if (fluidHandler != null) {
                     // Check if fluid is in recipes
                     for (int i = 0; i < fluidHandler.getTanks(); i++) {
                         FluidStack fluidStack = fluidHandler.getFluidInTank(i);
@@ -233,15 +238,16 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                             continue;
                         }
                         // Check if fluid is in recipes
-                        SellFluidRecipe fluidRecipe = RecipeManager.isSellFluidRecipe(Minecraft.getInstance().level, fluidStack).orElse(null);
-                        if (fluidRecipe != null) {
+                        RecipeHolder<SellFluidRecipe> fluidRecipeHolder = RecipeManager.isSellFluidRecipe(Minecraft.getInstance().level, fluidStack).orElse(null);
+                        if (fluidRecipeHolder != null) {
+                            SellFluidRecipe fluidRecipe = fluidRecipeHolder.value();
                             // Attempt to sell
-                            AdminShop.LOGGER.debug("Found recipe: {}", fluidRecipe.getId());
+                            AdminShop.LOGGER.debug("Found recipe: {}", fluidRecipeHolder.id());
                             if (fluidStack.getAmount() < fluidRecipe.getFluid().getAmount()) {
                                 AdminShop.LOGGER.debug("Not enough fluid to sell");
                                 return false;
                             }
-                            Messages.sendToServer(new PacketSellRequest(this.teamId, fluidRecipe.getId(), slot.getSlotIndex(), 1));
+                            Messages.sendToServer(new PacketSellRequest(this.teamId, fluidRecipeHolder.id(), slot.getSlotIndex(), 1));
                             return false;
                         }
                     }
@@ -422,11 +428,11 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     }
 
     @Override
-    public boolean mouseScrolled(double pMouseX, double pMouseY, double pDelta) {
-        if (pDelta > 0) {
+    public boolean mouseScrolled(double pMouseX, double pMouseY, double pScrollX, double pScrollY) {
+        if (pScrollY > 0) {
             // Scroll up
             rows_passed = Math.max(0, rows_passed - 1);
-        } else if (pDelta < 0) {
+        } else if (pScrollY < 0) {
             // Scroll down
             int shopSize = searchResults.size();
             int max_rows_passed = (int) Math.max(Math.ceil(shopSize / (double) NUM_COLS) - 4, 0);
@@ -436,7 +442,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         int relY = (this.height - this.imageHeight) / 2;
         createShopButtons(this.isBuy, relX, relY);
         refreshShopButtons();
-        return super.mouseScrolled(pMouseX, pMouseY, pDelta);
+        return super.mouseScrolled(pMouseX, pMouseY, pScrollX, pScrollY);
     }
 
     private void attemptTransaction(RecipeHolder<ShopRecipe> recipe, int quantity){

@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "T@T",
+    "I#I",
+    "INI"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:gold_ingot"
+    },
+    "T": {
+      "item": "minecraft:diamond"
+    },
+    "@": {
+      "item": "adminshop:buyer_2"
+    },
+    "#": {
+      "item": "minecraft:hopper"
+    },
+    "N": {
+      "item": "minecraft:barrel"
+    }
+  },
+  "result": {
+    "id": "adminshop:buyer_3"
+  }
+}

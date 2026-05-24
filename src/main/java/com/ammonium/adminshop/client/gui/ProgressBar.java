@@ -15,7 +15,7 @@ public class ProgressBar extends AbstractWidget {
     private static final int WIDTH = 22;
     private static final int HEIGHT = 16;
     private static final ResourceLocation TEXTURE =
-            new ResourceLocation(AdminShop.MODID, "textures/gui/progress_right.png");
+            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/progress_right.png");
 
     private int progress = 0;
 
@@ -34,11 +34,6 @@ public class ProgressBar extends AbstractWidget {
     @Override
     public void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
         return;
-    }
-
-    @Override
-    public void render(GuiGraphics guiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        super.render(guiGraphics, pMouseX, pMouseY, pPartialTick);
     }
 
     @Override

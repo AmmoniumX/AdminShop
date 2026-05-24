@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class ScrollButton extends Button {
 
-    private final ResourceLocation GUI = new ResourceLocation(AdminShop.MODID, "textures/gui/shop_gui.png");
+    private final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/shop_gui.png");
     private boolean isUp;
 
     public ScrollButton(int x, int y, boolean isUp, OnPress listener){
@@ -20,7 +20,7 @@ public class ScrollButton extends Button {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
         //super.renderButton(matrix, mouseX, mouseY, partialTicks);
         if(!visible) {
             return;

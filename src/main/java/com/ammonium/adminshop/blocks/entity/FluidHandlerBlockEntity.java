@@ -41,4 +41,11 @@ public abstract class FluidHandlerBlockEntity extends BlockEntity {
         return this.tank;
     }
 
+    @Override
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
+        CompoundTag tag = new CompoundTag();
+        saveAdditional(tag, provider);
+        return tag;
+    }
+
 }

@@ -1,8 +1,8 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "I@I",
     "I#I",
+    "I@I",
     "III"
   ],
   "key": {
@@ -13,10 +13,10 @@
       "item": "minecraft:barrel"
     },
     "#": {
-      "item": "minecraft:hopper"
+      "item": "minecraft:bucket"
     }
   },
   "result": {
-    "item": "adminshop:buyer_1"
+    "id": "adminshop:fluid_seller"
   }
 }
