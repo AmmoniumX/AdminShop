@@ -1,0 +1,48 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="${mod_authors}"
+description='''
+Player-accessible shop configurable by modpack developers and server owners!
+Can buy and sell Items and Fluids
+'''
+
+[[dependencies.adminshop]]
+    modId="neoforge"
+    type="required"
+    versionRange="${neo_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.adminshop]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.adminshop]]
+    modId="patchouli"
+    type="required"
+    versionRange="[1.21.1-92-NEOFORGE,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.adminshop]]
+    modId="jei"
+    type="optional"
+    versionRange="[19.27.0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.adminshop]]
+    modId="ftbteams"
+    type="required"
+    versionRange="[2101.1.9,)"
+    ordering="NONE"
+    side="BOTH"
