@@ -118,19 +118,19 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         // Check for valid recipe
         BuyFluidRecipe recipe = buyerBE.getRecipe((ServerLevel) level).orElse(null);
         if (recipe == null) {
-            AdminShop.LOGGER.info("[FluidBuyer] No recipe set (recipeId={})", buyerBE.recipeId);
+            AdminShop.LOGGER.debug("[FluidBuyer] No recipe set (recipeId={})", buyerBE.recipeId);
             return;
         }
         boolean isValid = RecipeManager.checkForBuyFluidRecipe((ServerLevel) level, buyerBE, recipe);
         if (!isValid) {
-            AdminShop.LOGGER.info("[FluidBuyer] Recipe invalid (teamId={}, price={}, permit={})", buyerBE.teamId, recipe.getPrice(), recipe.getPermit());
+            AdminShop.LOGGER.debug("[FluidBuyer] Recipe invalid (teamId={}, price={}, permit={})", buyerBE.teamId, recipe.getPrice(), recipe.getPermit());
             return;
         }
 
         // Check for space
         net.neoforged.neoforge.fluids.capability.IFluidHandler handler = buyerBE.getTank();
         if (handler == null) {
-            AdminShop.LOGGER.info("[FluidBuyer] No fluid handler");
+            AdminShop.LOGGER.debug("[FluidBuyer] No fluid handler");
             return;
         }
         FluidStack simulate = recipe.getFluid();

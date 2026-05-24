@@ -59,7 +59,7 @@ public class PacketBuyRequest implements CustomPacketPayload {
 
             RecipeHolder<?> rawHolder = level.getRecipeManager().byKey(packet.recipeId).orElse(null);
             if (rawHolder == null || !(rawHolder.value() instanceof BuyRecipe recipe)) {
-                AdminShop.LOGGER.error("Not a valid BuyRecipe: {}", packet.recipeId);
+                AdminShop.LOGGER.debug("Not a valid BuyRecipe: {}", packet.recipeId);
                 return;
             }
 
@@ -71,7 +71,7 @@ public class PacketBuyRequest implements CustomPacketPayload {
             }
 
             if (!MoneyHelper.get(level).hasPermit(packet.teamId, recipe.getPermit())) {
-                AdminShop.LOGGER.error("Account {} does not have permit {}", packet.teamId, recipe.getPermit());
+                AdminShop.LOGGER.debug("Account {} does not have permit {}", packet.teamId, recipe.getPermit());
                 player.sendSystemMessage(Component.translatable("message.adminshop.no_permit", recipe.getPermit()));
                 return;
             }
@@ -81,7 +81,7 @@ public class PacketBuyRequest implements CustomPacketPayload {
             } else if (recipe instanceof BuyFluidRecipe fluidRecipe) {
                 packet.buyFluidTransaction(player, level, fluidRecipe, packet.quantity);
             } else {
-                AdminShop.LOGGER.error("Not a valid BuyRecipe: {}", packet.recipeId);
+                AdminShop.LOGGER.debug("Not a valid BuyRecipe: {}", packet.recipeId);
             }
         });
     }
@@ -117,7 +117,7 @@ public class PacketBuyRequest implements CustomPacketPayload {
         int fillableContainerIdx = getFillableFluidContainer(playerInventoryHandler, toInsert.getFluid(), quantity);
         if (fillableContainerIdx == -1) {
             player.sendSystemMessage(Component.translatable("message.adminshop.no_container"));
-            AdminShop.LOGGER.error("No container found for fluid.");
+            AdminShop.LOGGER.debug("No container found for fluid.");
             return;
         }
         ItemStack container = playerInventoryHandler.getStackInSlot(fillableContainerIdx);
@@ -133,12 +133,12 @@ public class PacketBuyRequest implements CustomPacketPayload {
         }
         IFluidHandlerItem containerHandler = container.getCapability(Capabilities.FluidHandler.ITEM);
         if (containerHandler == null) {
-            AdminShop.LOGGER.error("No fluid handler found for container");
+            AdminShop.LOGGER.debug("No fluid handler found for container");
             return;
         }
         int filledQuantity = containerHandler.fill(toInsert, IFluidHandler.FluidAction.SIMULATE);
         if (filledQuantity != quantity) {
-            AdminShop.LOGGER.error("Not enough space in container for fluid: {} / {}", filledQuantity, quantity);
+            AdminShop.LOGGER.debug("Not enough space in container for fluid: {} / {}", filledQuantity, quantity);
             return;
         }
         toInsert.setAmount(filledQuantity);
@@ -149,7 +149,7 @@ public class PacketBuyRequest implements CustomPacketPayload {
             int filled = containerHandler.fill(toInsert, IFluidHandler.FluidAction.EXECUTE);
             AdminShop.LOGGER.debug("Filled with {} mb", filled);
             ItemStack newContainer = containerHandler.getContainer();
-            AdminShop.LOGGER.debug("New container: " + newContainer);
+            AdminShop.LOGGER.debug("New container: {}", newContainer);
             if (!newContainer.equals(container)) {
                 AdminShop.LOGGER.debug("Removing old container");
                 playerInventoryHandler.extractItem(fillableContainerIdx, 1, false);
@@ -157,7 +157,7 @@ public class PacketBuyRequest implements CustomPacketPayload {
                 ItemStack inserted = ItemHandlerHelper.insertItemStacked(playerInventoryHandler, newContainer, false);
                 if (inserted.getCount() != 0) {
                     player.sendSystemMessage(Component.translatable("message.adminshop.not_enough_space"));
-                    AdminShop.LOGGER.error("Error inserting fluid container: {}", inserted.getCount());
+                    AdminShop.LOGGER.debug("Error inserting fluid container: {}", inserted.getCount());
                 }
             }
         } else {
