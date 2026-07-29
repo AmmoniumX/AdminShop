@@ -10,6 +10,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
@@ -38,6 +40,8 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 public class BasicDetector extends BaseEntityBlock {
     public static final MapCodec<BasicDetector> CODEC = simpleCodec(p -> new BasicDetector());
@@ -129,8 +133,20 @@ public class BasicDetector extends BaseEntityBlock {
 
             if(pLevel.getBlockEntity(pPos) instanceof BasicDetectorEntity basicDetectorBE
                 && pPlayer instanceof ServerPlayer serverPlayer) {
+                @Nullable UUID teamId = basicDetectorBE.getTeamId();
+                if (teamId == null) {
+                    AdminShop.LOGGER.debug("Claiming unclaimed machine for {}", serverPlayer.getName().getString());
+                    @Nullable UUID newTeamId = MoneyHelper.get(serverLevel).getTeamUUIDForPlayer(serverPlayer);
+                    if (newTeamId == null) {
+                        AdminShop.LOGGER.debug("Could not find FTB team for {}", serverPlayer.getName().getString());
+                    } else {
+                        basicDetectorBE.setTeamId(newTeamId);
+                        pPlayer.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0f, 1.0f);
+                        pPlayer.sendSystemMessage(Component.translatable("message.adminshop.claimed_machine"));
+                        serverPlayer.openMenu(basicDetectorBE, pPos);
+                    }
 
-                if (MoneyHelper.get(serverLevel).isMemberOfTeam(basicDetectorBE.getTeamId(), serverPlayer)) {
+                } else if (MoneyHelper.get(serverLevel).isMemberOfTeam(teamId, serverPlayer)) {
                     // Open menu
                     AdminShop.LOGGER.debug("Opening screen");
                     serverPlayer.openMenu(basicDetectorBE, pPos);

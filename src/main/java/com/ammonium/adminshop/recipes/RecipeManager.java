@@ -11,6 +11,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -71,7 +72,7 @@ public class RecipeManager {
                 .findFirst();
     }
 
-    public static Optional<BuyItemRecipe> getShopBuyItemRecipe(Level level, ResourceLocation id) {
+    public static Optional<BuyItemRecipe> getShopBuyItemRecipe(Level level, @Nullable ResourceLocation id) {
         if (id == null) { return Optional.empty(); }
         return level.getRecipeManager().byKey(id)
                 .map(RecipeHolder::value)

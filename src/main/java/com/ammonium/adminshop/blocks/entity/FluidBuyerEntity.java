@@ -32,7 +32,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
     private static final int TANK_CAPACITY = 64000;
     public static final int TICK_COOLDOWN = 20;
 
-    private UUID teamId = null;
+    private @Nullable UUID teamId = null;
     private ResourceLocation recipeId = null;
     private int tickCounter = 0;  // unsynced
     private int tickProgress = 0; // synced
@@ -72,7 +72,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
     }
 
     @Override
-    public UUID getTeamId() {
+    public @Nullable UUID getTeamId() {
         return teamId;
     }
 

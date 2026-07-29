@@ -43,8 +43,8 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     public final int TICK_COOLDOWN;
     private final NonNullList<ItemStack> stacks;
 
-    private UUID teamId = null;
-    private ResourceLocation recipeId = null;
+    private @Nullable UUID teamId = null;
+    private @Nullable ResourceLocation recipeId = null;
     private int tickCounter = 0;   // unsynced
     private int tickProgress = 0;  // synced
 
@@ -94,7 +94,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     @Override
-    public UUID getTeamId() {
+    public @Nullable UUID getTeamId() {
         return teamId;
     }
 

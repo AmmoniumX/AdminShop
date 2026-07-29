@@ -30,7 +30,7 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
     public static final int TICK_COOLDOWN = 20;
     private static final int TANK_CAPACITY = 64000;
 
-    private UUID teamId = null;
+    private @Nullable UUID teamId = null;
     private int tickCounter = 0; // unsynced
     private int tickProgress = 0; // synced
 
@@ -68,7 +68,7 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
     }
 
     @Override
-    public UUID getTeamId() {
+    public @Nullable UUID getTeamId() {
         return teamId;
     }
 

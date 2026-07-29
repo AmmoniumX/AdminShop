@@ -68,7 +68,7 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
         return this.inventory;
     }
 
-    private UUID teamId = null;
+    private @Nullable UUID teamId = null;
     private int tickCounter = 0;    // unsynced
     private int tickProgress = 0;   // synced
 
@@ -105,7 +105,7 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
     }
 
     @Override
-    public UUID getTeamId() {
+    public @Nullable UUID getTeamId() {
         return teamId;
     }
 

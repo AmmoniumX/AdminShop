@@ -315,4 +315,14 @@ public class MoneyHelper extends SavedData {
         Team team = oTeam.get();
         return team.getMembers().contains(player.getUUID());
     }
+
+    public @Nullable UUID getTeamUUIDForPlayer(ServerPlayer player) {
+        TeamManager manager = FTBTeamsAPI.api().getManager();
+        Optional<Team> oTeam = manager.getTeamForPlayer(player);
+        if (oTeam.isEmpty()) {
+            AdminShop.LOGGER.debug("Team not found for player: {}", player.getName().getString());
+            return null;
+        }
+        return oTeam.get().getId();
+    }
 }

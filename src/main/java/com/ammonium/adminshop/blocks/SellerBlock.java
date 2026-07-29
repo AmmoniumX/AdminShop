@@ -1,5 +1,6 @@
 package com.ammonium.adminshop.blocks;
 
+import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
 import com.ammonium.adminshop.blocks.entity.SellerEntity;
 import com.ammonium.adminshop.money.MoneyHelper;
@@ -8,6 +9,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
@@ -35,6 +38,8 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 public class SellerBlock extends BaseEntityBlock {
     public static final MapCodec<SellerBlock> CODEC = simpleCodec(p -> new SellerBlock());
@@ -76,13 +81,24 @@ public class SellerBlock extends BaseEntityBlock {
         if (!pLevel.isClientSide()) {
             assert pLevel instanceof ServerLevel;
             ServerLevel serverLevel = (ServerLevel) pLevel;
-            if(pLevel.getBlockEntity(pPos) instanceof SellerEntity buyerEntity
+            if(pLevel.getBlockEntity(pPos) instanceof SellerEntity sellerEntity
                 && pPlayer instanceof ServerPlayer serverPlayer) {
-//                AdminShop.LOGGER.debug("Looking for account: "+buyerEntity.getAccount().toString());
-                if (MoneyHelper.get(serverLevel).isMemberOfTeam(buyerEntity.getTeamId(), serverPlayer)) {
-//                    AdminShop.LOGGER.debug("Found account");
+                @Nullable UUID teamId = sellerEntity.getTeamId();
+                if (teamId == null) {
+                    AdminShop.LOGGER.debug("Claiming unclaimed machine for {}", serverPlayer.getName().getString());
+                    @Nullable UUID newTeamId = MoneyHelper.get(serverLevel).getTeamUUIDForPlayer(serverPlayer);
+                    if (newTeamId == null) {
+                        AdminShop.LOGGER.debug("Could not find FTB team for {}", serverPlayer.getName().getString());
+                    } else {
+                        sellerEntity.setTeamId(newTeamId);
+                        pPlayer.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0f, 1.0f);
+                        pPlayer.sendSystemMessage(Component.translatable("message.adminshop.claimed_machine"));
+                        serverPlayer.openMenu(sellerEntity, pPos);
+                    }
+
+                } else if (MoneyHelper.get(serverLevel).isMemberOfTeam(teamId, serverPlayer)) {
                     // Open menu
-                    serverPlayer.openMenu(buyerEntity, pPos);
+                    serverPlayer.openMenu(sellerEntity, pPos);
                 } else {
                     // No access
                     pPlayer.sendSystemMessage(Component.translatable("message.adminshop.no_access"));

@@ -26,7 +26,7 @@ import java.util.UUID;
 
 public class AdvancedDetectorEntity extends BlockEntity implements Detector {
     private int tickCounter = 0;
-    private UUID teamId = null;
+    private @Nullable UUID teamId = null;
     private long threshold = 0;
     private int signal = 0;
 
@@ -59,7 +59,7 @@ public class AdvancedDetectorEntity extends BlockEntity implements Detector {
     }
 
     @Override
-    public UUID getTeamId() {
+    public @Nullable UUID getTeamId() {
         return teamId;
     }
 

@@ -9,6 +9,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.MenuProvider;
@@ -95,15 +97,28 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
             AdminShop.LOGGER.debug("Saving account");
             if(level.getBlockEntity(pos) instanceof AbstractBuyerEntity buyerEntity
                 && player instanceof ServerPlayer serverPlayer) {
-                if (MoneyHelper.get(serverLevel).isMemberOfTeam(buyerEntity.getTeamId(), serverPlayer)) {
-                    AdminShop.LOGGER.debug("Found account: {}", buyerEntity.getTeamId());
+                @Nullable UUID teamId = buyerEntity.getTeamId();
+                if (teamId == null) {
+                    AdminShop.LOGGER.debug("Claiming unclaimed machine for {}", serverPlayer.getName().getString());
+                    @Nullable UUID newTeamId = MoneyHelper.get(serverLevel).getTeamUUIDForPlayer(serverPlayer);
+                    if (newTeamId == null) {
+                        AdminShop.LOGGER.debug("Could not find FTB team for {}", serverPlayer.getName().getString());
+                    } else {
+                        buyerEntity.setTeamId(newTeamId);
+                        player.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0f, 1.0f);
+                        player.sendSystemMessage(Component.translatable("message.adminshop.claimed_machine"));
+                        serverPlayer.openMenu(buyerEntity, pos);
+                    }
+
+                } else if (MoneyHelper.get(serverLevel).isMemberOfTeam(teamId, serverPlayer)) {
+                    AdminShop.LOGGER.debug("Found account: {}", teamId);
                     // Open menu
                     serverPlayer.openMenu(buyerEntity, pos);
                 } else {
                     AdminShop.LOGGER.debug("Account not found");
                     // Wrong user
                     player.sendSystemMessage(Component.translatable("message.adminshop.no_access"));
-                    AdminShop.LOGGER.debug("You doesn't have access to this machine's account!");
+                    AdminShop.LOGGER.debug("You don't have access to this machine's account!");
                 }
 
             } else {

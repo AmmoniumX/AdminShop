@@ -54,6 +54,7 @@
   "message.adminshop.permits.empty": "Your account has not unlocked any permits yet.",
   "message.adminshop.not_enough_space": "Not enough inventory space for item!",
   "message.adminshop.not_enough_money": "Not enough money in account!",
+  "message.adminshop.claimed_machine": "You have claimed this machine as yours!",
   "button.adminshop.confirm": "Confirm",
   "container.adminshop.seller": "Auto-Seller",
   "gui.adminshop.no_permit": "You don't have the necessary permit!",
