@@ -44,8 +44,9 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     public final int TICK_COOLDOWN;
     private final NonNullList<ItemStack> stacks;
 
-    private UUID teamId = null;
-    private ResourceLocation recipeId = null;
+    private @Nullable UUID teamId = null;
+    private @Nullable ResourceLocation recipeId = null;
+    private boolean lockedRecipe = false;
     private int tickCounter = 0;   // unsynced
     private int tickProgress = 0;  // synced
 
@@ -95,12 +96,33 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     @Override
-    public UUID getTeamId() {
+    public @Nullable UUID getTeamId() {
         return teamId;
     }
 
     public void setRecipe(ResourceLocation recipeId) {
+        if (this.lockedRecipe) { return; }
         this.recipeId = recipeId;
+        this.setChanged();
+        this.sendUpdates();
+    }
+
+    /**
+     * Sets the recipe regardless of {@link #isLockedRecipe()}. Only meant to be called
+     * on behalf of a creative-mode player configuring the machine.
+     */
+    public void forceSetRecipe(ResourceLocation recipeId) {
+        this.recipeId = recipeId;
+        this.setChanged();
+        this.sendUpdates();
+    }
+
+    public boolean isLockedRecipe() {
+        return lockedRecipe;
+    }
+
+    public void setLockedRecipe(boolean lockedRecipe) {
+        this.lockedRecipe = lockedRecipe;
         this.setChanged();
         this.sendUpdates();
     }
@@ -234,6 +256,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putBoolean("lockedRecipe", this.lockedRecipe);
         tag.putInt("tickProgress", this.tickProgress);
         return tag;
     }
@@ -269,6 +292,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
 //            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
         }
+        this.lockedRecipe = tag.getBoolean("lockedRecipe");
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");
         }
@@ -284,6 +308,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putBoolean("lockedRecipe", this.lockedRecipe);
         tag.putInt("tickProgress", this.tickProgress);
     }
 
@@ -300,6 +325,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
 //            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
         }
+        this.lockedRecipe = tag.getBoolean("lockedRecipe");
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");
         }

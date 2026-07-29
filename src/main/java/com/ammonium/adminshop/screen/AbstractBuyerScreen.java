@@ -75,6 +75,20 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
                     AdminShop.LOGGER.debug("Item not in buy recipes: {}", itemStack.getDisplayName().getString());
                     return super.mouseClicked(mouseX, mouseY, button);
                 }
+                LocalPlayer clickingPlayer = Minecraft.getInstance().player;
+                assert clickingPlayer != null;
+                if (this.buyerEntity.isLockedRecipe()) {
+                    if (!clickingPlayer.isCreative()) {
+                        // Recipe is locked server-side; don't touch the client's view of the target item.
+                        clickingPlayer.sendSystemMessage(Component.translatable("message.adminshop.recipe_locked"));
+                        return false;
+                    }
+                    // Creative players can still configure a locked machine's recipe.
+                    this.buyerEntity.forceSetRecipe(recipe.getId());
+                    this.recipe = recipe;
+                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, recipe.getId()));
+                    return false;
+                }
                 // Set buyer target
                 // Check if account has permit to buy item
                 if (ClientCache.hasPermit(recipe.getPermit())) {
@@ -140,10 +154,12 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
         super.renderLabels(guiGraphics, mouseX, mouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
-        MoneyHelper.MoneyAccount account = ClientCache.getAccount();
-        if (account != null) {
-            name = account.name();
-            accAvailable = true;
+        if (this.teamId != null) {
+            MoneyHelper.MoneyAccount account = ClientCache.getAccount();
+            if (account != null) {
+                name = account.name();
+                accAvailable = true;
+            }
         }
         int color = accAvailable ? 0xffffff : 0xff0000;
         guiGraphics.drawString(font, name.getString(), 7,62,color);

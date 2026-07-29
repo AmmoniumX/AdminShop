@@ -27,7 +27,7 @@ import java.util.UUID;
 
 public class BasicDetectorEntity extends BlockEntity implements Detector {
     private int tickCounter = 0;
-    private UUID teamId = null;
+    private @Nullable UUID teamId = null;
     private long threshold = 0;
     public BasicDetectorEntity(BlockPos pPos, BlockState pBlockState) {
         super(ModBlockEntities.BASIC_DETECTOR.get(), pPos, pBlockState);
@@ -39,7 +39,7 @@ public class BasicDetectorEntity extends BlockEntity implements Detector {
     }
 
     @Override
-    public UUID getTeamId() {
+    public @Nullable UUID getTeamId() {
         return teamId;
     }
 

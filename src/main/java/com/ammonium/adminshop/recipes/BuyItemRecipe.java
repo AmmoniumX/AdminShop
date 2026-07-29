@@ -44,7 +44,7 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
         }
 
         // Check permit status
-        if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
+        if ((!permit.isEmpty()) && !machine.bypassesPermits() && (!MoneyHelper.hasPermit(account, permit))) {
 //            AdminShop.LOGGER.debug("ShopBuyItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }

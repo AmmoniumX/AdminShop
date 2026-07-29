@@ -33,6 +33,12 @@ public class ModBlocks {
     public static final RegistryObject<Block> SELLER = registerLoreBlock("seller",
             SellerBlock::new, "Automatically sells once every 20 ticks");
 
+    public static final RegistryObject<Block> CREATIVE_BUYER = registerLoreBlock("creative_buyer",
+            CreativeBuyerBlock::new, "Set its recipe in creative mode, then claim it in survival to buy with that recipe, bypassing permits");
+
+    public static final RegistryObject<Block> CREATIVE_SELLER = registerLoreBlock("creative_seller",
+            CreativeSellerBlock::new, "Set its recipe in creative mode, then claim it in survival to sell with that recipe, bypassing permits");
+
     public static final RegistryObject<Block> FLUID_BUYER = registerLoreBlock("fluid_buyer",
             FluidBuyerBlock::new, "Automatically buys once every 20 ticks");
 

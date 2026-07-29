@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Containers;
@@ -24,6 +25,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
@@ -39,12 +41,17 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
     private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
     private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
 
-    private UUID teamId = null;
+    private @Nullable UUID teamId = null;
+    private @Nullable ResourceLocation lockedRecipeId = null;
     private int tickCounter = 0;    // unsynced
     private int tickProgress = 0;   // synced
 
     public SellerEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.SELLER.get(), pWorldPosition, pBlockState);
+    }
+
+    protected SellerEntity(BlockPos pWorldPosition, BlockState pBlockState, BlockEntityType<? extends SellerEntity> type) {
+        super(type, pWorldPosition, pBlockState);
     }
 
     public int getTickCounter() {
@@ -76,8 +83,18 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
     }
 
     @Override
-    public UUID getTeamId() {
+    public @Nullable UUID getTeamId() {
         return teamId;
+    }
+
+    public @Nullable ResourceLocation getLockedRecipeId() {
+        return lockedRecipeId;
+    }
+
+    public void setLockedRecipeId(@Nullable ResourceLocation lockedRecipeId) {
+        this.lockedRecipeId = lockedRecipeId;
+        this.setChanged();
+        this.sendUpdates();
     }
 
     @Override
@@ -201,6 +218,9 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        if (this.lockedRecipeId != null) {
+            tag.putString("lockedRecipe", this.lockedRecipeId.toString());
+        }
         tag.putInt("tickProgress", this.tickProgress);
         return tag;
     }
@@ -229,6 +249,11 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
         }
+        if (tag.contains("lockedRecipe")) {
+            this.lockedRecipeId = new ResourceLocation(tag.getString("lockedRecipe"));
+        } else {
+            this.lockedRecipeId = null;
+        }
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");
         }
@@ -241,6 +266,9 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        if (this.lockedRecipeId != null) {
+            tag.putString("lockedRecipe", this.lockedRecipeId.toString());
+        }
         tag.putInt("tickProgress", this.tickProgress);
     }
 
@@ -250,6 +278,11 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
         ContainerHelper.loadAllItems(tag, this.stacks);
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
+        }
+        if (tag.contains("lockedRecipe")) {
+            this.lockedRecipeId = new ResourceLocation(tag.getString("lockedRecipe"));
+        } else {
+            this.lockedRecipeId = null;
         }
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");
@@ -274,7 +307,7 @@ public class SellerEntity extends BaseContainerBlockEntity implements ItemSeller
             AdminShop.LOGGER.debug("Level is null");
             return false;
         }
-        return RecipeManager.canPlaceItemInSeller(level, itemStack);
+        return RecipeManager.canPlaceItemInSeller(level, itemStack, this.lockedRecipeId);
     }
 
     @Override

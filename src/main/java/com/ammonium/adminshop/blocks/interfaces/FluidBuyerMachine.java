@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface FluidBuyerMachine extends ShopMachine {
     void setRecipe(ResourceLocation recipeId);
+    void forceSetRecipe(ResourceLocation recipeId);
     Optional<BuyFluidRecipe> getRecipe(Level level);
     int getProgress();
 }

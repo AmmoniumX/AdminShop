@@ -11,9 +11,11 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 
@@ -27,7 +29,11 @@ public class SellerMenu extends AbstractContainerMenu {
     }
 
     public SellerMenu(int windowId, Inventory inv, BlockEntity entity) {
-        super(ModMenuTypes.SELLER_MENU.get(), windowId);
+        this(ModMenuTypes.SELLER_MENU.get(), windowId, inv, entity);
+    }
+
+    protected SellerMenu(MenuType<? extends SellerMenu> menuType, int windowId, Inventory inv, BlockEntity entity) {
+        super(menuType, windowId);
         checkContainerSize(inv, 1);
         this.blockEntity = ((SellerEntity) entity);
         this.level = inv.player.level();
@@ -39,6 +45,10 @@ public class SellerMenu extends AbstractContainerMenu {
             this.addSlot(new ShopItemInputSlot(level, handler, 0, 55, 30));
         });
 
+    }
+
+    protected Block getBlockType() {
+        return ModBlocks.SELLER.get();
     }
 
     public SellerEntity getBlockEntity() {
@@ -115,7 +125,15 @@ public class SellerMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player pPlayer) {
         return stillValid(ContainerLevelAccess.create(level, blockEntity.getBlockPos()),
-                pPlayer, ModBlocks.SELLER.get());
+                pPlayer, getBlockType());
+    }
+
+    public int getTeInventoryFirstSlotIndex() {
+        return TE_INVENTORY_FIRST_SLOT_INDEX;
+    }
+
+    public int getTeInventorySlotCount() {
+        return TE_INVENTORY_SLOT_COUNT;
     }
 
     private void addPlayerInventory(Inventory playerInventory) {

@@ -16,6 +16,14 @@ public class ModBlockEntities {
             BLOCK_ENTITIES.register("seller", () -> BlockEntityType.Builder.of(SellerEntity::new,
                     ModBlocks.SELLER.get()).build(null));
 
+    public static final RegistryObject<BlockEntityType<CreativeBuyerEntity>> CREATIVE_BUYER =
+            BLOCK_ENTITIES.register("creative_buyer", () -> BlockEntityType.Builder.of(CreativeBuyerEntity::new,
+                    ModBlocks.CREATIVE_BUYER.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<CreativeSellerEntity>> CREATIVE_SELLER =
+            BLOCK_ENTITIES.register("creative_seller", () -> BlockEntityType.Builder.of(CreativeSellerEntity::new,
+                    ModBlocks.CREATIVE_SELLER.get()).build(null));
+
     public static final RegistryObject<BlockEntityType<ShopEntity>> SHOP =
             BLOCK_ENTITIES.register("shop", () -> BlockEntityType.Builder.of(ShopEntity::new,
                     ModBlocks.SHOP.get()).build(null));

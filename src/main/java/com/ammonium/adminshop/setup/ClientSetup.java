@@ -15,8 +15,8 @@ public class ClientSetup {
     public static void init(FMLClientSetupEvent event){
         event.enqueueWork(() -> {
             MenuScreens.register(ModMenuTypes.SHOP_MENU.get(), ShopScreen::new);
-            MenuScreens.<SellerMenu, SellerScreen>register(ModMenuTypes.SELLER_MENU.get(), (SellerMenu menu,
-            Inventory playerInventory, Component title) -> new SellerScreen(menu, playerInventory, title,
+            MenuScreens.<SellerMenu, SellerScreen<SellerMenu>>register(ModMenuTypes.SELLER_MENU.get(), (SellerMenu menu,
+            Inventory playerInventory, Component title) -> new SellerScreen<>(menu, playerInventory, title,
                     menu.getBlockEntity().getBlockPos()));
             MenuScreens.<BuyerMenu1, BuyerScreen1>register(ModMenuTypes.BUYER_1_MENU.get(), (BuyerMenu1 menu,
                                                                                              Inventory playerInventory, Component title) -> new BuyerScreen1(menu, playerInventory, title,
@@ -32,6 +32,12 @@ public class ClientSetup {
                     menu.getBlockEntity().getBlockPos()));
             MenuScreens.<FluidSellerMenu, FluidSellerScreen>register(ModMenuTypes.FLUID_SELLER_MENU.get(), (FluidSellerMenu menu,
             Inventory playerInventory, Component title) -> new FluidSellerScreen(menu, playerInventory, title,
+                    menu.getBlockEntity().getBlockPos()));
+            MenuScreens.<CreativeBuyerMenu, AbstractBuyerScreen<CreativeBuyerMenu>>register(ModMenuTypes.CREATIVE_BUYER_MENU.get(), (CreativeBuyerMenu menu,
+            Inventory playerInventory, Component title) -> new AbstractBuyerScreen<>("textures/gui/buyer_3.png", menu, playerInventory, title,
+                    menu.getBlockEntity().getBlockPos()));
+            MenuScreens.<CreativeSellerMenu, SellerScreen<CreativeSellerMenu>>register(ModMenuTypes.CREATIVE_SELLER_MENU.get(), (CreativeSellerMenu menu,
+            Inventory playerInventory, Component title) -> new SellerScreen<>(menu, playerInventory, title,
                     menu.getBlockEntity().getBlockPos()));
             MenuScreens.<BasicDetectorMenu, BasicDetectorScreen>register(ModMenuTypes.BASIC_DETECTOR_MENU.get(), BasicDetectorScreen::new);
             MenuScreens.<AdvancedDetectorMenu, AdvancedDetectorScreen>register(ModMenuTypes.ADVANCED_DETECTOR_MENU.get(), AdvancedDetectorScreen::new);

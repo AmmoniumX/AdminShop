@@ -35,8 +35,9 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
     private static final int TANK_CAPACITY = 64000;
     public static final int TICK_COOLDOWN = 20;
 
-    private UUID teamId = null;
+    private @Nullable UUID teamId = null;
     private ResourceLocation recipeId = null;
+    private boolean lockedRecipe = false;
     private int tickCounter = 0;  // unsynced
     private int tickProgress = 0; // synced
 
@@ -75,13 +76,32 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
     }
 
     @Override
-    public UUID getTeamId() {
+    public @Nullable UUID getTeamId() {
         return teamId;
     }
 
     @Override
     public void setRecipe(ResourceLocation recipeId) {
+        if (this.lockedRecipe) { return; }
         this.recipeId = recipeId;
+    }
+
+    /**
+     * Sets the recipe regardless of {@link #isLockedRecipe()}. Only meant to be called
+     * on behalf of a creative-mode player configuring the machine.
+     */
+    public void forceSetRecipe(ResourceLocation recipeId) {
+        this.recipeId = recipeId;
+    }
+
+    public boolean isLockedRecipe() {
+        return lockedRecipe;
+    }
+
+    public void setLockedRecipe(boolean lockedRecipe) {
+        this.lockedRecipe = lockedRecipe;
+        this.setChanged();
+        this.sendUpdates();
     }
 
     @Override
@@ -181,6 +201,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putBoolean("lockedRecipe", this.lockedRecipe);
         tag.putInt("tickProgress", this.tickProgress);
         return tag;
     }
@@ -215,6 +236,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
 //            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
         }
+        this.lockedRecipe = tag.getBoolean("lockedRecipe");
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");
         }
@@ -231,6 +253,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putBoolean("lockedRecipe", this.lockedRecipe);
         tag.putInt("tickProgress", this.tickProgress);
     }
 
@@ -247,6 +270,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
 //            AdminShop.LOGGER.debug("Buyer has no targetShopItem");
             this.recipeId = null;
         }
+        this.lockedRecipe = tag.getBoolean("lockedRecipe");
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");
         }

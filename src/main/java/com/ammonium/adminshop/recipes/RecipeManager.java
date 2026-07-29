@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -71,7 +72,7 @@ public class RecipeManager {
                 .findFirst();
     }
 
-    public static Optional<BuyItemRecipe> getShopBuyItemRecipe(Level level, ResourceLocation id) {
+    public static Optional<BuyItemRecipe> getShopBuyItemRecipe(Level level, @Nullable ResourceLocation id) {
         if (id == null) { return Optional.empty(); }
         Optional<? extends Recipe<?>> recipe = level.getRecipeManager().byKey(id);
         if (recipe.isEmpty() || !(recipe.get() instanceof BuyItemRecipe)) {
@@ -84,9 +85,10 @@ public class RecipeManager {
         return recipe != null && recipe.matches(getAccount(level, machine), machine);
     }
 
-    public static boolean canPlaceItemInSeller(Level level, ItemStack item) {
+    public static boolean canPlaceItemInSeller(Level level, ItemStack item, @Nullable ResourceLocation lockedRecipeId) {
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get())
                 .stream()
+                .filter(recipe -> lockedRecipeId == null || recipe.getId().equals(lockedRecipeId))
                 .anyMatch(recipe -> recipe.isMatchingItemNoCount(item));
     }
 
@@ -127,6 +129,13 @@ public class RecipeManager {
 
     public static boolean checkForBuyFluidRecipe(ServerLevel level, FluidBuyerMachine machine, BuyFluidRecipe recipe) {
         return recipe != null && recipe.matches(getAccount(level, machine), machine);
+    }
+
+    public static boolean canPlaceFluidInSeller(Level level, FluidStack fluid, @Nullable ResourceLocation lockedRecipeId) {
+        return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get())
+                .stream()
+                .filter(recipe -> lockedRecipeId == null || recipe.getId().equals(lockedRecipeId))
+                .anyMatch(recipe -> matches(fluid, recipe.getFluid()));
     }
 
     public static Optional<SellFluidRecipe> isSellFluidRecipe(Level level, FluidStack fluid) {

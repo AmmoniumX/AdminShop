@@ -1,5 +1,6 @@
 package com.ammonium.adminshop.blocks;
 
+import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
 import com.ammonium.adminshop.blocks.entity.SellerEntity;
 import com.ammonium.adminshop.money.MoneyHelper;
@@ -8,6 +9,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
@@ -36,10 +39,20 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.UUID;
+
 public class SellerBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public SellerBlock() {
-        super(BlockBehaviour.Properties.of()
+        this(defaultProperties());
+    }
+
+    protected SellerBlock(BlockBehaviour.Properties properties) {
+        super(properties);
+    }
+
+    protected static BlockBehaviour.Properties defaultProperties() {
+        return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
@@ -47,8 +60,7 @@ public class SellerBlock extends BaseEntityBlock {
                 .dynamicShape()
                 .forceSolidOn()
                 .noOcclusion()
-                .pushReaction(PushReaction.BLOCK)
-        );
+                .pushReaction(PushReaction.BLOCK);
     }
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.1, 0.1, 0.1, 0.9, 0.9, 0.9);
 
@@ -71,13 +83,24 @@ public class SellerBlock extends BaseEntityBlock {
         if (!pLevel.isClientSide()) {
             assert pLevel instanceof ServerLevel;
             ServerLevel serverLevel = (ServerLevel) pLevel;
-            if(pLevel.getBlockEntity(pPos) instanceof SellerEntity buyerEntity
+            if(pLevel.getBlockEntity(pPos) instanceof SellerEntity sellerEntity
                 && pPlayer instanceof ServerPlayer serverPlayer) {
-//                AdminShop.LOGGER.debug("Looking for account: "+buyerEntity.getAccount().toString());
-                if (MoneyHelper.get(serverLevel).isMemberOfTeam(buyerEntity.getTeamId(), serverPlayer)) {
-//                    AdminShop.LOGGER.debug("Found account");
+                @Nullable UUID teamId = sellerEntity.getTeamId();
+                if (teamId == null) {
+                    AdminShop.LOGGER.debug("Claiming unclaimed machine for {}", serverPlayer.getName().getString());
+                    @Nullable UUID newTeamId = MoneyHelper.get(serverLevel).getTeamUUIDForPlayer(serverPlayer);
+                    if (newTeamId == null) {
+                        AdminShop.LOGGER.debug("Could not find FTB team for {}", serverPlayer.getName().getString());
+                    } else {
+                        sellerEntity.setTeamId(newTeamId);
+                        pPlayer.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0f, 1.0f);
+                        pPlayer.sendSystemMessage(Component.translatable("message.adminshop.claimed_machine"));
+                        NetworkHooks.openScreen(serverPlayer, sellerEntity, pPos);
+                    }
+
+                } else if (MoneyHelper.get(serverLevel).isMemberOfTeam(teamId, serverPlayer)) {
                     // Open menu
-                    NetworkHooks.openScreen((ServerPlayer) pPlayer, buyerEntity, pPos);
+                    NetworkHooks.openScreen((ServerPlayer) pPlayer, sellerEntity, pPos);
                 } else {
                     // No access
                     pPlayer.sendSystemMessage(Component.translatable("message.adminshop.no_access"));
@@ -144,11 +167,18 @@ public class SellerBlock extends BaseEntityBlock {
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
             if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof SellerEntity sellerEntity) {
-                sellerEntity.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
-                sellerEntity.setChanged();
-                sellerEntity.sendUpdates();
+                assignInitialTeamId(serverLevel, serverPlayer, sellerEntity);
             }
         }
+    }
+
+    /**
+     * Hook so subclasses (e.g. the Creative Seller) can leave the machine unclaimed when placed.
+     */
+    protected void assignInitialTeamId(ServerLevel serverLevel, ServerPlayer serverPlayer, SellerEntity sellerEntity) {
+        sellerEntity.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
+        sellerEntity.setChanged();
+        sellerEntity.sendUpdates();
     }
 
     @Nullable

@@ -50,6 +50,10 @@ public class PacketSetFluidBuyerRecipe {
                     return;
                 }
 
+                if (player.isCreative()) {
+                    buyerEntity.forceSetRecipe(this.recipeId);
+                    return;
+                }
                 // Check if player has access to the machine's account
                 if (!MoneyHelper.get(level).isMemberOfTeam(buyerEntity.getTeamId(), player)) {
                     AdminShop.LOGGER.error("Player does not have access to this machine's account");
