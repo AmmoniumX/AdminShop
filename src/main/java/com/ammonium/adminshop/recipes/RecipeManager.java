@@ -84,9 +84,10 @@ public class RecipeManager {
         return recipe != null && recipe.matches(getAccount(level, machine), machine);
     }
 
-    public static boolean canPlaceItemInSeller(Level level, ItemStack item) {
+    public static boolean canPlaceItemInSeller(Level level, ItemStack item, @Nullable ResourceLocation lockedRecipeId) {
         return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get())
                 .stream()
+                .filter(recipe -> lockedRecipeId == null || recipe.id().equals(lockedRecipeId))
                 .anyMatch(recipe -> recipe.value().isMatchingItemNoCount(item));
     }
 
@@ -129,6 +130,13 @@ public class RecipeManager {
 
     public static boolean checkForBuyFluidRecipe(ServerLevel level, FluidBuyerMachine machine, BuyFluidRecipe recipe) {
         return recipe != null && recipe.matches(getAccount(level, machine), machine);
+    }
+
+    public static boolean canPlaceFluidInSeller(Level level, FluidStack fluid, @Nullable ResourceLocation lockedRecipeId) {
+        return level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get())
+                .stream()
+                .filter(recipe -> lockedRecipeId == null || recipe.id().equals(lockedRecipeId))
+                .anyMatch(recipe -> matches(fluid, recipe.value().getFluid()));
     }
 
     public static Optional<RecipeHolder<SellFluidRecipe>> isSellFluidRecipe(Level level, FluidStack fluid) {

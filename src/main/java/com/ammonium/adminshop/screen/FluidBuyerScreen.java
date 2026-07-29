@@ -99,6 +99,12 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
                                 RecipeManager.isBuyFluidRecipe(Minecraft.getInstance().level, fluid).orElse(null);
                         if (recipeHolder == null) {
                             AdminShop.LOGGER.debug("Fluid not in buy recipes: {}", fluid.getDisplayName().getString());
+                        } else if (this.buyerEntity.isLockedRecipe()) {
+                            // Recipe is locked server-side; don't touch the client's view of the target fluid.
+                            LocalPlayer player = Minecraft.getInstance().player;
+                            assert player != null;
+                            player.sendSystemMessage(Component.translatable("message.adminshop.recipe_locked"));
+                            override.set(true);
                         } else if (ClientCache.hasPermit(recipeHolder.value().getPermit())) {
                             this.buyerEntity.setRecipe(recipeHolder.id());
                             this.recipe = recipeHolder.value();

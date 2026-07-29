@@ -45,6 +45,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
 
     private @Nullable UUID teamId = null;
     private @Nullable ResourceLocation recipeId = null;
+    private boolean lockedRecipe = false;
     private int tickCounter = 0;   // unsynced
     private int tickProgress = 0;  // synced
 
@@ -99,6 +100,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     public void setRecipe(ResourceLocation recipeId) {
+        if (this.lockedRecipe) { return; }
         this.recipeId = recipeId;
         this.setChanged();
         this.sendUpdates();
@@ -106,6 +108,16 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
 
     public Optional<BuyItemRecipe> getRecipe(Level level) {
         return RecipeManager.getShopBuyItemRecipe(level, recipeId);
+    }
+
+    public boolean isLockedRecipe() {
+        return lockedRecipe;
+    }
+
+    public void setLockedRecipe(boolean lockedRecipe) {
+        this.lockedRecipe = lockedRecipe;
+        this.setChanged();
+        this.sendUpdates();
     }
 
     @Override
@@ -240,6 +252,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putBoolean("lockedRecipe", this.lockedRecipe);
         tag.putInt("tickProgress", this.tickProgress);
         return tag;
     }
@@ -266,6 +279,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putBoolean("lockedRecipe", this.lockedRecipe);
         tag.putInt("tickProgress", this.tickProgress);
     }
 
@@ -281,6 +295,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         } else {
             this.recipeId = null;
         }
+        this.lockedRecipe = tag.getBoolean("lockedRecipe");
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");
         }

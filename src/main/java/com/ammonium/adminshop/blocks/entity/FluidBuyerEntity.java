@@ -34,6 +34,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
 
     private @Nullable UUID teamId = null;
     private ResourceLocation recipeId = null;
+    private boolean lockedRecipe = false;
     private int tickCounter = 0;  // unsynced
     private int tickProgress = 0; // synced
 
@@ -78,12 +79,23 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
 
     @Override
     public void setRecipe(ResourceLocation recipeId) {
+        if (this.lockedRecipe) { return; }
         this.recipeId = recipeId;
     }
 
     @Override
     public Optional<BuyFluidRecipe> getRecipe(Level level) {
         return RecipeManager.getShopBuyFluidRecipe(level, recipeId).map(net.minecraft.world.item.crafting.RecipeHolder::value);
+    }
+
+    public boolean isLockedRecipe() {
+        return lockedRecipe;
+    }
+
+    public void setLockedRecipe(boolean lockedRecipe) {
+        this.lockedRecipe = lockedRecipe;
+        this.setChanged();
+        this.sendUpdates();
     }
 
     @Override
@@ -187,6 +199,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
+        tag.putBoolean("lockedRecipe", this.lockedRecipe);
         tag.putInt("tickProgress", this.tickProgress);
     }
 
@@ -201,6 +214,7 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         } else {
             this.recipeId = null;
         }
+        this.lockedRecipe = tag.getBoolean("lockedRecipe");
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");
         }

@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -31,12 +32,14 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
     private static final int TANK_CAPACITY = 64000;
 
     private @Nullable UUID teamId = null;
+    private @Nullable ResourceLocation lockedRecipeId = null;
     private int tickCounter = 0; // unsynced
     private int tickProgress = 0; // synced
 
     public FluidSellerEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.FLUID_SELLER.get(), pWorldPosition, pBlockState);
-        this.tank = new FluidTank(TANK_CAPACITY);
+        this.tank = new FluidTank(TANK_CAPACITY, stack ->
+                this.level == null || RecipeManager.canPlaceFluidInSeller(this.level, stack, this.lockedRecipeId));
     }
 
     public int getTickCounter() {
@@ -70,6 +73,16 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
     @Override
     public @Nullable UUID getTeamId() {
         return teamId;
+    }
+
+    public @Nullable ResourceLocation getLockedRecipeId() {
+        return lockedRecipeId;
+    }
+
+    public void setLockedRecipeId(@Nullable ResourceLocation lockedRecipeId) {
+        this.lockedRecipeId = lockedRecipeId;
+        this.setChanged();
+        this.sendUpdates();
     }
 
     @Override
@@ -154,6 +167,9 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        if (this.lockedRecipeId != null) {
+            tag.putString("lockedRecipe", this.lockedRecipeId.toString());
+        }
         tag.putInt("tickProgress", this.tickProgress);
     }
 
@@ -162,6 +178,11 @@ public class FluidSellerEntity extends FluidHandlerBlockEntity implements FluidS
         super.loadAdditional(tag, provider);
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
+        }
+        if (tag.contains("lockedRecipe")) {
+            this.lockedRecipeId = ResourceLocation.parse(tag.getString("lockedRecipe"));
+        } else {
+            this.lockedRecipeId = null;
         }
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");

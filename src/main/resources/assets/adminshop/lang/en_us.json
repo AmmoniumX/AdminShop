@@ -55,6 +55,7 @@
   "message.adminshop.not_enough_space": "Not enough inventory space for item!",
   "message.adminshop.not_enough_money": "Not enough money in account!",
   "message.adminshop.claimed_machine": "You have claimed this machine as yours!",
+  "message.adminshop.recipe_locked": "This machine's recipe is locked and cannot be changed!",
   "button.adminshop.confirm": "Confirm",
   "container.adminshop.seller": "Auto-Seller",
   "gui.adminshop.no_permit": "You don't have the necessary permit!",

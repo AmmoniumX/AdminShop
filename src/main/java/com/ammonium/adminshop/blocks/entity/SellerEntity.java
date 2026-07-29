@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Inventory;
@@ -48,7 +49,7 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
             }
 
             // Return your RecipeManager result
-            return RecipeManager.canPlaceItemInSeller(level, stack);
+            return RecipeManager.canPlaceItemInSeller(level, stack, SellerEntity.this.lockedRecipeId);
         }
 
         @Override
@@ -69,6 +70,7 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
     }
 
     private @Nullable UUID teamId = null;
+    private @Nullable ResourceLocation lockedRecipeId = null;
     private int tickCounter = 0;    // unsynced
     private int tickProgress = 0;   // synced
 
@@ -107,6 +109,16 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
     @Override
     public @Nullable UUID getTeamId() {
         return teamId;
+    }
+
+    public @Nullable ResourceLocation getLockedRecipeId() {
+        return lockedRecipeId;
+    }
+
+    public void setLockedRecipeId(@Nullable ResourceLocation lockedRecipeId) {
+        this.lockedRecipeId = lockedRecipeId;
+        this.setChanged();
+        this.sendUpdates();
     }
 
     @Override
@@ -223,6 +235,9 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        if (this.lockedRecipeId != null) {
+            tag.putString("lockedRecipe", this.lockedRecipeId.toString());
+        }
         tag.putInt("tickProgress", this.tickProgress);
         return tag;
     }
@@ -248,6 +263,9 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
         if (this.teamId != null) {
             tag.putUUID("team", this.teamId);
         }
+        if (this.lockedRecipeId != null) {
+            tag.putString("lockedRecipe", this.lockedRecipeId.toString());
+        }
         tag.putInt("tickProgress", this.tickProgress);
     }
 
@@ -262,6 +280,11 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
 
         if (tag.contains("team")) {
             this.teamId = tag.getUUID("team");
+        }
+        if (tag.contains("lockedRecipe")) {
+            this.lockedRecipeId = ResourceLocation.parse(tag.getString("lockedRecipe"));
+        } else {
+            this.lockedRecipeId = null;
         }
         if (tag.contains("tickProgress")) {
             this.tickProgress = tag.getInt("tickProgress");

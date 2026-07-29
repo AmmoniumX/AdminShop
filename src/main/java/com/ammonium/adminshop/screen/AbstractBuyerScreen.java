@@ -76,6 +76,13 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
                     AdminShop.LOGGER.debug("Item not in buy recipes: {}", itemStack.getDisplayName().getString());
                     return super.mouseClicked(mouseX, mouseY, button);
                 }
+                // Recipe is locked server-side; don't touch the client's view of the target item.
+                if (this.buyerEntity.isLockedRecipe()) {
+                    LocalPlayer player = Minecraft.getInstance().player;
+                    assert player != null;
+                    player.sendSystemMessage(Component.translatable("message.adminshop.recipe_locked"));
+                    return false;
+                }
                 BuyItemRecipe recipe = recipeHolder.value();
                 // Set buyer target
                 // Check if account has permit to buy item
