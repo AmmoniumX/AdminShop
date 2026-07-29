@@ -99,11 +99,17 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
                                 RecipeManager.isBuyFluidRecipe(Minecraft.getInstance().level, fluid).orElse(null);
                         if (recipeHolder == null) {
                             AdminShop.LOGGER.debug("Fluid not in buy recipes: {}", fluid.getDisplayName().getString());
-                        } else if (this.buyerEntity.isLockedRecipe()) {
+                        } else if (this.buyerEntity.isLockedRecipe() && !isCreativeClickingPlayer()) {
                             // Recipe is locked server-side; don't touch the client's view of the target fluid.
                             LocalPlayer player = Minecraft.getInstance().player;
                             assert player != null;
                             player.sendSystemMessage(Component.translatable("message.adminshop.recipe_locked"));
+                            override.set(true);
+                        } else if (this.buyerEntity.isLockedRecipe()) {
+                            // Creative players can still configure a locked machine's recipe.
+                            this.buyerEntity.forceSetRecipe(recipeHolder.id());
+                            this.recipe = recipeHolder.value();
+                            Messages.sendToServer(new PacketSetFluidBuyerRecipe(this.blockPos, recipeHolder.id()));
                             override.set(true);
                         } else if (ClientCache.hasPermit(recipeHolder.value().getPermit())) {
                             this.buyerEntity.setRecipe(recipeHolder.id());
@@ -120,6 +126,11 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
             }
         }
         return (!override.get() && super.mouseClicked(mouseX, mouseY, button));
+    }
+
+    private static boolean isCreativeClickingPlayer() {
+        LocalPlayer player = Minecraft.getInstance().player;
+        return player != null && player.isCreative();
     }
 
     @Override
@@ -141,10 +152,12 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         super.renderLabels(guiGraphics, mouseX, mouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
-        MoneyHelper.MoneyAccount account = ClientCache.getAccount();
-        if (account != null) {
-            name = account.name();
-            accAvailable = true;
+        if (this.teamId != null) {
+            MoneyHelper.MoneyAccount account = ClientCache.getAccount();
+            if (account != null) {
+                name = account.name();
+                accAvailable = true;
+            }
         }
         int color = accAvailable ? 0xffffff : 0xff0000;
         guiGraphics.drawString(font, name.getString(), 7,62,color);

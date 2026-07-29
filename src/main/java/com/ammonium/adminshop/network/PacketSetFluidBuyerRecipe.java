@@ -43,6 +43,10 @@ public class PacketSetFluidBuyerRecipe implements CustomPacketPayload {
                 AdminShop.LOGGER.error("BlockEntity at pos is not FluidBuyerMachine");
                 return;
             }
+            if (player.isCreative()) {
+                buyerEntity.forceSetRecipe(packet.recipeId);
+                return;
+            }
             if (!MoneyHelper.get(level).isMemberOfTeam(buyerEntity.getTeamId(), player)) {
                 AdminShop.LOGGER.error("Player does not have access to this machine's account");
                 return;

@@ -83,6 +83,14 @@ public class FluidBuyerEntity extends FluidHandlerBlockEntity implements FluidBu
         this.recipeId = recipeId;
     }
 
+    /**
+     * Sets the recipe regardless of {@link #isLockedRecipe()}. Only meant to be called
+     * on behalf of a creative-mode player configuring the machine.
+     */
+    public void forceSetRecipe(ResourceLocation recipeId) {
+        this.recipeId = recipeId;
+    }
+
     @Override
     public Optional<BuyFluidRecipe> getRecipe(Level level) {
         return RecipeManager.getShopBuyFluidRecipe(level, recipeId).map(net.minecraft.world.item.crafting.RecipeHolder::value);

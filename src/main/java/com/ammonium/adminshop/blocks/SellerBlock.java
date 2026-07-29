@@ -45,11 +45,19 @@ public class SellerBlock extends BaseEntityBlock {
     public static final MapCodec<SellerBlock> CODEC = simpleCodec(p -> new SellerBlock());
 
     @Override
-    public MapCodec<SellerBlock> codec() { return CODEC; }
+    public MapCodec<? extends SellerBlock> codec() { return CODEC; }
 
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public SellerBlock() {
-        super(BlockBehaviour.Properties.of()
+        this(defaultProperties());
+    }
+
+    protected SellerBlock(BlockBehaviour.Properties properties) {
+        super(properties);
+    }
+
+    protected static BlockBehaviour.Properties defaultProperties() {
+        return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
@@ -57,8 +65,7 @@ public class SellerBlock extends BaseEntityBlock {
                 .dynamicShape()
                 .forceSolidOn()
                 .noOcclusion()
-                .pushReaction(PushReaction.BLOCK)
-        );
+                .pushReaction(PushReaction.BLOCK);
     }
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.1, 0.1, 0.1, 0.9, 0.9, 0.9);
 
@@ -165,11 +172,18 @@ public class SellerBlock extends BaseEntityBlock {
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
             // Set initial values
             if (pPlacer instanceof ServerPlayer serverPlayer && blockEntity instanceof SellerEntity sellerEntity) {
-                sellerEntity.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
-                sellerEntity.setChanged();
-                sellerEntity.sendUpdates();
+                assignInitialTeamId(serverLevel, serverPlayer, sellerEntity);
             }
         }
+    }
+
+    /**
+     * Hook so subclasses (e.g. the Creative Seller) can leave the machine unclaimed when placed.
+     */
+    protected void assignInitialTeamId(ServerLevel serverLevel, ServerPlayer serverPlayer, SellerEntity sellerEntity) {
+        sellerEntity.setTeamId(MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId());
+        sellerEntity.setChanged();
+        sellerEntity.sendUpdates();
     }
 
     @Nullable

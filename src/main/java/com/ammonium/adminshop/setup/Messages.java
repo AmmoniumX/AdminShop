@@ -31,6 +31,10 @@ public class Messages {
                 PacketSetFluidBuyerRecipe.STREAM_CODEC,
                 PacketSetFluidBuyerRecipe::handle);
         registrar.playToServer(
+                PacketSetSellerRecipe.TYPE,
+                PacketSetSellerRecipe.STREAM_CODEC,
+                PacketSetSellerRecipe::handle);
+        registrar.playToServer(
                 PacketAccountAddPermit.TYPE,
                 PacketAccountAddPermit.STREAM_CODEC,
                 PacketAccountAddPermit::handle);

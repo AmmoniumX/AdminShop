@@ -5,21 +5,28 @@ import com.ammonium.adminshop.blocks.entity.SellerEntity;
 import com.ammonium.adminshop.client.gui.ProgressBar;
 import com.ammonium.adminshop.money.ClientCache;
 import com.ammonium.adminshop.money.MoneyHelper;
+import com.ammonium.adminshop.network.PacketSetSellerRecipe;
 import com.ammonium.adminshop.network.PacketUpdateRequest;
+import com.ammonium.adminshop.recipes.RecipeManager;
+import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
 import java.util.UUID;
 
-public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
+public class SellerScreen<T extends SellerMenu> extends AbstractContainerScreen<T> {
     private static final ResourceLocation TEXTURE =
             ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/seller.png");
     private final BlockPos blockPos;
@@ -27,7 +34,7 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
     private UUID teamId = null;
     private ProgressBar progressBar;
 
-    public SellerScreen(SellerMenu pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
+    public SellerScreen(T pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle);
         this.blockPos = blockPos;
     }
@@ -49,6 +56,31 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
     }
 
     @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // Creative players can lock this machine to a specific sell recipe by clicking
+        // an item in their own inventory, mirroring how Buyers pick their target item.
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player != null && player.isCreative()) {
+            Slot slot = this.getSlotUnderMouse();
+            if (slot != null) {
+                ItemStack itemStack = slot.getItem();
+                boolean isMachineSlot = slot.index >= this.menu.getTeInventoryFirstSlotIndex()
+                        && slot.index < this.menu.getTeInventoryFirstSlotIndex() + this.menu.getTeInventorySlotCount();
+                if (!itemStack.isEmpty() && !isMachineSlot) {
+                    RecipeHolder<SellItemRecipe> recipeHolder =
+                            RecipeManager.isSellItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
+                    if (recipeHolder != null) {
+                        this.sellerEntity.setLockedRecipeId(recipeHolder.id());
+                        Messages.sendToServer(new PacketSetSellerRecipe(this.blockPos, recipeHolder.id()));
+                        return false;
+                    }
+                }
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
     protected void renderBg(GuiGraphics guiGraphics, float pPartialTicks, int pMouseX, int pMouseY) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -64,10 +96,12 @@ public class SellerScreen extends AbstractContainerScreen<SellerMenu> {
         super.renderLabels(guiGraphics, pMouseX, pMouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
-        MoneyHelper.MoneyAccount account = ClientCache.getAccount();
-        if (account != null) {
-            name = account.name();
-            accAvailable = true;
+        if (this.teamId != null) {
+            MoneyHelper.MoneyAccount account = ClientCache.getAccount();
+            if (account != null) {
+                name = account.name();
+                accAvailable = true;
+            }
         }
         int color = accAvailable ? 0xffffff : 0xff0000;
         guiGraphics.drawString(font, name.getString(), 7,62,color);

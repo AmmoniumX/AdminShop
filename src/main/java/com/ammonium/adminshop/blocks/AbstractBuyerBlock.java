@@ -60,8 +60,20 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
 
     public AbstractBuyerBlock( @NotNull BlockEntityFactory<?> blockEntityFactory,
                                @NotNull MenuFactory<?> menuFactory) {
+        this(blockEntityFactory, menuFactory, defaultProperties());
+    }
 
-        super(BlockBehaviour.Properties.of()
+    protected AbstractBuyerBlock( @NotNull BlockEntityFactory<?> blockEntityFactory,
+                               @NotNull MenuFactory<?> menuFactory,
+                               BlockBehaviour.Properties properties) {
+
+        super(properties);
+        this.BLOCK_ENTITY_FACTORY = blockEntityFactory;
+        this.MENU_FACTORY = menuFactory;
+    }
+
+    protected static BlockBehaviour.Properties defaultProperties() {
+        return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
@@ -69,10 +81,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
                 .dynamicShape()
                 .forceSolidOn()
                 .noOcclusion()
-                .pushReaction(PushReaction.BLOCK)
-        );
-        this.BLOCK_ENTITY_FACTORY = blockEntityFactory;
-        this.MENU_FACTORY = menuFactory;
+                .pushReaction(PushReaction.BLOCK);
     }
 
 
@@ -162,11 +171,18 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             // Set initial values
             if (placer instanceof ServerPlayer serverPlayer && blockEntity instanceof AbstractBuyerEntity buyerEntity) {
-                UUID teamId = MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId();
-                AdminShop.LOGGER.debug("Setting initial teamId: {}", teamId);
-                buyerEntity.setTeamId(teamId);
+                assignInitialTeamId(serverLevel, serverPlayer, buyerEntity);
             }
         }
+    }
+
+    /**
+     * Hook so subclasses (e.g. the Creative Buyer) can leave the machine unclaimed when placed.
+     */
+    protected void assignInitialTeamId(ServerLevel serverLevel, ServerPlayer serverPlayer, AbstractBuyerEntity buyerEntity) {
+        UUID teamId = MoneyHelper.get(serverLevel).getPlayerAccount(serverPlayer).teamId();
+        AdminShop.LOGGER.debug("Setting initial teamId: {}", teamId);
+        buyerEntity.setTeamId(teamId);
     }
 
     @Override

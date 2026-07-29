@@ -106,6 +106,16 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         this.sendUpdates();
     }
 
+    /**
+     * Sets the recipe regardless of {@link #isLockedRecipe()}. Only meant to be called
+     * on behalf of a creative-mode player configuring the machine.
+     */
+    public void forceSetRecipe(ResourceLocation recipeId) {
+        this.recipeId = recipeId;
+        this.setChanged();
+        this.sendUpdates();
+    }
+
     public Optional<BuyItemRecipe> getRecipe(Level level) {
         return RecipeManager.getShopBuyItemRecipe(level, recipeId);
     }

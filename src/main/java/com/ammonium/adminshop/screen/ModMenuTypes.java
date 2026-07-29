@@ -33,6 +33,12 @@ public class ModMenuTypes {
     public static final DeferredHolder<MenuType<?>, MenuType<FluidSellerMenu>> FLUID_SELLER_MENU = MENUS.register("fluid_seller_menu",
             () -> IMenuTypeExtension.create((FluidSellerMenu::new)));
 
+    public static final DeferredHolder<MenuType<?>, MenuType<CreativeBuyerMenu>> CREATIVE_BUYER_MENU = MENUS.register("creative_buyer_menu",
+            () -> IMenuTypeExtension.create((CreativeBuyerMenu::new)));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<CreativeSellerMenu>> CREATIVE_SELLER_MENU = MENUS.register("creative_seller_menu",
+            () -> IMenuTypeExtension.create((CreativeSellerMenu::new)));
+
     public static final DeferredHolder<MenuType<?>, MenuType<BasicDetectorMenu>> BASIC_DETECTOR_MENU = MENUS.register("detector_menu",
             () -> IMenuTypeExtension.create((BasicDetectorMenu::new)));
 

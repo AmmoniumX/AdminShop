@@ -44,6 +44,14 @@ public class ModBlockEntities {
             BLOCK_ENTITIES.register("fluid_seller", () -> BlockEntityType.Builder.of(FluidSellerEntity::new,
                     ModBlocks.FLUID_SELLER.get()).build(null));
 
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CreativeBuyerEntity>> CREATIVE_BUYER =
+            BLOCK_ENTITIES.register("creative_buyer", () -> BlockEntityType.Builder.of(CreativeBuyerEntity::new,
+                    ModBlocks.CREATIVE_BUYER.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CreativeSellerEntity>> CREATIVE_SELLER =
+            BLOCK_ENTITIES.register("creative_seller", () -> BlockEntityType.Builder.of(CreativeSellerEntity::new,
+                    ModBlocks.CREATIVE_SELLER.get()).build(null));
+
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<BasicDetectorEntity>> BASIC_DETECTOR =
             BLOCK_ENTITIES.register("detector", () -> BlockEntityType.Builder.of(BasicDetectorEntity::new,
                     ModBlocks.DETECTOR.get()).build(null));
@@ -64,6 +72,13 @@ public class ModBlockEntities {
                 Capabilities.ItemHandler.BLOCK,
                 ModBlockEntities.SELLER.get(),
                 (be, side) -> be.getInventory() // Assuming you add a getter
+        );
+
+        // Creative Seller
+        event.registerBlockEntity(
+                Capabilities.ItemHandler.BLOCK,
+                ModBlockEntities.CREATIVE_SELLER.get(),
+                (be, side) -> be.getInventory()
         );
 
         // Fluid Buyer

@@ -18,6 +18,8 @@
   "block.adminshop.buyer_3": "T3 Buyer",
   "block.adminshop.fluid_buyer": "Fluid Buyer",
   "block.adminshop.fluid_seller": "Fluid Seller",
+  "block.adminshop.creative_buyer": "Creative Buyer",
+  "block.adminshop.creative_seller": "Creative Seller",
   "block.adminshop.detector": "Balance Detector",
   "screen.adminshop.detector": "Detector",
   "block.adminshop.adv_detector": "Advanced Balance Detector",

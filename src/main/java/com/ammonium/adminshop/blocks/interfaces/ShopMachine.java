@@ -12,4 +12,8 @@ public interface ShopMachine extends MenuProvider, IBlockEntityExtension {
     void sendUpdates();
 
     BlockPos getBlockPos();
+
+    default boolean bypassesPermits() {
+        return false;
+    }
 }

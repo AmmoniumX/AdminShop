@@ -222,7 +222,7 @@ public class SellItemRecipe implements SellRecipe, ItemRecipe {
             return false;
         }
         // Check permit status
-        if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
+        if ((!permit.isEmpty()) && !machine.bypassesPermits() && (!MoneyHelper.hasPermit(account, permit))) {
             AdminShop.LOGGER.info("SellItemRecipe.matches: account does not have permit {}", permit);
             return false;
         }

@@ -42,7 +42,7 @@ public class BuyItemRecipe implements BuyRecipe, ItemRecipe {
         }
 
         // Check permit status
-        if ((!permit.isEmpty()) && (!MoneyHelper.hasPermit(account, permit))) {
+        if ((!permit.isEmpty()) && !machine.bypassesPermits() && (!MoneyHelper.hasPermit(account, permit))) {
             return false;
         }
         // Check account balance

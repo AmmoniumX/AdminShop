@@ -21,6 +21,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -76,6 +77,10 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
 
     public SellerEntity(BlockPos pWorldPosition, BlockState pBlockState) {
         super(ModBlockEntities.SELLER.get(), pWorldPosition, pBlockState);
+    }
+
+    protected SellerEntity(BlockPos pWorldPosition, BlockState pBlockState, BlockEntityType<? extends SellerEntity> type) {
+        super(type, pWorldPosition, pBlockState);
     }
 
     public int getTickCounter() {

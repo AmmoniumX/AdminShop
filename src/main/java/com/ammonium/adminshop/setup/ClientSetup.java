@@ -23,7 +23,7 @@ public class ClientSetup {
     public static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenuTypes.SHOP_MENU.get(), ShopScreen::new);
         event.register(ModMenuTypes.SELLER_MENU.get(), (SellerMenu menu, Inventory playerInventory, Component title) ->
-                new SellerScreen(menu, playerInventory, title, menu.getBlockEntity().getBlockPos()));
+                new SellerScreen<>(menu, playerInventory, title, menu.getBlockEntity().getBlockPos()));
         event.register(ModMenuTypes.BUYER_1_MENU.get(), (BuyerMenu1 menu, Inventory playerInventory, Component title) ->
                 new BuyerScreen1(menu, playerInventory, title, menu.getBlockEntity().getBlockPos()));
         event.register(ModMenuTypes.BUYER_2_MENU.get(), (BuyerMenu2 menu, Inventory playerInventory, Component title) ->
@@ -34,6 +34,10 @@ public class ClientSetup {
                 new FluidBuyerScreen(menu, playerInventory, title, menu.getBlockEntity().getBlockPos()));
         event.register(ModMenuTypes.FLUID_SELLER_MENU.get(), (FluidSellerMenu menu, Inventory playerInventory, Component title) ->
                 new FluidSellerScreen(menu, playerInventory, title, menu.getBlockEntity().getBlockPos()));
+        event.register(ModMenuTypes.CREATIVE_BUYER_MENU.get(), (CreativeBuyerMenu menu, Inventory playerInventory, Component title) ->
+                new AbstractBuyerScreen<>("textures/gui/buyer_3.png", menu, playerInventory, title, menu.getBlockEntity().getBlockPos()));
+        event.register(ModMenuTypes.CREATIVE_SELLER_MENU.get(), (CreativeSellerMenu menu, Inventory playerInventory, Component title) ->
+                new SellerScreen<>(menu, playerInventory, title, menu.getBlockEntity().getBlockPos()));
         event.register(ModMenuTypes.BASIC_DETECTOR_MENU.get(), (BasicDetectorMenu menu, Inventory playerInventory, Component title) ->
                 new BasicDetectorScreen(menu, playerInventory, title));
         event.register(ModMenuTypes.ADVANCED_DETECTOR_MENU.get(), (AdvancedDetectorMenu menu, Inventory playerInventory, Component title) ->
