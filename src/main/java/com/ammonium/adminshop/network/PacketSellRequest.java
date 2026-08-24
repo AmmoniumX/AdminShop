@@ -7,6 +7,7 @@ import com.ammonium.adminshop.recipes.SellFluidRecipe;
 import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
@@ -68,6 +69,12 @@ public class PacketSellRequest implements CustomPacketPayload {
             RecipeHolder<?> rawHolder = level.getRecipeManager().byKey(packet.recipeId).orElse(null);
             if (rawHolder == null || !(rawHolder.value() instanceof SellRecipe recipe)) {
                 AdminShop.LOGGER.debug("Recipe is not a SellRecipe");
+                return;
+            }
+
+            if (!MoneyHelper.get(level).hasPermit(packet.teamId, recipe.getPermit())) {
+                AdminShop.LOGGER.debug("Account {} does not have permit {}", packet.teamId, recipe.getPermit());
+                player.sendSystemMessage(Component.translatable("message.adminshop.no_permit", recipe.getPermit()));
                 return;
             }
 
