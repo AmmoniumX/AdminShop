@@ -7,6 +7,7 @@ import com.ammonium.adminshop.recipes.SellFluidRecipe;
 import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -75,6 +76,14 @@ public class PacketSellRequest {
                 AdminShop.LOGGER.debug("Recipe is not a SellRecipe");
                 return;
             }
+
+            // Check if account has permit requirement
+            if (!MoneyHelper.get(level).hasPermit(teamId, recipe.getPermit())) {
+                AdminShop.LOGGER.error("Account {} does not have permit {}", teamId, recipe.getPermit());
+                player.sendSystemMessage(Component.translatable("message.adminshop.no_permit", recipe.getPermit()));
+                return;
+            }
+
             if (recipe instanceof SellItemRecipe itemRecipe) {
                 // Search for a valid sell stack
                 ItemStack sellStack = ItemStack.EMPTY;
