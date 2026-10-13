@@ -46,7 +46,7 @@ public class MoneyHelper extends SavedData {
         ServerLevel level = serv.getLevel(Level.OVERWORLD);
         assert level != null;
         DimensionDataStorage storage = level.getDataStorage();
-        return storage.computeIfAbsent(new SavedData.Factory<>(MoneyHelper::new, (tag, provider) -> new MoneyHelper(tag), null), "adminshop:accounts");
+        return storage.computeIfAbsent(new SavedData.Factory<>(MoneyHelper::new, (tag, provider) -> new MoneyHelper(tag), null), "adminshop_accounts");
     }
 
     @Override
