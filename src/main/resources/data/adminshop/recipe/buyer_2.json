@@ -6,21 +6,11 @@
     "INI"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_ingot"
-    },
-    "T": {
-      "item": "minecraft:gold_ingot"
-    },
-    "@": {
-      "item": "adminshop:buyer_1"
-    },
-    "#": {
-      "item": "minecraft:hopper"
-    },
-    "N": {
-      "item": "minecraft:barrel"
-    }
+    "I": "minecraft:iron_ingot",
+    "T": "minecraft:gold_ingot",
+    "@": "adminshop:buyer_1",
+    "#": "minecraft:hopper",
+    "N": "minecraft:barrel"
   },
   "result": {
     "id": "adminshop:buyer_2"

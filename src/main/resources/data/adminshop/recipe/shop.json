@@ -6,15 +6,9 @@
     "III"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_ingot"
-    },
-    "@": {
-      "item": "minecraft:barrel"
-    },
-    "#": {
-      "item": "minecraft:crafting_table"
-    }
+    "I": "minecraft:iron_ingot",
+    "@": "minecraft:barrel",
+    "#": "minecraft:crafting_table"
   },
   "result": {
     "id": "adminshop:shop"

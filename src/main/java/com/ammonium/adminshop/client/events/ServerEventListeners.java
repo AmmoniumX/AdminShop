@@ -15,7 +15,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -23,7 +24,7 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-@EventBusSubscriber(modid = AdminShop.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = AdminShop.MODID)
 public class ServerEventListeners {
     private static final Path OLD_SHOP_PATH = FMLPaths.CONFIGDIR.get().resolve("adminshop/shop.csv");
     private static boolean oldShopPathExists = false;
@@ -33,10 +34,10 @@ public class ServerEventListeners {
         if (event.getEntity().level().isClientSide()) { return; }
         ServerLevel level = (ServerLevel) event.getEntity().level();
         AdminShop.LOGGER.info("AdminShop recipes: buy_items={}, sell_items={}, buy_fluids={}, sell_fluids={}",
-            level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_ITEM.get()).size(),
-            level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_ITEM.get()).size(),
-            level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_BUY_FLUID.get()).size(),
-            level.getRecipeManager().getAllRecipesFor(ModRecipeTypes.SHOP_SELL_FLUID.get()).size()
+            level.recipeAccess().recipeMap().byType(ModRecipeTypes.SHOP_BUY_ITEM.get()).size(),
+            level.recipeAccess().recipeMap().byType(ModRecipeTypes.SHOP_SELL_ITEM.get()).size(),
+            level.recipeAccess().recipeMap().byType(ModRecipeTypes.SHOP_BUY_FLUID.get()).size(),
+            level.recipeAccess().recipeMap().byType(ModRecipeTypes.SHOP_SELL_FLUID.get()).size()
         );
         ServerPlayer player = (ServerPlayer) event.getEntity();
         MoneyHelper.MoneyAccount account = MoneyHelper.get(level).getPlayerAccount(player);
@@ -68,7 +69,14 @@ public class ServerEventListeners {
     }
 
     @SubscribeEvent
-    public static void addReloadListener(AddReloadListenerEvent event) {
+    public static void onDatapackSync(OnDatapackSyncEvent event) {
+        // Clients no longer receive recipes by default, so send them the shop recipes
+        event.sendRecipes(ModRecipeTypes.SHOP_BUY_ITEM.get(), ModRecipeTypes.SHOP_SELL_ITEM.get(),
+                ModRecipeTypes.SHOP_BUY_FLUID.get(), ModRecipeTypes.SHOP_SELL_FLUID.get());
+    }
+
+    @SubscribeEvent
+    public static void addReloadListener(AddServerReloadListenersEvent event) {
         if (Files.exists(OLD_SHOP_PATH)) {
             AdminShop.LOGGER.error("Shop.csv found in config folder. This is no longer used and will not be read from, use datapack recipes!");
             AdminShop.LOGGER.error("Please delete the file at config/adminshop/shop.csv to disable this error.");

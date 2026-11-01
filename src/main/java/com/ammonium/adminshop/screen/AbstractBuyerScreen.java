@@ -14,14 +14,16 @@ import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.input.MouseButtonEvent;
+import org.joml.Matrix3x2fStack;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -30,7 +32,7 @@ import net.minecraft.world.level.Level;
 import java.util.UUID;
 
 public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractContainerScreen<T> {
-    private final ResourceLocation TEXTURE;
+    private final Identifier TEXTURE;
     private final BlockPos blockPos;
     private AbstractBuyerEntity buyerEntity;
     private UUID teamId = null;
@@ -40,7 +42,7 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
     public AbstractBuyerScreen(String texturePath, T pMenu, Inventory pPlayerInventory, Component pTitle, BlockPos blockPos) {
         super(pMenu, pPlayerInventory, pTitle);
         this.blockPos = blockPos;
-        this.TEXTURE = ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, texturePath);
+        this.TEXTURE = Identifier.fromNamespaceAndPath(AdminShop.MODID, texturePath);
     }
 
     @Override
@@ -61,7 +63,7 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         Slot slot = this.getSlotUnderMouse();
         if (slot != null) {
             ItemStack itemStack = slot.getItem();
@@ -74,7 +76,7 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
                 // Return super if not in buy map
                 if (recipeHolder == null) {
                     AdminShop.LOGGER.debug("Item not in buy recipes: {}", itemStack.getDisplayName().getString());
-                    return super.mouseClicked(mouseX, mouseY, button);
+                    return super.mouseClicked(event, doubleClick);
                 }
                 LocalPlayer clickingPlayer = Minecraft.getInstance().player;
                 assert clickingPlayer != null;
@@ -85,18 +87,18 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
                         return false;
                     }
                     // Creative players can still configure a locked machine's recipe.
-                    this.buyerEntity.forceSetRecipe(recipeHolder.id());
+                    this.buyerEntity.forceSetRecipe(recipeHolder.id().identifier());
                     this.recipe = recipeHolder.value();
-                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, recipeHolder.id()));
+                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, recipeHolder.id().identifier()));
                     return false;
                 }
                 BuyItemRecipe recipe = recipeHolder.value();
                 // Set buyer target
                 // Check if account has permit to buy item
                 if (ClientCache.hasPermit(recipe.getPermit())) {
-                    this.buyerEntity.setRecipe(recipeHolder.id());
+                    this.buyerEntity.setRecipe(recipeHolder.id().identifier());
                     this.recipe = recipe;
-                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, recipeHolder.id()));
+                    Messages.sendToServer(new PacketSetItemBuyerRecipe(this.blockPos, recipeHolder.id().identifier()));
                     return false;
                 } else {
                     LocalPlayer player = Minecraft.getInstance().player;
@@ -106,54 +108,51 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
                 }
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    protected void renderBg(GuiGraphics guiGraphics, float pPartialTicks, int pMouseX, int pMouseY) {
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.setShaderTexture(0, TEXTURE);
+    public void extractBackground(GuiGraphicsExtractor guiGraphics, int pMouseX, int pMouseY, float pPartialTicks) {
+        super.extractBackground(guiGraphics, pMouseX, pMouseY, pPartialTicks);
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
 
-        guiGraphics.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0, 0, imageWidth, imageHeight, 256, 256);
         if (this.recipe != null) {
             ItemStack item = this.recipe.getItem().orElseThrow();
             renderTargetItem(guiGraphics, item, x, y);
         }
     }
 
-    private void renderTargetItem(GuiGraphics guiGraphics, ItemStack item, int x, int y) {
+    private void renderTargetItem(GuiGraphicsExtractor guiGraphics, ItemStack item, int x, int y) {
         assert this.minecraft != null;
-        ItemRenderer itemRenderer = this.minecraft.getItemRenderer();
 //        itemRenderer.renderAndDecorateFakeItem(item, x+104, y+14);
-        guiGraphics.renderFakeItem(item, x+104, y+14);
+        guiGraphics.fakeItem(item, x+104, y+14);
         if (!item.getComponentsPatch().isEmpty()) {
-//            poseStack.pushPose();
+//            poseStack.pushMatrix();
 
 //            poseStack.translate(x + 104, y + 16, guiGraphics.+200);
 //            poseStack.scale(0.5F, 0.5F, 1.0F);
 //            drawString(poseStack, font, "+NBT", 0, 0, 0xFF55FF);
 
-//            poseStack.popPose();
+//            poseStack.popMatrix();
             // Render scaled text
-            PoseStack poseStack = guiGraphics.pose();
-            poseStack.pushPose();
+            Matrix3x2fStack poseStack = guiGraphics.pose();
+            poseStack.pushMatrix();
 
-            poseStack.translate(x + 104, y + 16, 200);
-            poseStack.scale(0.5F, 0.5F, 1.0F);
+            poseStack.translate(x + 104, y + 16);
+            poseStack.scale(0.5F, 0.5F);
 
             // When using scaled text, you need to use coordinates relative to the translation point (0, 0)
-            guiGraphics.drawString(font, "+NBT", 0, 0, 0xFF55FF);
+            guiGraphics.text(font, "+NBT", 0, 0, 0xFFFF55FF);
 
-            poseStack.popPose();
+            poseStack.popMatrix();
         }
     }
 
     @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        super.renderLabels(guiGraphics, mouseX, mouseY);
+    protected void extractLabels(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+        super.extractLabels(guiGraphics, mouseX, mouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         if (this.teamId != null) {
@@ -163,15 +162,13 @@ public class AbstractBuyerScreen<T extends AbstractBuyerMenu> extends AbstractCo
                 accAvailable = true;
             }
         }
-        int color = accAvailable ? 0xffffff : 0xff0000;
-        guiGraphics.drawString(font, name.getString(), 7,62,color);
+        int color = accAvailable ? 0xffffffff : 0xffff0000;
+        guiGraphics.text(font, name.getString(), 7,62,color);
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        renderBackground(guiGraphics, mouseX, mouseY, delta);
-        super.render(guiGraphics, mouseX, mouseY, delta);
-        renderTooltip(guiGraphics, mouseX, mouseY);
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(guiGraphics, mouseX, mouseY, delta);
 
         // Get data from BlockEntity
         this.buyerEntity = this.getMenu().getBlockEntity();

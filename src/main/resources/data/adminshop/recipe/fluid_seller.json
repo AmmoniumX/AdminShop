@@ -6,15 +6,9 @@
     "III"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_ingot"
-    },
-    "@": {
-      "item": "minecraft:barrel"
-    },
-    "#": {
-      "item": "minecraft:bucket"
-    }
+    "I": "minecraft:iron_ingot",
+    "@": "minecraft:barrel",
+    "#": "minecraft:bucket"
   },
   "result": {
     "id": "adminshop:fluid_seller"

@@ -11,17 +11,18 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 public class CreativeSellerBlock extends SellerBlock {
-    public static final MapCodec<CreativeSellerBlock> CODEC = simpleCodec(p -> new CreativeSellerBlock());
+    public static final MapCodec<CreativeSellerBlock> CODEC = simpleCodec(p -> new CreativeSellerBlock(p));
 
     @Override
     public MapCodec<CreativeSellerBlock> codec() { return CODEC; }
 
-    public CreativeSellerBlock() {
-        super(defaultProperties().strength(-1.0F, 3600000.0F));
+    public CreativeSellerBlock(BlockBehaviour.Properties properties) {
+        super(defaultProperties(properties).strength(-1.0F, 3600000.0F));
     }
 
     @Override

@@ -8,16 +8,19 @@ import com.google.common.collect.ImmutableSet;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.api.TeamManager;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.level.storage.SavedDataStorage;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,7 +36,7 @@ public class MoneyHelper extends SavedData {
 
     public MoneyHelper(CompoundTag tag) {
         super();
-        ledger = tag.getList(DATA_NAME, ListTag.TAG_COMPOUND);
+        ledger = tag.getListOrEmpty(DATA_NAME);
         AdminShop.LOGGER.debug("Loaded data tag: {}", ledger);
     }
 
@@ -45,12 +48,12 @@ public class MoneyHelper extends SavedData {
         MinecraftServer serv = ServerLifecycleHooks.getCurrentServer();
         ServerLevel level = serv.getLevel(Level.OVERWORLD);
         assert level != null;
-        DimensionDataStorage storage = level.getDataStorage();
-        return storage.computeIfAbsent(new SavedData.Factory<>(MoneyHelper::new, (tag, provider) -> new MoneyHelper(tag), null), "adminshop_accounts");
+        SavedDataStorage storage = level.getDataStorage();
+        return storage.computeIfAbsent(new SavedDataType<>(Identifier.fromNamespaceAndPath(AdminShop.MODID, "accounts"), MoneyHelper::new,
+                CompoundTag.CODEC.xmap(MoneyHelper::new, helper -> helper.save(new CompoundTag()))));
     }
 
-    @Override
-    public @NotNull CompoundTag save(@NotNull CompoundTag compoundTag, net.minecraft.core.HolderLookup.Provider provider) {
+    public @NotNull CompoundTag save(@NotNull CompoundTag compoundTag) {
         AdminShop.LOGGER.debug("Saving ledger: {}", ledger);
         if (ledger != null) {
             compoundTag.put(DATA_NAME, ledger);
@@ -70,19 +73,19 @@ public class MoneyHelper extends SavedData {
     }
 
     private MoneyAccount getFromTag(Component name, CompoundTag tag) {
-        UUID teamId = tag.getUUID("team");
-        long balance = tag.getLong("balance");
-        ListTag permitsList = tag.getList("permits", ListTag.TAG_STRING);
+        UUID teamId = tag.read("team", UUIDUtil.CODEC).orElseThrow();
+        long balance = tag.getLongOr("balance", 0);
+        ListTag permitsList = tag.getListOrEmpty("permits");
         Set<String> permits = new HashSet<>();
         for (int i = 0; i < permitsList.size(); i++) {
-            permits.add(permitsList.getString(i));
+            permits.add(permitsList.getStringOr(i, ""));
         }
         return new MoneyAccount(teamId, name, balance, ImmutableSet.copyOf(permits));
     }
 
     private CompoundTag toTag(MoneyAccount account) {
         CompoundTag tag = new CompoundTag();
-        tag.putUUID("team", account.teamId);
+        tag.store("team", UUIDUtil.CODEC, account.teamId);
         tag.putLong("balance", account.balance);
         ListTag permitsList = new ListTag();
         for (String permit : account.permits) {
@@ -94,9 +97,9 @@ public class MoneyHelper extends SavedData {
 
     private Optional<CompoundTag> getAccountTag(UUID teamId) {
         for (int i = 0; i < ledger.size(); i++) {
-            CompoundTag accountTag = ledger.getCompound(i);
+            CompoundTag accountTag = ledger.getCompoundOrEmpty(i);
 //            AdminShop.LOGGER.debug("Account tag: {}", accountTag);
-            if (accountTag.getUUID("team").equals(teamId)) {
+            if (accountTag.read("team", UUIDUtil.CODEC).orElseThrow().equals(teamId)) {
 //                AdminShop.LOGGER.debug("Found account tag: {}", accountTag);
                 return Optional.of(accountTag);
             }
@@ -118,7 +121,7 @@ public class MoneyHelper extends SavedData {
             // Create a new account
 //            AdminShop.LOGGER.debug("Account not found, so creating a new one");
             tag = new CompoundTag();
-            tag.putUUID("team", account.teamId);
+            tag.store("team", UUIDUtil.CODEC, account.teamId);
             ledger.add(tag);
         }
 

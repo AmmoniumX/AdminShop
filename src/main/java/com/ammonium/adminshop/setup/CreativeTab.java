@@ -25,7 +25,6 @@ public class CreativeTab {
                 .displayItems((params, output) -> {
 //                    Registration.ITEMS.getEntries().forEach(e -> output.accept(e.get()));
                     ModItems.ITEMS.getEntries().forEach(e -> output.accept(new ItemStack(e.get())));
-                    ModBlocks.BLOCKS.getEntries().forEach(e -> output.accept(new ItemStack(e.get())));
                 })
                 .build());
     }

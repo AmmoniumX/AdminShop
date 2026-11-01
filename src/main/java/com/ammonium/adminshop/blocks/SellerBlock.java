@@ -6,9 +6,12 @@ import com.ammonium.adminshop.blocks.entity.SellerEntity;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.SellerMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -29,7 +32,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
@@ -42,22 +45,18 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 public class SellerBlock extends BaseEntityBlock {
-    public static final MapCodec<SellerBlock> CODEC = simpleCodec(p -> new SellerBlock());
+    public static final MapCodec<SellerBlock> CODEC = simpleCodec(p -> new SellerBlock(p));
 
     @Override
     public MapCodec<? extends SellerBlock> codec() { return CODEC; }
 
-    public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
-    public SellerBlock() {
-        this(defaultProperties());
-    }
-
-    protected SellerBlock(BlockBehaviour.Properties properties) {
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public SellerBlock(BlockBehaviour.Properties properties) {
         super(properties);
     }
 
-    protected static BlockBehaviour.Properties defaultProperties() {
-        return BlockBehaviour.Properties.of()
+    protected static BlockBehaviour.Properties defaultProperties(BlockBehaviour.Properties properties) {
+        return properties
                 .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
@@ -69,18 +68,6 @@ public class SellerBlock extends BaseEntityBlock {
     }
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.1, 0.1, 0.1, 0.9, 0.9, 0.9);
 
-
-    @Override
-    public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
-        if (pState.getBlock() != pNewState.getBlock()) {
-            BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof SellerEntity sellerEntity) {
-                sellerEntity.drops();
-                sellerEntity.setRemoved();
-            }
-        }
-        super.onRemove(pState, pLevel, pPos, pNewState, pIsMoving);
-    }
 
     @Override
     protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos,
@@ -98,7 +85,7 @@ public class SellerBlock extends BaseEntityBlock {
                         AdminShop.LOGGER.debug("Could not find FTB team for {}", serverPlayer.getName().getString());
                     } else {
                         sellerEntity.setTeamId(newTeamId);
-                        pPlayer.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0f, 1.0f);
+                        serverPlayer.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.PLAYER_LEVELUP), SoundSource.PLAYERS, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(), 1.0f, 1.0f, serverPlayer.getRandom().nextLong()));
                         pPlayer.sendSystemMessage(Component.translatable("message.adminshop.claimed_machine"));
                         serverPlayer.openMenu(sellerEntity, pPos);
                     }
@@ -115,7 +102,7 @@ public class SellerBlock extends BaseEntityBlock {
                 throw new IllegalStateException("Our Container provider is missing!");
             }
         }
-        return InteractionResult.sidedSuccess(pLevel.isClientSide());
+        return InteractionResult.SUCCESS;
     }
 
 
@@ -166,7 +153,7 @@ public class SellerBlock extends BaseEntityBlock {
     @Override
     public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, @Nullable LivingEntity pPlacer, ItemStack pStack) {
         super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
-        if (!pLevel.isClientSide) {
+        if (!pLevel.isClientSide()) {
             // Server side code
             ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);

@@ -6,12 +6,8 @@
     "   "
   ],
   "key": {
-    "I": {
-      "item": "minecraft:stick"
-    },
-    "#": {
-      "item": "adminshop:shop"
-    }
+    "I": "minecraft:stick",
+    "#": "adminshop:shop"
   },
   "result": {
     "id": "adminshop:tablet"

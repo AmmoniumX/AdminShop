@@ -4,14 +4,17 @@ import com.ammonium.adminshop.AdminShop;
 import com.ammonium.adminshop.item.LoreBlockItem;
 import com.ammonium.adminshop.item.ModItems;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 public class ModBlocks {
 //    public static final Material machineBlock = new Material(MaterialColor.METAL, false, true, true, true, false, false, PushReaction.BLOCK);
@@ -29,7 +32,7 @@ public class ModBlocks {
             BuyerBlock3::new, "Automatically buys once every 10 ticks");
 
     public static final DeferredHolder<Block, SellerBlock> SELLER = registerLoreBlock("seller",
-            SellerBlock::new, "Automatically sells once every 20 ticks");
+            properties -> new SellerBlock(SellerBlock.defaultProperties(properties)), "Automatically sells once every 20 ticks");
 
     public static final DeferredHolder<Block, CreativeBuyerBlock> CREATIVE_BUYER = registerLoreBlock("creative_buyer",
             CreativeBuyerBlock::new, "Set its recipe in creative mode, then claim it in survival to buy with that recipe, bypassing permits");
@@ -49,27 +52,27 @@ public class ModBlocks {
     public static final DeferredHolder<Block, AdvancedDetector> ADVANCED_DETECTOR = registerLoreBlock("adv_detector",
             AdvancedDetector::new, "Outputs analog redstone signal proportional on balance between 0 and threshold");
 
-    private static <T extends Block> DeferredHolder<Block, T> registerBlock(String name, Supplier<T> block) {
-        DeferredHolder<Block, T> toReturn = BLOCKS.register(name, block);
+    private static <T extends Block> DeferredHolder<Block, T> registerBlock(String name, Function<BlockBehaviour.Properties, T> block) {
+        DeferredHolder<Block, T> toReturn = BLOCKS.register(name, id -> block.apply(BlockBehaviour.Properties.of().setId(ResourceKey.create(Registries.BLOCK, id))));
         registerBlockItem(name, toReturn);
         return toReturn;
     }
 
     private static <T extends Block> DeferredHolder<Item, BlockItem> registerBlockItem(String name, DeferredHolder<Block, T> block) {
-        return ModItems.ITEMS.register(name, () -> new BlockItem(block.get(),
-                new Item.Properties()));
+        return ModItems.ITEMS.register(name, id -> new BlockItem(block.get(),
+                new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).useBlockDescriptionPrefix()));
     }
 
-    private static <T extends Block> DeferredHolder<Block, T> registerLoreBlock(String name, Supplier<T> block, String lore) {
-        DeferredHolder<Block, T> toReturn = BLOCKS.register(name, block);
+    private static <T extends Block> DeferredHolder<Block, T> registerLoreBlock(String name, Function<BlockBehaviour.Properties, T> block, String lore) {
+        DeferredHolder<Block, T> toReturn = BLOCKS.register(name, id -> block.apply(BlockBehaviour.Properties.of().setId(ResourceKey.create(Registries.BLOCK, id))));
         registerLoreBlockItem(name, toReturn, lore);
         return toReturn;
     }
 
     private static <T extends Block> DeferredHolder<Item, LoreBlockItem> registerLoreBlockItem(String name, DeferredHolder<Block, T> block,
                                                                                 String lore) {
-        return ModItems.ITEMS.register(name, () -> new LoreBlockItem(block.get(),
-                new Item.Properties(), lore));
+        return ModItems.ITEMS.register(name, id -> new LoreBlockItem(block.get(),
+                new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).useBlockDescriptionPrefix(), lore));
     }
 
     public static void register(IEventBus eventBus) {

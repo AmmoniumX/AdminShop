@@ -10,6 +10,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -46,7 +48,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 public class AdvancedDetector extends BaseEntityBlock {
-    public static final MapCodec<AdvancedDetector> CODEC = simpleCodec(p -> new AdvancedDetector());
+    public static final MapCodec<AdvancedDetector> CODEC = simpleCodec(p -> new AdvancedDetector(p));
 
     @Override
     public MapCodec<AdvancedDetector> codec() { return CODEC; }
@@ -54,8 +56,8 @@ public class AdvancedDetector extends BaseEntityBlock {
     public static final BooleanProperty LIT = BlockStateProperties.LIT;
 
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0, 0, 0, 1, 0.125, 1);
-    public AdvancedDetector() {
-        super(BlockBehaviour.Properties.of()
+    public AdvancedDetector(BlockBehaviour.Properties properties) {
+        super(properties
                 .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
@@ -106,7 +108,7 @@ public class AdvancedDetector extends BaseEntityBlock {
     @Override
     public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, @Nullable LivingEntity pPlacer, ItemStack pStack) {
         super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
-        if (!pLevel.isClientSide) {
+        if (!pLevel.isClientSide()) {
             // Server side code
             ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
@@ -143,7 +145,7 @@ public class AdvancedDetector extends BaseEntityBlock {
                         AdminShop.LOGGER.debug("Could not find FTB team for {}", serverPlayer.getName().getString());
                     } else {
                         advancedDetectorBE.setTeamId(newTeamId);
-                        pPlayer.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0f, 1.0f);
+                        serverPlayer.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.PLAYER_LEVELUP), SoundSource.PLAYERS, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(), 1.0f, 1.0f, serverPlayer.getRandom().nextLong()));
                         pPlayer.sendSystemMessage(Component.translatable("message.adminshop.claimed_machine"));
                         serverPlayer.openMenu(advancedDetectorBE, pPos);
                     }
@@ -161,18 +163,7 @@ public class AdvancedDetector extends BaseEntityBlock {
                 throw new IllegalStateException("Our Container provider is missing!");
             }
         }
-        return InteractionResult.sidedSuccess(pLevel.isClientSide());
-    }
-
-    @Override
-    public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
-        if (pState.getBlock() != pNewState.getBlock()) {
-            BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof AdvancedDetectorEntity advancedDetectorBE) {
-                advancedDetectorBE.setRemoved();
-            }
-        }
-        super.onRemove(pState, pLevel, pPos, pNewState, pIsMoving);
+        return InteractionResult.SUCCESS;
     }
 
     @Override

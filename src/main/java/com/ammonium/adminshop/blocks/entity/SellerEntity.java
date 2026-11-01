@@ -6,13 +6,18 @@ import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.screen.SellerMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Inventory;
@@ -25,7 +30,9 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,11 +44,12 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
 //    private final NonNullList<ItemStack> stacks = NonNullList.withSize(slotSize, ItemStack.EMPTY);
 //    private final int[] slots = stacks.stream().mapToInt(stacks::indexOf).toArray();
 
-    public final ItemStackHandler inventory = new ItemStackHandler(SLOT_SIZE) {
+    public final ItemStacksResourceHandler inventory = new ItemStacksResourceHandler(SLOT_SIZE) {
         @Override
-        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+        public boolean isValid(int slot, @NotNull ItemResource resource) {
             // 1. Basic safety check (optional, ItemStackHandler handles nulls/empty)
-            if (stack.isEmpty()) return false;
+            if (resource.isEmpty()) return false;
+            ItemStack stack = resource.toStack();
 
             // 2. Your custom logic
             Level level = getLevel(); // BlockEntity method to get current level
@@ -54,24 +62,24 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
         }
 
         @Override
-        protected void onContentsChanged(int slot) {
-            super.onContentsChanged(slot);
+        protected void onContentsChanged(int slot, ItemStack previousContents) {
+            super.onContentsChanged(slot, previousContents);
             setChanged();
             sendUpdates();
         }
     };
 
-    public ItemStackHandler getInventory() {
+    public ItemStacksResourceHandler getInventory() {
         return this.inventory;
     }
 
     @Override
     public IItemHandler getItemHandler() {
-        return this.inventory;
+        return IItemHandler.of(this.inventory);
     }
 
     private @Nullable UUID teamId = null;
-    private @Nullable ResourceLocation lockedRecipeId = null;
+    private @Nullable Identifier lockedRecipeId = null;
     private int tickCounter = 0;    // unsynced
     private int tickProgress = 0;   // synced
 
@@ -116,11 +124,11 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
         return teamId;
     }
 
-    public @Nullable ResourceLocation getLockedRecipeId() {
+    public @Nullable Identifier getLockedRecipeId() {
         return lockedRecipeId;
     }
 
-    public void setLockedRecipeId(@Nullable ResourceLocation lockedRecipeId) {
+    public void setLockedRecipeId(@Nullable Identifier lockedRecipeId) {
         this.lockedRecipeId = lockedRecipeId;
         this.setChanged();
         this.sendUpdates();
@@ -171,7 +179,7 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
     public static void tick(Level level, BlockPos pos, BlockState state, SellerEntity sellerBE) {
 
         // Ignore if not server side
-        if (level.isClientSide) { return; }
+        if (level.isClientSide()) { return; }
         assert level instanceof ServerLevel;
 
         // Only run every 20 ticks
@@ -184,7 +192,7 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
 
         // Check for valid recipe
         AdminShop.LOGGER.info("[Seller] Tick — teamId={}, slot0={}", sellerBE.teamId,
-                sellerBE.inventory.getStackInSlot(0).isEmpty() ? "empty" : sellerBE.inventory.getStackInSlot(0).getDisplayName().getString());
+                sellerBE.getItemHandler().getStackInSlot(0).isEmpty() ? "empty" : sellerBE.getItemHandler().getStackInSlot(0).getDisplayName().getString());
         net.minecraft.world.item.crafting.RecipeHolder<SellItemRecipe> recipeHolder =
                 RecipeManager.checkForSellItemRecipe((ServerLevel) level, sellerBE).orElse(null);
         if (recipeHolder == null) {
@@ -195,11 +203,12 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
         AdminShop.LOGGER.info("[Seller] Matched recipe: {}", recipeHolder.id());
 
         // Sell the item
-        @Nullable IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, state, sellerBE, null);
-        if (handler == null) {
+        @Nullable ResourceHandler<ItemResource> capability = level.getCapability(Capabilities.Item.BLOCK, pos, state, sellerBE, null);
+        if (capability == null) {
             AdminShop.LOGGER.info("[Seller] Handler is null — capability not registered?");
             return;
         }
+        IItemHandler handler = IItemHandler.of(capability);
         AdminShop.LOGGER.info("[Seller] Handler slots={}", handler.getSlots());
         for (int slot = 0; slot < handler.getSlots(); slot++) {
             ItemStack slotStack = handler.getStackInSlot(slot);
@@ -233,18 +242,18 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
 
     @Override
     public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
-        CompoundTag tag = super.getUpdateTag(provider);
+        TagValueOutput tag = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, provider);
 
-        tag.put("Inventory", this.inventory.serializeNBT(provider));
+        this.inventory.serialize(tag.child("Inventory"));
 
         if (this.teamId != null) {
-            tag.putUUID("team", this.teamId);
+            tag.store("team", UUIDUtil.CODEC, this.teamId);
         }
         if (this.lockedRecipeId != null) {
             tag.putString("lockedRecipe", this.lockedRecipeId.toString());
         }
         tag.putInt("tickProgress", this.tickProgress);
-        return tag;
+        return tag.buildResult();
     }
     @Nullable
     @Override
@@ -259,14 +268,14 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
     }
 
     @Override
-    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
+    protected void saveAdditional(@NotNull ValueOutput tag) {
+        super.saveAdditional(tag);
 //        ContainerHelper.saveAllItems(tag, this.inventory);
 
-        tag.put("Inventory", this.inventory.serializeNBT(provider));
+        this.inventory.serialize(tag.child("Inventory"));
 
         if (this.teamId != null) {
-            tag.putUUID("team", this.teamId);
+            tag.store("team", UUIDUtil.CODEC, this.teamId);
         }
         if (this.lockedRecipeId != null) {
             tag.putString("lockedRecipe", this.lockedRecipeId.toString());
@@ -275,34 +284,29 @@ public class SellerEntity extends BlockEntity implements ItemSellerMachine {
     }
 
     @Override
-    public void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
-        super.loadAdditional(tag, provider);
+    public void loadAdditional(@NotNull ValueInput tag) {
+        super.loadAdditional(tag);
 //        ContainerHelper.loadAllItems(tag, this.inventory);
 
-        if (tag.contains("Inventory")) {
-            this.inventory.deserializeNBT(provider, tag.getCompound("Inventory"));
-        }
+        tag.child("Inventory").ifPresent(this.inventory::deserialize);
 
-        if (tag.contains("team")) {
-            this.teamId = tag.getUUID("team");
-        }
-        if (tag.contains("lockedRecipe")) {
-            this.lockedRecipeId = ResourceLocation.parse(tag.getString("lockedRecipe"));
-        } else {
-            this.lockedRecipeId = null;
-        }
-        if (tag.contains("tickProgress")) {
-            this.tickProgress = tag.getInt("tickProgress");
-        }
+        tag.read("team", UUIDUtil.CODEC).ifPresent(team -> this.teamId = team);
+        this.lockedRecipeId = tag.getString("lockedRecipe").map(Identifier::parse).orElse(null);
+        this.tickProgress = tag.getIntOr("tickProgress", this.tickProgress);
+    }
+
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        drops();
     }
 
     public void drops() {
 //        Containers.dropContents(this.level, this.worldPosition, inventory);
         if (this.level == null) return;
 
-        for (int i = 0; i < inventory.getSlots(); i++) {
+        for (int i = 0; i < inventory.size(); i++) {
             // Use the handler to get the stacks
-            Containers.dropItemStack(this.level, this.worldPosition.getX(), this.worldPosition.getY(), this.worldPosition.getZ(), inventory.getStackInSlot(i));
+            Containers.dropItemStack(this.level, this.worldPosition.getX(), this.worldPosition.getY(), this.worldPosition.getZ(), getItemHandler().getStackInSlot(i));
         }
     }
 

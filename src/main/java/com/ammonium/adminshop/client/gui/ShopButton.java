@@ -11,18 +11,21 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.block.FluidModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,12 +45,11 @@ public class ShopButton extends Button {
         super(x, y, 16, 16, Component.empty(), listener, DEFAULT_NARRATION);
         this.recipe = recipe;
         if(recipe.value() instanceof FluidRecipe fluidRecipe) {
-            Function<ResourceLocation, TextureAtlasSprite> spriteAtlas = Minecraft.getInstance()
-                    .getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
-            IClientFluidTypeExtensions properties = IClientFluidTypeExtensions.of(fluidRecipe.getFluid().getFluid());
-            ResourceLocation resource = properties.getStillTexture();
-            fluidTexture = spriteAtlas.apply(resource);
-            int fcol = properties.getTintColor();
+            FluidModel properties = Minecraft.getInstance().getModelManager().getFluidStateModelSet()
+                    .get(fluidRecipe.getFluid().getFluid().defaultFluidState());
+            fluidTexture = properties.stillMaterial().sprite();
+            int fcol = properties.fluidTintSource() != null ? properties.fluidTintSource().colorAsStack(fluidRecipe.getFluid()) : -1;
+            if (ARGB.alpha(fcol) == 0) { fcol = ARGB.opaque(fcol); }
             fluidColorR = ((fcol >> 16) & 0xFF) / 255.0F;
             fluidColorG = ((fcol >> 8) & 0xFF) / 255.0F;
             fluidColorB = (fcol & 0xFF) / 255.0F;
@@ -56,29 +58,24 @@ public class ShopButton extends Button {
     }
 
     @Override
-    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+    public void extractContents(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
         //super.renderButton(matrix, x, y, partialTicks);
         if(!visible) { return; }
 
         int x = getX();
         int y = getY();
 
-        PoseStack matrix = guiGraphics.pose();
-        matrix.pushPose();
+        Matrix3x2fStack matrix = guiGraphics.pose();
+        matrix.pushMatrix();
 
         //Draw item or fluid
         if(recipe.value() instanceof ItemRecipe itemRecipe) {
-            guiGraphics.renderItem(itemRecipe.getDisplayItem(), x, y);
+            guiGraphics.item(itemRecipe.getDisplayItem(), x, y);
         } else if (recipe.value() instanceof FluidRecipe) { // Render Fluid
             // Set render for fluid
 //            enableScissor(x, y, x + width, y + height);
-            RenderSystem.enableBlend();
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderTexture(0, fluidTexture.atlasLocation());
-            RenderSystem.setShaderColor(fluidColorR, fluidColorG, fluidColorB, fluidColorA);
-            guiGraphics.blit(x, y,0, 16, 16, fluidTexture);
-            RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-            RenderSystem.disableBlend();
+            guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, fluidTexture, x, y, 16, 16,
+                    ARGB.colorFromFloat(fluidColorA, fluidColorR, fluidColorG, fluidColorB));
 //            RenderSystem.disableScissor();
         }
 
@@ -90,23 +87,22 @@ public class ShopButton extends Button {
             isMouseOn = false;
         }
         //Write quantity based on buttons pressed (sneak & run)
-        matrix.pushPose();
-        matrix.translate(0, 0, 201);
-        matrix.scale(.5f, .5f, 1);
+        matrix.pushMatrix();
+        matrix.scale(.5f, .5f);
         Font font = Minecraft.getInstance().font;
         int numItems = getNumItems();
-        guiGraphics.drawString(font, numItems+"", 2*(x+16)- font.width(numItems+""), 2*(y)+24, 0xFFFFFF);
+        guiGraphics.text(font, numItems+"", 2*(x+16)- font.width(numItems+""), 2*(y)+24, 0xFFFFFFFF);
         if(recipe.value() instanceof ItemRecipe itemRecipe) {
             if (itemRecipe instanceof SellItemRecipe sellRecipe && sellRecipe.getSellType() == SellItemRecipe.SellTypes.TAG) {
-                guiGraphics.drawString(font, "#", 2 * x + width * 2 - font.width("#") - 1, 2 * y + 1, 0xFFC921);
+                guiGraphics.text(font, "#", 2 * x + width * 2 - font.width("#") - 1, 2 * y + 1, 0xFFFFC921);
             }
             if (itemRecipe.getItem().isPresent() && !itemRecipe.getItem().get().getComponentsPatch().isEmpty()) {
-                guiGraphics.drawString(font, "+NBT", 2 * x + width * 2 - font.width("+NBT") - 1, 2 * y + 1, 0xFF55FF);
+                guiGraphics.text(font, "+NBT", 2 * x + width * 2 - font.width("+NBT") - 1, 2 * y + 1, 0xFFFF55FF);
             }
         }
-        matrix.popPose();
+        matrix.popMatrix();
 
-        matrix.popPose();
+        matrix.popMatrix();
     }
 
     // Returns the number of items to be placed based on the recipe type
@@ -137,10 +133,10 @@ public class ShopButton extends Button {
             }
 
             // Get quantity based on key presses and max fits
-            if (Screen.hasControlDown()) {
+            if (Minecraft.getInstance().hasControlDown()) {
                 return maxFits;
             }
-            if (Screen.hasShiftDown()) {
+            if (Minecraft.getInstance().hasShiftDown()) {
                 return Math.max(maxFits / 2, 1);
             }
             return 1;
@@ -157,7 +153,7 @@ public class ShopButton extends Button {
         int numItems = getNumItems();
         long price = recipe.value().getPrice() * quantity;
         List<Component> tooltip = new ArrayList<>();
-        String priceFormatted = Screen.hasAltDown()
+        String priceFormatted = Minecraft.getInstance().hasAltDown()
                 ? MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.RAW)
                 : MoneyFormat.forcedFormat(price, MoneyFormat.FormatType.SHORT);
         String quantityString = numItems + ((recipe.value() instanceof ItemRecipe) ? "x" : "mb");

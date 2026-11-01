@@ -10,6 +10,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -31,7 +33,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
@@ -44,16 +46,16 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 public class BasicDetector extends BaseEntityBlock {
-    public static final MapCodec<BasicDetector> CODEC = simpleCodec(p -> new BasicDetector());
+    public static final MapCodec<BasicDetector> CODEC = simpleCodec(p -> new BasicDetector(p));
 
     @Override
     public MapCodec<BasicDetector> codec() { return CODEC; }
 
-    public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final BooleanProperty LIT = BlockStateProperties.LIT;
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.375, 0, 0.375, 0.625, 0.625, 0.625);
-    public BasicDetector() {
-        super(BlockBehaviour.Properties.of()
+    public BasicDetector(BlockBehaviour.Properties properties) {
+        super(properties
                 .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
@@ -62,7 +64,7 @@ public class BasicDetector extends BaseEntityBlock {
                 .forceSolidOn()
                 .noOcclusion()
                 .pushReaction(PushReaction.BLOCK)
-                .noCollission()
+                .noCollision()
         );
     }
 
@@ -102,7 +104,7 @@ public class BasicDetector extends BaseEntityBlock {
     @Override
     public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, @Nullable LivingEntity pPlacer, ItemStack pStack) {
         super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
-        if (!pLevel.isClientSide) {
+        if (!pLevel.isClientSide()) {
             // Server side code
             ServerLevel serverLevel = (ServerLevel) pLevel;
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
@@ -141,7 +143,7 @@ public class BasicDetector extends BaseEntityBlock {
                         AdminShop.LOGGER.debug("Could not find FTB team for {}", serverPlayer.getName().getString());
                     } else {
                         basicDetectorBE.setTeamId(newTeamId);
-                        pPlayer.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0f, 1.0f);
+                        serverPlayer.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.PLAYER_LEVELUP), SoundSource.PLAYERS, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(), 1.0f, 1.0f, serverPlayer.getRandom().nextLong()));
                         pPlayer.sendSystemMessage(Component.translatable("message.adminshop.claimed_machine"));
                         serverPlayer.openMenu(basicDetectorBE, pPos);
                     }
@@ -159,18 +161,7 @@ public class BasicDetector extends BaseEntityBlock {
                 throw new IllegalStateException("Our Container provider is missing!");
             }
         }
-        return InteractionResult.sidedSuccess(pLevel.isClientSide());
-    }
-
-    @Override
-    public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
-        if (pState.getBlock() != pNewState.getBlock()) {
-            BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof BasicDetectorEntity basicDetectorBE) {
-                basicDetectorBE.setRemoved();
-            }
-        }
-        super.onRemove(pState, pLevel, pPos, pNewState, pIsMoving);
+        return InteractionResult.SUCCESS;
     }
 
     @Override

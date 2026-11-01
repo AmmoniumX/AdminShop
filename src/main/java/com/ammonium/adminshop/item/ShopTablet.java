@@ -9,7 +9,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -21,8 +21,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class ShopTablet extends LoreItem{
     public static final String SCREEN_ADMINSHOP_SHOP = "screen.adminshop.shop";
-    public ShopTablet() {
-        super(new Item.Properties(), "A very sophisticated PDA. Right-click to open the Shop");
+    public ShopTablet(Item.Properties properties) {
+        super(properties, "A very sophisticated PDA. Right-click to open the Shop");
     }
 
     @Override
@@ -31,8 +31,8 @@ public class ShopTablet extends LoreItem{
     }
 
     @Override
-    public @NotNull InteractionResultHolder<ItemStack> use(Level level, @NotNull Player player, @NotNull InteractionHand pUsedHand) {
-        if (!level.isClientSide) {
+    public @NotNull InteractionResult use(Level level, @NotNull Player player, @NotNull InteractionHand pUsedHand) {
+        if (!level.isClientSide()) {
             ServerLevel serverLevel = (ServerLevel) level;
             ServerPlayer serverPlayer = (ServerPlayer) player;
             MenuProvider containerProvider = new MenuProvider() {

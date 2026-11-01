@@ -6,13 +6,16 @@ import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.AbstractBuyerMenu;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.LivingEntity;
@@ -30,7 +33,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
@@ -43,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 public abstract class AbstractBuyerBlock extends BaseEntityBlock {
-    public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.1, 0.1, 0.1, 0.9, 0.9, 0.9);
 
     @FunctionalInterface
@@ -58,11 +61,6 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
     }
     protected final MenuFactory<?> MENU_FACTORY;
 
-    public AbstractBuyerBlock( @NotNull BlockEntityFactory<?> blockEntityFactory,
-                               @NotNull MenuFactory<?> menuFactory) {
-        this(blockEntityFactory, menuFactory, defaultProperties());
-    }
-
     protected AbstractBuyerBlock( @NotNull BlockEntityFactory<?> blockEntityFactory,
                                @NotNull MenuFactory<?> menuFactory,
                                BlockBehaviour.Properties properties) {
@@ -72,8 +70,8 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
         this.MENU_FACTORY = menuFactory;
     }
 
-    protected static BlockBehaviour.Properties defaultProperties() {
-        return BlockBehaviour.Properties.of()
+    protected static BlockBehaviour.Properties defaultProperties(BlockBehaviour.Properties properties) {
+        return properties
                 .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
@@ -86,19 +84,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
 
 
     @Override
-    public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
-        if (pState.getBlock() != pNewState.getBlock()) {
-            BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof AbstractBuyerEntity buyerEntity) {
-                buyerEntity.drops();
-                buyerEntity.setRemoved();
-            }
-        }
-        super.onRemove(pState, pLevel, pPos, pNewState, pIsMoving);
-    }
-
-    @Override
-    public @NotNull ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+    public @NotNull InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
                                                     Player player, InteractionHand hand, BlockHitResult hit)  {
         if (!level.isClientSide()) {
             assert level instanceof ServerLevel;
@@ -114,7 +100,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
                         AdminShop.LOGGER.debug("Could not find FTB team for {}", serverPlayer.getName().getString());
                     } else {
                         buyerEntity.setTeamId(newTeamId);
-                        player.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0f, 1.0f);
+                        serverPlayer.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.PLAYER_LEVELUP), SoundSource.PLAYERS, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(), 1.0f, 1.0f, serverPlayer.getRandom().nextLong()));
                         player.sendSystemMessage(Component.translatable("message.adminshop.claimed_machine"));
                         serverPlayer.openMenu(buyerEntity, pos);
                     }
@@ -134,7 +120,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
                 throw new IllegalStateException("Our Container provider is missing!");
             }
         }
-        return ItemInteractionResult.sidedSuccess(level.isClientSide());
+        return InteractionResult.SUCCESS;
     }
 
 
@@ -165,7 +151,7 @@ public abstract class AbstractBuyerBlock extends BaseEntityBlock {
     @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             // Server side code
             ServerLevel serverLevel = (ServerLevel) level;
             BlockEntity blockEntity = level.getBlockEntity(pos);

@@ -6,10 +6,11 @@ import com.ammonium.adminshop.blocks.entity.ModBlockEntities;
 import com.ammonium.adminshop.screen.BuyerMenu3;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 
 public class BuyerBlock3 extends AbstractBuyerBlock {
-    public BuyerBlock3() {
-        super(BuyerEntity3::new, BuyerMenu3::new);
+    public BuyerBlock3(BlockBehaviour.Properties properties) {
+        super(BuyerEntity3::new, BuyerMenu3::new, defaultProperties(properties));
     }
 
     @Override

@@ -5,7 +5,7 @@
     "id": "minecraft:paper",
     "count": 1,
     "components": {
-      "minecraft:custom_name": "{\"text\":\"Special Paper!\",\"italic\":false}"
+      "minecraft:custom_name": {"text": "Special Paper!", "italic": false}
     }
   }
 }
