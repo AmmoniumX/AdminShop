@@ -148,10 +148,10 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         poseStack.pushMatrix();
         //Block Title
         String blockName = I18n.get(ShopBlock.SCREEN_ADMINSHOP_SHOP);
-        guiGraphics.centeredText(font, blockName, getXSize()/2, 6, 0xffffff);
+        guiGraphics.centeredText(font, blockName, getXSize()/2, 6, 0xffffffff);
 
         //Player Inventory Title
-        guiGraphics.text(font, playerInventoryTitle, 16, getYSize()-94, 0xffffff);
+        guiGraphics.text(font, playerInventoryTitle, 16, getYSize()-94, 0xffffffff);
 
         //Player Balance
         long balance = -1;
@@ -166,10 +166,10 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         guiGraphics.text(Minecraft.getInstance().font,
                 formatted,
                 getXSize() - font.width(formatted) - 6,
-                6, 0xffffff);
+                6, 0xffffffff);
 
         // Bank account
-        guiGraphics.text(font, name.getString(),16,112,0xffffff);
+        guiGraphics.text(font, name.getString(),16,112,0xffffffff);
 
         //Tooltip for item the player is hovering over
         List<ShopButton> shopButtons = isBuy ? buyButtons : sellButtons;
