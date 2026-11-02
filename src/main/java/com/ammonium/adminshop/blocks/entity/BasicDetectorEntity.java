@@ -6,6 +6,9 @@ import com.ammonium.adminshop.blocks.interfaces.Detector;
 import com.ammonium.adminshop.money.MoneyHelper;
 import com.ammonium.adminshop.screen.BasicDetectorMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -53,7 +56,7 @@ public class BasicDetectorEntity extends BlockEntity implements Detector {
     }
 
     public static void tick(Level pLevel, BlockPos pPos, BlockState pState, BasicDetectorEntity pBlockEntity) {
-        if(!pLevel.isClientSide) {
+        if(!pLevel.isClientSide()) {
             pBlockEntity.tickCounter++;
             if (pBlockEntity.tickCounter > 20) {
                 pBlockEntity.tickCounter = 0;
@@ -95,23 +98,19 @@ public class BasicDetectorEntity extends BlockEntity implements Detector {
     }
 
     @Override
-    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
+    protected void saveAdditional(@NotNull ValueOutput tag) {
+        super.saveAdditional(tag);
         if (this.teamId != null) {
-            tag.putUUID("team", this.teamId);
+            tag.store("team", UUIDUtil.CODEC, this.teamId);
         }
         tag.putLong("threshold", this.threshold);
     }
 
     @Override
-    public void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
-        super.loadAdditional(tag, provider);
-        if (tag.contains("team")) {
-            this.teamId = tag.getUUID("team");
-        }
-        if (tag.contains("threshold")) {
-            this.threshold = tag.getLong("threshold");
-        }
+    public void loadAdditional(@NotNull ValueInput tag) {
+        super.loadAdditional(tag);
+        tag.read("team", UUIDUtil.CODEC).ifPresent(team -> this.teamId = team);
+        this.threshold = tag.getLongOr("threshold", this.threshold);
     }
 
 

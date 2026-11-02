@@ -6,15 +6,9 @@
     "III"
   ],
   "key": {
-    "I": {
-      "item": "minecraft:iron_ingot"
-    },
-    "@": {
-      "item": "minecraft:barrel"
-    },
-    "#": {
-      "item": "minecraft:hopper"
-    }
+    "I": "minecraft:iron_ingot",
+    "@": "minecraft:barrel",
+    "#": "minecraft:hopper"
   },
   "result": {
     "id": "adminshop:buyer_1"

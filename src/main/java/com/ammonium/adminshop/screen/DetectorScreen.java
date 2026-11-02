@@ -11,13 +11,14 @@ import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -46,7 +47,7 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
         this.inventoryLabelY = 60;
     }
 
-    protected abstract ResourceLocation getTexture();
+    protected abstract Identifier getTexture();
 
     public DetectorScreen(T pMenu, Inventory inventory, Component pTitle, Class<Q> pClass) {
         this(pMenu, inventory, pTitle, ((BlockEntity) pMenu.getBlockEntity()).getBlockPos(), pClass);
@@ -127,19 +128,17 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
     }
 
     @Override
-    protected void renderBg(GuiGraphics guiGraphics, float pPartialTicks, int pMouseX, int pMouseY) {
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.setShaderTexture(0, getTexture());
+    public void extractBackground(GuiGraphicsExtractor guiGraphics, int pMouseX, int pMouseY, float pPartialTicks) {
+        super.extractBackground(guiGraphics, pMouseX, pMouseY, pPartialTicks);
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
 
-        guiGraphics.blit(getTexture(), x, y, 0, 0, imageWidth, imageHeight);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, getTexture(), x, y, 0, 0, imageWidth, imageHeight, 256, 256);
     }
 
     @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int pMouseX, int pMouseY) {
-        super.renderLabels(guiGraphics, pMouseX, pMouseY);
+    protected void extractLabels(GuiGraphicsExtractor guiGraphics, int pMouseX, int pMouseY) {
+        super.extractLabels(guiGraphics, pMouseX, pMouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         MoneyHelper.MoneyAccount account = ClientCache.getAccount();
@@ -147,15 +146,13 @@ public abstract class DetectorScreen<T extends DetectorMenu<Q>, Q extends Detect
             name = account.name();
             accAvailable = true;
         }
-        int color = accAvailable ? 0xffffff : 0xff0000;
-        guiGraphics.drawString(font, name.getString(), 7,48,color);
+        int color = accAvailable ? 0xffffffff : 0xffff0000;
+        guiGraphics.text(font, name.getString(), 7,48,color);
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        renderBackground(guiGraphics, mouseX, mouseY, delta);
-        super.render(guiGraphics, mouseX, mouseY, delta);
-        renderTooltip(guiGraphics, mouseX, mouseY);
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(guiGraphics, mouseX, mouseY, delta);
 
         // Get data from BlockEntity
         this.detectorBE = this.detectorClass.cast(this.getMenu().getBlockEntity());

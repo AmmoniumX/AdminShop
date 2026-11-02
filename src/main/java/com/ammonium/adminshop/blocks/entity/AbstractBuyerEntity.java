@@ -6,6 +6,11 @@ import com.ammonium.adminshop.recipes.BuyItemRecipe;
 import com.ammonium.adminshop.recipes.RecipeManager;
 import com.ammonium.adminshop.screen.AbstractBuyerMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
@@ -14,7 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Containers;
@@ -44,7 +49,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     private final NonNullList<ItemStack> stacks;
 
     private @Nullable UUID teamId = null;
-    private @Nullable ResourceLocation recipeId = null;
+    private @Nullable Identifier recipeId = null;
     private boolean lockedRecipe = false;
     private int tickCounter = 0;   // unsynced
     private int tickProgress = 0;  // synced
@@ -99,7 +104,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
         return teamId;
     }
 
-    public void setRecipe(ResourceLocation recipeId) {
+    public void setRecipe(Identifier recipeId) {
         if (this.lockedRecipe) { return; }
         this.recipeId = recipeId;
         this.setChanged();
@@ -110,7 +115,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
      * Sets the recipe regardless of {@link #isLockedRecipe()}. Only meant to be called
      * on behalf of a creative-mode player configuring the machine.
      */
-    public void forceSetRecipe(ResourceLocation recipeId) {
+    public void forceSetRecipe(Identifier recipeId) {
         this.recipeId = recipeId;
         this.setChanged();
         this.sendUpdates();
@@ -214,7 +219,7 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     public static void tick(Level level, BlockPos pos, BlockState state, AbstractBuyerEntity buyer) {
 
         // Ignore if not server side
-        if (level.isClientSide) { return; }
+        if (level.isClientSide()) { return; }
         assert level instanceof ServerLevel;
 
         // Only run every TICK_COOLDOWN ticks
@@ -254,17 +259,17 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
 
     @Override
     public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
-        CompoundTag tag = super.getUpdateTag(provider);
-        ContainerHelper.saveAllItems(tag, this.stacks, provider);
+        TagValueOutput tag = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, provider);
+        ContainerHelper.saveAllItems(tag, this.stacks);
         if (this.teamId != null) {
-            tag.putUUID("team", this.teamId);
+            tag.store("team", UUIDUtil.CODEC, this.teamId);
         }
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
         }
         tag.putBoolean("lockedRecipe", this.lockedRecipe);
         tag.putInt("tickProgress", this.tickProgress);
-        return tag;
+        return tag.buildResult();
     }
 
     @Nullable
@@ -280,11 +285,11 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     @Override
-    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
-        ContainerHelper.saveAllItems(tag, this.stacks, provider);
+    protected void saveAdditional(@NotNull ValueOutput tag) {
+        super.saveAdditional(tag);
+        ContainerHelper.saveAllItems(tag, this.stacks);
         if (this.teamId != null) {
-            tag.putUUID("team", this.teamId);
+            tag.store("team", UUIDUtil.CODEC, this.teamId);
         }
         if (this.recipeId != null) {
             tag.putString("recipe", this.recipeId.toString());
@@ -294,21 +299,13 @@ public abstract class AbstractBuyerEntity extends BaseContainerBlockEntity imple
     }
 
     @Override
-    public void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
-        super.loadAdditional(tag, provider);
-        ContainerHelper.loadAllItems(tag, this.stacks, provider);
-        if (tag.contains("team")) {
-            this.teamId = tag.getUUID("team");
-        }
-        if (tag.contains("recipe")) {
-            this.recipeId = ResourceLocation.parse(tag.getString("recipe"));
-        } else {
-            this.recipeId = null;
-        }
-        this.lockedRecipe = tag.getBoolean("lockedRecipe");
-        if (tag.contains("tickProgress")) {
-            this.tickProgress = tag.getInt("tickProgress");
-        }
+    public void loadAdditional(@NotNull ValueInput tag) {
+        super.loadAdditional(tag);
+        ContainerHelper.loadAllItems(tag, this.stacks);
+        tag.read("team", UUIDUtil.CODEC).ifPresent(team -> this.teamId = team);
+        this.recipeId = tag.getString("recipe").map(Identifier::parse).orElse(null);
+        this.lockedRecipe = tag.getBooleanOr("lockedRecipe", false);
+        this.tickProgress = tag.getIntOr("tickProgress", this.tickProgress);
     }
 
     public void drops() {

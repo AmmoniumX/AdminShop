@@ -6,6 +6,7 @@ import com.ammonium.adminshop.network.PacketSyncMoneyToClient;
 import com.ammonium.adminshop.screen.ShopMenu;
 import com.ammonium.adminshop.setup.Messages;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,7 +28,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -42,15 +43,15 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class ShopBlock extends BaseEntityBlock {
-    public static final MapCodec<ShopBlock> CODEC = simpleCodec(p -> new ShopBlock());
-    public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final MapCodec<ShopBlock> CODEC = simpleCodec(p -> new ShopBlock(p));
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final String MESSAGE_SHOP = "message.shop";
     public static final String SCREEN_ADMINSHOP_SHOP = "screen.adminshop.shop";
 
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.1, 0.1, 0.1, 0.9, 0.9, 0.9);
 
-    public ShopBlock(){
-        super(BlockBehaviour.Properties.of()
+    public ShopBlock(BlockBehaviour.Properties properties){
+        super(properties
                 .mapColor(MapColor.METAL)
                 .sound(SoundType.METAL)
                 .strength(1.0f)
@@ -122,7 +123,7 @@ public class ShopBlock extends BaseEntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult trace) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof ShopEntity) {
                 MenuProvider containerProvider = new MenuProvider() {

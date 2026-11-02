@@ -1,7 +1,7 @@
 package com.ammonium.adminshop.money;
 
 import com.ammonium.adminshop.setup.Config;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
 
 import javax.annotation.Nullable;
@@ -60,7 +60,7 @@ public class MoneyFormat {
             DECIMAL_FORMAT.setMaximumFractionDigits(decimalOffset);
             moneyStr = DECIMAL_FORMAT.format(realValue);
         } else {
-            moneyStr = Screen.hasShiftDown() ?
+            moneyStr = Minecraft.getInstance().hasShiftDown() ?
                     doFormat(realValue, name, onShift, decimalOffset) :
                     doFormat(realValue, name, noShift, decimalOffset);
         }

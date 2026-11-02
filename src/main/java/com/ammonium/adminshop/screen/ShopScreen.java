@@ -19,30 +19,36 @@ import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.component.CustomData;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3x2fStack;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
-    private final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/shop_gui.png");
+    private final Identifier GUI = Identifier.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/shop_gui.png");
     private final String GUI_BUY = "gui.buy";
     private final String GUI_SELL = "gui.sell";
     private static final int NUM_ROWS = 4, NUM_COLS = 9;
@@ -63,17 +69,15 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     private UUID teamId = null;
 
     public ShopScreen(ShopMenu container, Inventory inv, Component name) {
-        super(container, inv, name);
+        super(container, inv, name, 195, 222);
 
         assert Minecraft.getInstance().player != null;
         assert Minecraft.getInstance().level != null;
-        assert Minecraft.getInstance().level.isClientSide;
+        assert Minecraft.getInstance().level.isClientSide();
 
         this.teamId = ClientCache.getAccount().teamId();
 
         this.shopMenu = container;
-        this.imageWidth = 195;
-        this.imageHeight = 222;
         this.tickCounter = 0;
         this.search = "";
 
@@ -98,11 +102,9 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks){
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
-        super.render(guiGraphics, mouseX, mouseY, partialTicks);
-        this.searchBar.render(guiGraphics, mouseX, mouseY, partialTicks);
-        this.renderTooltip(guiGraphics, mouseX, mouseY);
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTicks);
+        this.searchBar.extractRenderState(guiGraphics, mouseX, mouseY, partialTicks);
         this.tickCounter++;
         if (this.tickCounter > 20) {
             this.tickCounter = 0;
@@ -112,19 +114,18 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
         int max_rows_passed = (int) Math.max(Math.ceil(searchResults.size() / (double) NUM_COLS) - 4, 0);
 //        AdminShop.LOGGER.debug("rows_passed:"+rows_passed+", max_rows_passed:"+max_rows_passed+", searchResults.size:"+searchResults.size());
 //        AdminShop.LOGGER.debug("relX:"+relX+", relY:"+relY);
-        PoseStack poseStack = guiGraphics.pose();
-        poseStack.pushPose();
-        RenderSystem.setShaderTexture(0, GUI);
-        poseStack.translate(0, 0, 300);
+        Matrix3x2fStack poseStack = guiGraphics.pose();
+        poseStack.pushMatrix();
+        guiGraphics.nextStratum();
         // Top scroll indicator
         if (rows_passed > 0) {
-            guiGraphics.blit(GUI, relX+15, relY+32, 15, 223, 162, 8);
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, GUI, relX+15, relY+32, 15, 223, 162, 8, 256, 256);
         }
         // Bottom scroll indicator
         if (rows_passed < max_rows_passed) {
-            guiGraphics.blit(GUI, relX+15, relY+96, 15, 232, 162, 8);
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, GUI, relX+15, relY+96, 15, 232, 162, 8, 256, 256);
         }
-        poseStack.popPose();
+        poseStack.popMatrix();
     }
 
     private void filterSearch() {
@@ -142,15 +143,15 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
     }
 
     @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        PoseStack poseStack = guiGraphics.pose();
-        poseStack.pushPose();
+    protected void extractLabels(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+        Matrix3x2fStack poseStack = guiGraphics.pose();
+        poseStack.pushMatrix();
         //Block Title
         String blockName = I18n.get(ShopBlock.SCREEN_ADMINSHOP_SHOP);
-        guiGraphics.drawCenteredString(font, blockName, getXSize()/2, 6, 0xffffff);
+        guiGraphics.centeredText(font, blockName, getXSize()/2, 6, 0xffffffff);
 
         //Player Inventory Title
-        guiGraphics.drawString(font, playerInventoryTitle, 16, getYSize()-94, 0xffffff);
+        guiGraphics.text(font, playerInventoryTitle, 16, getYSize()-94, 0xffffffff);
 
         //Player Balance
         long balance = -1;
@@ -160,37 +161,37 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
             balance = account.balance();
             name = account.name();
         }
-        String formatted = Screen.hasAltDown() ? MoneyFormat.forcedFormat(balance, MoneyFormat.FormatType.RAW) :
+        String formatted = Minecraft.getInstance().hasAltDown() ? MoneyFormat.forcedFormat(balance, MoneyFormat.FormatType.RAW) :
                 MoneyFormat.forcedFormat(balance, MoneyFormat.FormatType.SHORT);
-        guiGraphics.drawString(Minecraft.getInstance().font,
+        guiGraphics.text(Minecraft.getInstance().font,
                 formatted,
                 getXSize() - font.width(formatted) - 6,
-                6, 0xffffff);
+                6, 0xffffffff);
 
         // Bank account
-        guiGraphics.drawString(font, name.getString(),16,112,0xffffff);
+        guiGraphics.text(font, name.getString(),16,112,0xffffffff);
 
         //Tooltip for item the player is hovering over
         List<ShopButton> shopButtons = isBuy ? buyButtons : sellButtons;
         Optional<ShopButton> button = shopButtons.stream().filter(b -> b.isMouseOn).findFirst();
-        button.ifPresent(shopButton -> guiGraphics.renderTooltip(font, shopButton.getTooltipContent(),
-                Optional.empty(), mouseX-(this.width - this.imageWidth)/2,
-                mouseY-(this.height - this.imageHeight)/2));
-        poseStack.popPose();
+        button.ifPresent(shopButton -> guiGraphics.setTooltipForNextFrame(font, shopButton.getTooltipContent(),
+                Optional.empty(), mouseX,
+                mouseY));
+        poseStack.popMatrix();
 
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 
         // De-focus search bar if clicked outside
-        if (this.searchBar.isFocused() && !this.searchBar.isMouseOver(mouseX, mouseY)) {
+        if (this.searchBar.isFocused() && !this.searchBar.isMouseOver(event.x(), event.y())) {
             this.searchBar.setFocused(false);
         }
 
         assert minecraft != null;
         Slot slot = this.getSlotUnderMouse();
-        if (slot != null && Screen.hasShiftDown()) {
+        if (slot != null && Minecraft.getInstance().hasShiftDown()) {
             ItemStack itemStack = slot.getItem();
             AdminShop.LOGGER.debug("Clicked on item: {}", itemStack);
             if (!itemStack.isEmpty()) {
@@ -200,12 +201,12 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                     // Check if it has a "key" value
                     CustomData customData = itemStack.get(DataComponents.CUSTOM_DATA);
                     if (customData != null) {
-                        CompoundTag compoundTag = customData.getUnsafe();
+                        CompoundTag compoundTag = customData.copyTag();
                         if (!compoundTag.contains("key")) {
                             AdminShop.LOGGER.error("Trade permit has no key!");
                             return false;
                         }
-                        String key = compoundTag.getString("key");
+                        String key = compoundTag.getStringOr("key", "");
                         System.out.println("Key: "+key);
                         // check if key is valid
                         if (key.isEmpty()) {
@@ -227,7 +228,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                     }
                 }
                 // Check if item is fluid container
-                IFluidHandlerItem fluidHandler = itemStack.getCapability(Capabilities.FluidHandler.ITEM);
+                IFluidHandlerItem fluidHandler = FluidUtil.getFluidHandler(itemStack).orElse(null);
                 AdminShop.LOGGER.debug("Item is fluid container: {}", fluidHandler != null);
                 if (fluidHandler != null) {
                     // Check if fluid is in recipes
@@ -242,12 +243,12 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                         if (fluidRecipeHolder != null) {
                             SellFluidRecipe fluidRecipe = fluidRecipeHolder.value();
                             // Attempt to sell
-                            AdminShop.LOGGER.debug("Found recipe: {}", fluidRecipeHolder.id());
+                            AdminShop.LOGGER.debug("Found recipe: {}", fluidRecipeHolder.id().identifier());
                             if (fluidStack.getAmount() < fluidRecipe.getFluid().getAmount()) {
                                 AdminShop.LOGGER.debug("Not enough fluid to sell");
                                 return false;
                             }
-                            Messages.sendToServer(new PacketSellRequest(this.teamId, fluidRecipeHolder.id(), slot.getSlotIndex(), 1));
+                            Messages.sendToServer(new PacketSellRequest(this.teamId, fluidRecipeHolder.id().identifier(), slot.getSlotIndex(), 1));
                             return false;
                         }
                     }
@@ -256,7 +257,7 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                 // Check if item is in sell item map
                 @Nullable RecipeHolder<SellItemRecipe> holder = RecipeManager.isSellItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
                 if (holder != null) {
-                    AdminShop.LOGGER.debug("Found recipe: {}", holder.id());
+                    AdminShop.LOGGER.debug("Found recipe: {}", holder.id().identifier());
                     // Attempt to sell it
                     SellItemRecipe itemRecipe = holder.value();
                     int maxFit = itemStack.getCount() / itemRecipe.getCount();
@@ -264,26 +265,26 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
                         AdminShop.LOGGER.debug("Not enough items to sell");
                         return false;
                     }
-                    Messages.sendToServer(new PacketSellRequest(this.teamId, holder.id(), slot.getSlotIndex(),
+                    Messages.sendToServer(new PacketSellRequest(this.teamId, holder.id().identifier(), slot.getSlotIndex(),
                             maxFit)); // broken too
                     return false;
                 }
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    protected void renderBg(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY){
-        RenderSystem.setShaderTexture(0, GUI);
+    public void extractBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        super.extractBackground(guiGraphics, mouseX, mouseY, partialTicks);
         int relX = (this.width - this.imageWidth) / 2;
         int relY = (this.height - this.imageHeight) / 2;
-        guiGraphics.blit(GUI, relX, relY, 0, 0, this.imageWidth, this.imageHeight);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, GUI, relX, relY, 0, 0, this.imageWidth, this.imageHeight, 256, 256);
     }
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
         // Check if the Escape key is pressed
-        if (keyCode == 256) { // 256 is the key code for Escape
+        if (event.key() == 256) { // 256 is the key code for Escape
             // If the search bar has focus, clear focus but don't close the screen
             if (this.searchBar.isFocused()) {
                 this.searchBar.setFocused(false);
@@ -294,19 +295,19 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
         // If the search bar has focus, let it handle the key press first
         if (this.searchBar.isFocused()) {
-            return this.searchBar.keyPressed(keyCode, scanCode, modifiers);
+            return this.searchBar.keyPressed(event);
         }
 
         // Let the parent class handle other key presses
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        if (this.searchBar.charTyped(codePoint, modifiers)) {
+    public boolean charTyped(CharacterEvent event) {
+        if (this.searchBar.charTyped(event)) {
             return true;
         }
-        return super.charTyped(codePoint, modifiers);
+        return super.charTyped(event);
     }
 
 
@@ -375,8 +376,8 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
      * equal to, or greater than the second.
      */
     private static int compareRecipes(RecipeHolder<ShopRecipe> leftHolder, RecipeHolder<ShopRecipe> rightHolder) {
-        String leftPath = leftHolder.id().toString();
-        String rightPath = rightHolder.id().toString();
+        String leftPath = leftHolder.id().identifier().toString();
+        String rightPath = rightHolder.id().identifier().toString();
 
         // Extract base and optional numeric suffix
         String leftBase = leftPath.replaceAll("\\d+$", "");
@@ -447,9 +448,9 @@ public class ShopScreen extends AbstractContainerScreen<ShopMenu> {
 
     private void attemptTransaction(RecipeHolder<ShopRecipe> recipe, int quantity){
         if (recipe.value() instanceof BuyRecipe buyRecipe) {
-            Messages.sendToServer(new PacketBuyRequest(this.teamId, recipe.id(), quantity));
+            Messages.sendToServer(new PacketBuyRequest(this.teamId, recipe.id().identifier(), quantity));
         } else if (recipe.value() instanceof SellRecipe sellRecipe) {
-            Messages.sendToServer(new PacketSellRequest(this.teamId, recipe.id(), -1, quantity));
+            Messages.sendToServer(new PacketSellRequest(this.teamId, recipe.id().identifier(), -1, quantity));
         }
     }
 }

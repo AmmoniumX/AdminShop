@@ -7,7 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -16,7 +16,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 public class PacketUpdateRequest implements CustomPacketPayload {
 
     public static final Type<PacketUpdateRequest> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "update_request"));
+            Identifier.fromNamespaceAndPath(AdminShop.MODID, "update_request"));
     public static final StreamCodec<FriendlyByteBuf, PacketUpdateRequest> STREAM_CODEC = StreamCodec.of(
             (buf, pkt) -> buf.writeBlockPos(pkt.pos),
             buf -> new PacketUpdateRequest(buf.readBlockPos())
@@ -31,7 +31,7 @@ public class PacketUpdateRequest implements CustomPacketPayload {
     public static void handle(PacketUpdateRequest packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             ServerPlayer player = (ServerPlayer) context.player();
-            ServerLevel level = player.serverLevel();
+            ServerLevel level = player.level();
             BlockEntity be = level.getBlockEntity(packet.pos);
             if (be instanceof ShopMachine autoShopMachine) {
                 autoShopMachine.sendUpdates();

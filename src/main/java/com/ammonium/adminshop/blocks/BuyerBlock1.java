@@ -8,10 +8,11 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 
 public class BuyerBlock1 extends AbstractBuyerBlock {
-    public BuyerBlock1() {
-        super(BuyerEntity1::new, BuyerMenu1::new);
+    public BuyerBlock1(BlockBehaviour.Properties properties) {
+        super(BuyerEntity1::new, BuyerMenu1::new, defaultProperties(properties));
     }
 
     @Override

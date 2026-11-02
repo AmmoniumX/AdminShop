@@ -9,7 +9,9 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
@@ -20,6 +22,7 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -32,21 +35,21 @@ import java.util.UUID;
 public class PacketBuyRequest implements CustomPacketPayload {
 
     public static final Type<PacketBuyRequest> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "buy_request"));
+            Identifier.fromNamespaceAndPath(AdminShop.MODID, "buy_request"));
     public static final StreamCodec<FriendlyByteBuf, PacketBuyRequest> STREAM_CODEC = StreamCodec.of(
             (buf, pkt) -> {
                 buf.writeUUID(pkt.teamId);
-                buf.writeResourceLocation(pkt.recipeId);
+                buf.writeIdentifier(pkt.recipeId);
                 buf.writeInt(pkt.quantity);
             },
-            buf -> new PacketBuyRequest(buf.readUUID(), buf.readResourceLocation(), buf.readInt())
+            buf -> new PacketBuyRequest(buf.readUUID(), buf.readIdentifier(), buf.readInt())
     );
 
     private final int quantity;
     private final UUID teamId;
-    private final ResourceLocation recipeId;
+    private final Identifier recipeId;
 
-    public PacketBuyRequest(UUID teamId, ResourceLocation recipeId, int quantity) {
+    public PacketBuyRequest(UUID teamId, Identifier recipeId, int quantity) {
         this.teamId = teamId;
         this.recipeId = recipeId;
         this.quantity = quantity;
@@ -55,9 +58,9 @@ public class PacketBuyRequest implements CustomPacketPayload {
     public static void handle(PacketBuyRequest packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             ServerPlayer player = (ServerPlayer) context.player();
-            ServerLevel level = player.serverLevel();
+            ServerLevel level = player.level();
 
-            RecipeHolder<?> rawHolder = level.getRecipeManager().byKey(packet.recipeId).orElse(null);
+            RecipeHolder<?> rawHolder = level.recipeAccess().byKey(ResourceKey.create(Registries.RECIPE, packet.recipeId)).orElse(null);
             if (rawHolder == null || !(rawHolder.value() instanceof BuyRecipe recipe)) {
                 AdminShop.LOGGER.debug("Not a valid BuyRecipe: {}", packet.recipeId);
                 return;
@@ -131,7 +134,7 @@ public class PacketBuyRequest implements CustomPacketPayload {
             singleStack.setCount(1);
             container = singleStack;
         }
-        IFluidHandlerItem containerHandler = container.getCapability(Capabilities.FluidHandler.ITEM);
+        IFluidHandlerItem containerHandler = FluidUtil.getFluidHandler(container).orElse(null);
         if (containerHandler == null) {
             AdminShop.LOGGER.debug("No fluid handler found for container");
             return;
@@ -178,7 +181,7 @@ public class PacketBuyRequest implements CustomPacketPayload {
                 Item bucketItem = fluid.getBucket();
                 if (bucketItem != null && bucketItem != Items.AIR) { return i; }
             }
-            IFluidHandlerItem fluidHandlerCapability = stack.getCapability(Capabilities.FluidHandler.ITEM);
+            IFluidHandlerItem fluidHandlerCapability = FluidUtil.getFluidHandler(stack).orElse(null);
             if (fluidHandlerCapability == null) { continue; }
             int canFillAmount = fluidHandlerCapability.fill(new FluidStack(fluid, quantity), IFluidHandler.FluidAction.SIMULATE);
             if (canFillAmount > 0) { return i; }

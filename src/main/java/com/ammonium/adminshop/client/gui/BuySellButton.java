@@ -5,11 +5,12 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -17,7 +18,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class BuySellButton extends Button {
 
-    private final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/shop_gui.png");
+    private final Identifier GUI = Identifier.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/shop_gui.png");
     private static final int TYPE_BUY = 0;
     private static final int TYPE_SELL = 1;
 
@@ -41,24 +42,23 @@ public class BuySellButton extends Button {
     }
 
     @Override
-    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+    public void extractContents(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
         if(!visible) {
             return;
         }
         int x = this.getX();
         int y = this.getY();
 
-        RenderSystem.setShaderTexture(0, GUI);
         if(isBuy){
-            guiGraphics.blit(GUI, x, y,195, 68, 50, 12);
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, GUI, x, y,195, 68, 50, 12, 256, 256);
         }else{
-            guiGraphics.blit(GUI, x, y, 195, 56, 50, 12);
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, GUI, x, y, 195, 56, 50, 12, 256, 256);
         }
 
         Font font = Minecraft.getInstance().font;
-        guiGraphics.drawCenteredString(font, I18n.get(GUI_BUY), x+12,
-                y+6-Minecraft.getInstance().font.lineHeight/2, 0xFFFFFF);
-        guiGraphics.drawCenteredString(font, I18n.get(GUI_SELL), x+37,
-                y+6-Minecraft.getInstance().font.lineHeight/2, 0xFFFFFF);
+        guiGraphics.centeredText(font, I18n.get(GUI_BUY), x+12,
+                y+6-Minecraft.getInstance().font.lineHeight/2, 0xFFFFFFFF);
+        guiGraphics.centeredText(font, I18n.get(GUI_SELL), x+37,
+                y+6-Minecraft.getInstance().font.lineHeight/2, 0xFFFFFFFF);
     }
 }

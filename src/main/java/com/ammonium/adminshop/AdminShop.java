@@ -47,7 +47,7 @@ public class AdminShop {
 
         eventBus.addListener(ModSetup::init);
 //        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> eventBus.addListener(ClientSetup::init));
-        if (FMLLoader.getDist() == Dist.CLIENT) {
+        if (FMLLoader.getCurrent().getDist() == Dist.CLIENT) {
             eventBus.addListener(ClientSetup::init);
         }
 //        MinecraftForge.EVENT_BUS.register(ServerEventListeners.class);
@@ -70,22 +70,22 @@ public class AdminShop {
 
     // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the FORGE
     // Event bus for receiving Forge Events)
-    @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(modid = MODID)
     public static class ModEvents {
         @SubscribeEvent
         public static void registerCapabilities(RegisterCapabilitiesEvent event) {
             event.registerBlockEntity(
-                    Capabilities.ItemHandler.BLOCK,
+                    Capabilities.Item.BLOCK,
                     ModBlockEntities.SELLER.get(),
                     (be, side) -> be.inventory
             );
             event.registerBlockEntity(
-                    Capabilities.FluidHandler.BLOCK,
+                    Capabilities.Fluid.BLOCK,
                     ModBlockEntities.FLUID_BUYER.get(),
                     (be, side) -> be.getTank()
             );
             event.registerBlockEntity(
-                    Capabilities.FluidHandler.BLOCK,
+                    Capabilities.Fluid.BLOCK,
                     ModBlockEntities.FLUID_SELLER.get(),
                     (be, side) -> be.getTank()
             );

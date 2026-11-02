@@ -9,7 +9,6 @@ import com.ammonium.adminshop.recipes.interfaces.SellRecipe;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
@@ -20,17 +19,20 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStackTemplate;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 
 public class SellFluidRecipe implements SellRecipe, FluidRecipe {
     private final long price;
-    private final FluidStack fluid;
+    // Fluid stacks can't be created while recipes load, so the recipe keeps a template and creates the stack when first used
+    private final FluidStackTemplate template;
+    private FluidStack fluid;
     private final String permit;
 
-    public SellFluidRecipe(long price, FluidStack fluid, String permit) {
+    public SellFluidRecipe(long price, FluidStackTemplate fluid, String permit) {
         this.price = price;
-        this.fluid = fluid;
+        this.template = fluid;
         this.permit = permit != null ? permit : "";
     }
 
@@ -52,15 +54,15 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
             AdminShop.LOGGER.debug("ShopSellFluidRecipe: machine is not FluidHandlerBlockEntity");
             return false;
         }
-        IFluidHandler handler = be.getTank();
-        if (handler.drain(fluid.copy(), IFluidHandler.FluidAction.SIMULATE).getAmount() < fluid.getAmount()) {
+        IFluidHandler handler = IFluidHandler.of(be.getTank());
+        if (handler.drain(fluid().copy(), IFluidHandler.FluidAction.SIMULATE).getAmount() < fluid().getAmount()) {
             return false;
         }
         return true;
     }
 
     public FluidStack getFluid() {
-        return fluid;
+        return fluid();
     }
 
     public long getPrice() {
@@ -71,16 +73,23 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
         return permit;
     }
 
+    private FluidStack fluid() {
+        if (fluid == null) {
+            fluid = template.create();
+        }
+        return fluid;
+    }
+
     public String getPermitTranslationKey() {
         return "adminshop.permit." + permit;
     }
 
     public int getCount() {
-        return fluid.getAmount();
+        return fluid().getAmount();
     }
 
     public Component getName() {
-        return fluid.getDisplayName();
+        return fluid().getHoverName();
     }
 
     @Override
@@ -98,57 +107,45 @@ public class SellFluidRecipe implements SellRecipe, FluidRecipe {
     }
 
     @Override
-    public @NotNull ItemStack assemble(RecipeInput input, HolderLookup.Provider provider) {
+    public @NotNull ItemStack assemble(RecipeInput input) {
         return ItemStack.EMPTY;
     }
 
     @Override
-    public boolean canCraftInDimensions(int i, int i1) {
-        return false;
-    }
-
-    @Override
-    public @NotNull ItemStack getResultItem(HolderLookup.Provider provider) {
-        return ItemStack.EMPTY;
-    }
-
-    @Override
-    public RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<SellFluidRecipe> getSerializer() {
         return ModRecipeSerializers.SHOP_SELL_FLUID_SERIALIZER.get();
     }
 
     @Override
-    public RecipeType<?> getType() {
+    public RecipeType<SellFluidRecipe> getType() {
         return ModRecipeTypes.SHOP_SELL_FLUID.get();
     }
 
-    public static class Serializer implements RecipeSerializer<SellFluidRecipe> {
-        private static final MapCodec<SellFluidRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
+    public static class Serializer {
+        static final MapCodec<SellFluidRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(
                 Codec.LONG.fieldOf("price").forGetter(r -> r.price),
-                FluidStack.CODEC.fieldOf("result").forGetter(r -> r.fluid),
+                FluidStackTemplate.CODEC.fieldOf("result").forGetter(r -> r.template),
                 Codec.STRING.optionalFieldOf("permit", "").forGetter(r -> r.permit)
             ).apply(instance, SellFluidRecipe::new)
         );
 
-        private static final StreamCodec<RegistryFriendlyByteBuf, SellFluidRecipe> STREAM_CODEC = StreamCodec.of(
+        static final StreamCodec<RegistryFriendlyByteBuf, SellFluidRecipe> STREAM_CODEC = StreamCodec.of(
             (buf, r) -> {
                 buf.writeLong(r.price);
-                FluidStack.STREAM_CODEC.encode(buf, r.fluid);
+                FluidStackTemplate.STREAM_CODEC.encode(buf, r.template);
                 buf.writeUtf(r.permit);
             },
             buf -> {
                 long price = buf.readLong();
-                FluidStack fluid = FluidStack.STREAM_CODEC.decode(buf);
+                FluidStackTemplate fluid = FluidStackTemplate.STREAM_CODEC.decode(buf);
                 String permit = buf.readUtf();
                 return new SellFluidRecipe(price, fluid, permit);
             }
         );
 
-        @Override
         public MapCodec<SellFluidRecipe> codec() { return CODEC; }
 
-        @Override
         public StreamCodec<RegistryFriendlyByteBuf, SellFluidRecipe> streamCodec() { return STREAM_CODEC; }
     }
 }

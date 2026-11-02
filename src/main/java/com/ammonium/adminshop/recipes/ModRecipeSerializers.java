@@ -22,13 +22,13 @@ public class ModRecipeSerializers {
         };
     }
 
-    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<BuyItemRecipe>> SHOP_BUY_ITEM_SERIALIZER = RECIPE_SERIALIZERS.register("item_buying", BuyItemRecipe.Serializer::new);
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<BuyItemRecipe>> SHOP_BUY_ITEM_SERIALIZER = RECIPE_SERIALIZERS.register("item_buying", () -> new RecipeSerializer<>(BuyItemRecipe.Serializer.CODEC, BuyItemRecipe.Serializer.STREAM_CODEC));
 
-    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<SellItemRecipe>> SHOP_SELL_ITEM_SERIALIZER = RECIPE_SERIALIZERS.register("item_selling", SellItemRecipe.Serializer::new);
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<SellItemRecipe>> SHOP_SELL_ITEM_SERIALIZER = RECIPE_SERIALIZERS.register("item_selling", () -> new RecipeSerializer<>(SellItemRecipe.Serializer.CODEC, SellItemRecipe.Serializer.STREAM_CODEC));
 
-    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<BuyFluidRecipe>> SHOP_BUY_FLUID_SERIALIZER = RECIPE_SERIALIZERS.register("fluid_buying", BuyFluidRecipe.Serializer::new);
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<BuyFluidRecipe>> SHOP_BUY_FLUID_SERIALIZER = RECIPE_SERIALIZERS.register("fluid_buying", () -> new RecipeSerializer<>(BuyFluidRecipe.Serializer.CODEC, BuyFluidRecipe.Serializer.STREAM_CODEC));
 
-    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<SellFluidRecipe>> SHOP_SELL_FLUID_SERIALIZER = RECIPE_SERIALIZERS.register("fluid_selling", SellFluidRecipe.Serializer::new);
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<SellFluidRecipe>> SHOP_SELL_FLUID_SERIALIZER = RECIPE_SERIALIZERS.register("fluid_selling", () -> new RecipeSerializer<>(SellFluidRecipe.Serializer.CODEC, SellFluidRecipe.Serializer.STREAM_CODEC));
 
     public static void register(IEventBus eventBus) {
         AdminShop.LOGGER.info("[AdminShop] ModRecipeSerializers.register() called");

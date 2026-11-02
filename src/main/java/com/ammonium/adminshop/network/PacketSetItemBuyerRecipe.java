@@ -7,7 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -16,19 +16,19 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 public class PacketSetItemBuyerRecipe implements CustomPacketPayload {
 
     public static final Type<PacketSetItemBuyerRecipe> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "set_item_buyer_recipe"));
+            Identifier.fromNamespaceAndPath(AdminShop.MODID, "set_item_buyer_recipe"));
     public static final StreamCodec<FriendlyByteBuf, PacketSetItemBuyerRecipe> STREAM_CODEC = StreamCodec.of(
             (buf, pkt) -> {
                 buf.writeBlockPos(pkt.pos);
-                buf.writeResourceLocation(pkt.recipeId);
+                buf.writeIdentifier(pkt.recipeId);
             },
-            buf -> new PacketSetItemBuyerRecipe(buf.readBlockPos(), buf.readResourceLocation())
+            buf -> new PacketSetItemBuyerRecipe(buf.readBlockPos(), buf.readIdentifier())
     );
 
     private final BlockPos pos;
-    private final ResourceLocation recipeId;
+    private final Identifier recipeId;
 
-    public PacketSetItemBuyerRecipe(BlockPos pos, ResourceLocation recipeId) {
+    public PacketSetItemBuyerRecipe(BlockPos pos, Identifier recipeId) {
         this.pos = pos;
         this.recipeId = recipeId;
     }
@@ -37,7 +37,7 @@ public class PacketSetItemBuyerRecipe implements CustomPacketPayload {
         context.enqueueWork(() -> {
             ServerPlayer player = (ServerPlayer) context.player();
             AdminShop.LOGGER.debug("Setting buyer recipe for " + packet.pos + " to " + packet.recipeId);
-            ServerLevel level = player.serverLevel();
+            ServerLevel level = player.level();
             BlockEntity blockEntity = level.getBlockEntity(packet.pos);
             if (!(blockEntity instanceof ItemBuyerMachine buyerEntity)) {
                 AdminShop.LOGGER.error("BlockEntity at pos is not BuyerMachine");

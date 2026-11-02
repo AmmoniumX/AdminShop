@@ -29,20 +29,20 @@ Can buy and sell Items and Fluids
 [[dependencies.adminshop]]
     modId="patchouli"
     type="required"
-    versionRange="[1.21.1-92-NEOFORGE,)"
+    versionRange="[26.1-94,)"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.adminshop]]
     modId="jei"
     type="optional"
-    versionRange="[19.27.0,)"
+    versionRange="[29.53.0,)"
     ordering="AFTER"
     side="BOTH"
 
 [[dependencies.adminshop]]
     modId="ftbteams"
     type="required"
-    versionRange="[2101.1.9,)"
+    versionRange="[26.1.2.4,)"
     ordering="NONE"
     side="BOTH"

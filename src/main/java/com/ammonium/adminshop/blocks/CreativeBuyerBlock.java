@@ -8,11 +8,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 
 public class CreativeBuyerBlock extends AbstractBuyerBlock {
-    public CreativeBuyerBlock() {
+    public CreativeBuyerBlock(BlockBehaviour.Properties properties) {
         super(CreativeBuyerEntity::new, CreativeBuyerMenu::new,
-                defaultProperties().strength(-1.0F, 3600000.0F));
+                defaultProperties(properties).strength(-1.0F, 3600000.0F));
     }
 
     @Override

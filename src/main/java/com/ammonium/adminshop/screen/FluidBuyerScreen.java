@@ -14,17 +14,22 @@ import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.block.FluidModel;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.input.MouseButtonEvent;
+import org.joml.Matrix3x2fStack;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
@@ -35,8 +40,9 @@ import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
+import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -44,8 +50,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
-    private static final ResourceLocation TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/fluid_buyer.png");
+    private static final Identifier TEXTURE =
+            Identifier.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/fluid_buyer.png");
     private final BlockPos blockPos;
     private FluidBuyerEntity buyerEntity;
     private UUID teamId = null;
@@ -84,21 +90,21 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         Slot slot = this.getSlotUnderMouse();
         AtomicBoolean override = new AtomicBoolean(false);
         if (slot != null) {
             ItemStack itemStack = slot.getItem();
             if (!itemStack.isEmpty()) {
                 AdminShop.LOGGER.debug("Clicked on item: {}", itemStack.getDisplayName().getString());
-                IFluidHandlerItem fluidHandler = itemStack.getCapability(Capabilities.FluidHandler.ITEM);
+                IFluidHandlerItem fluidHandler = FluidUtil.getFluidHandler(itemStack).orElse(null);
                 if (fluidHandler != null) {
                     FluidStack fluid = fluidHandler.getFluidInTank(0);
                     if (!fluid.isEmpty()) {
                         net.minecraft.world.item.crafting.RecipeHolder<BuyFluidRecipe> recipeHolder =
                                 RecipeManager.isBuyFluidRecipe(Minecraft.getInstance().level, fluid).orElse(null);
                         if (recipeHolder == null) {
-                            AdminShop.LOGGER.debug("Fluid not in buy recipes: {}", fluid.getDisplayName().getString());
+                            AdminShop.LOGGER.debug("Fluid not in buy recipes: {}", fluid.getHoverName().getString());
                         } else if (this.buyerEntity.isLockedRecipe() && !isCreativeClickingPlayer()) {
                             // Recipe is locked server-side; don't touch the client's view of the target fluid.
                             LocalPlayer player = Minecraft.getInstance().player;
@@ -107,14 +113,14 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
                             override.set(true);
                         } else if (this.buyerEntity.isLockedRecipe()) {
                             // Creative players can still configure a locked machine's recipe.
-                            this.buyerEntity.forceSetRecipe(recipeHolder.id());
+                            this.buyerEntity.forceSetRecipe(recipeHolder.id().identifier());
                             this.recipe = recipeHolder.value();
-                            Messages.sendToServer(new PacketSetFluidBuyerRecipe(this.blockPos, recipeHolder.id()));
+                            Messages.sendToServer(new PacketSetFluidBuyerRecipe(this.blockPos, recipeHolder.id().identifier()));
                             override.set(true);
                         } else if (ClientCache.hasPermit(recipeHolder.value().getPermit())) {
-                            this.buyerEntity.setRecipe(recipeHolder.id());
+                            this.buyerEntity.setRecipe(recipeHolder.id().identifier());
                             this.recipe = recipeHolder.value();
-                            Messages.sendToServer(new PacketSetFluidBuyerRecipe(this.blockPos, recipeHolder.id()));
+                            Messages.sendToServer(new PacketSetFluidBuyerRecipe(this.blockPos, recipeHolder.id().identifier()));
                             override.set(true);
                         } else {
                             LocalPlayer player = Minecraft.getInstance().player;
@@ -125,7 +131,7 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
                 }
             }
         }
-        return (!override.get() && super.mouseClicked(mouseX, mouseY, button));
+        return (!override.get() && super.mouseClicked(event, doubleClick));
     }
 
     private static boolean isCreativeClickingPlayer() {
@@ -134,22 +140,20 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
     }
 
     @Override
-    protected void renderBg(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.setShaderTexture(0, TEXTURE);
+    public void extractBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        super.extractBackground(guiGraphics, mouseX, mouseY, partialTicks);
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
 
-        guiGraphics.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0, 0, imageWidth, imageHeight, 256, 256);
         if (this.recipe != null) {
             renderFluid(guiGraphics, this.recipe.getFluid().getFluid(), x+104, y+24, 16, 16);
         }
     }
 
     @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        super.renderLabels(guiGraphics, mouseX, mouseY);
+    protected void extractLabels(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+        super.extractLabels(guiGraphics, mouseX, mouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         if (this.teamId != null) {
@@ -159,33 +163,31 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
                 accAvailable = true;
             }
         }
-        int color = accAvailable ? 0xffffff : 0xff0000;
-        guiGraphics.drawString(font, name.getString(), 7,62,color);
-        PoseStack poseStack = guiGraphics.pose();
-        poseStack.pushPose();
+        int color = accAvailable ? 0xffffffff : 0xffff0000;
+        guiGraphics.text(font, name.getString(), 7,62,color);
+        Matrix3x2fStack poseStack = guiGraphics.pose();
+        poseStack.pushMatrix();
         if (this.tankGauge == null) {
             AdminShop.LOGGER.debug("TankGauge is null!");
         }
         if (this.tankGauge != null && tankGauge.isMouseOn) {
-            guiGraphics.renderTooltip(font, tankGauge.getTooltipContent(),
-                    Optional.empty(), mouseX-(this.width - this.imageWidth)/2,
-                    mouseY-(this.height - this.imageHeight)/2);
+            guiGraphics.setTooltipForNextFrame(font, tankGauge.getTooltipContent(),
+                    Optional.empty(), mouseX,
+                    mouseY);
         }
-        poseStack.popPose();
+        poseStack.popMatrix();
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        renderBackground(guiGraphics, mouseX, mouseY, delta);
-        super.render(guiGraphics, mouseX, mouseY, delta);
-        renderTooltip(guiGraphics, mouseX, mouseY);
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(guiGraphics, mouseX, mouseY, delta);
 
         // Get data from BlockEntity
         this.buyerEntity = this.getMenu().getBlockEntity();
 
         UUID teamId = this.buyerEntity.getTeamId();
         BuyFluidRecipe recipe = this.buyerEntity.getRecipe(Minecraft.getInstance().level).orElse(null);
-        FluidTank buyerTank = this.buyerEntity.getTank();
+        FluidStacksResourceHandler buyerTank = this.buyerEntity.getTank();
 
         boolean shouldUpdateDueToNulls =
                 (this.teamId == null && teamId != null) ||
@@ -203,36 +205,23 @@ public class FluidBuyerScreen extends AbstractContainerScreen<FluidBuyerMenu> {
         }
     }
 
-    private void renderFluid(GuiGraphics guiGraphics, Fluid fluid, int x, int y, int width, int height) {
+    private void renderFluid(GuiGraphicsExtractor guiGraphics, Fluid fluid, int x, int y, int width, int height) {
         // Set fluid texture if null
         if (fluidTexture == null) {
             setFluidTexture(fluid);
         }
         // Render Fluid
-        RenderSystem.bindTexture(fluidTextureId);
-        RenderSystem.setShaderColor(fluidColorR, fluidColorG, fluidColorB, fluidColorA);
-        RenderSystem.setShaderTexture(0,
-                fluidTexture.atlasLocation());
-        guiGraphics.blit(x, y,0, width, height, fluidTexture);
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+        guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, fluidTexture, x, y, width, height,
+                ARGB.colorFromFloat(fluidColorA, fluidColorR, fluidColorG, fluidColorB));
     }
 
     private void setFluidTexture(Fluid fluid) {
         // Get fluid texture
-        Function<ResourceLocation, TextureAtlasSprite> spriteAtlas = Minecraft.getInstance()
-                .getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
-        IClientFluidTypeExtensions properties = IClientFluidTypeExtensions.of(fluid);
-        ResourceLocation resource = properties.getStillTexture();
-        fluidTexture = spriteAtlas.apply(resource);
-        TextureManager manager = Minecraft.getInstance().getTextureManager();
-        AbstractTexture abstractTexture = manager.getTexture(InventoryMenu.BLOCK_ATLAS);
-        TextureAtlas atlas = null;
-        if (abstractTexture instanceof TextureAtlas) {
-            atlas = (TextureAtlas) abstractTexture;
-        }
-        assert atlas != null;
-        fluidTextureId = atlas.getId();
-        int fcol = properties.getTintColor();
+        FluidModel properties = Minecraft.getInstance().getModelManager().getFluidStateModelSet()
+                .get(fluid.defaultFluidState());
+        fluidTexture = properties.stillMaterial().sprite();
+        int fcol = properties.fluidTintSource() != null ? properties.fluidTintSource().colorAsStack(new FluidStack(fluid, 1)) : -1;
+        if (ARGB.alpha(fcol) == 0) { fcol = ARGB.opaque(fcol); }
         fluidColorR = ((fcol >> 16) & 0xFF) / 255.0F;
         fluidColorG = ((fcol >> 8) & 0xFF) / 255.0F;
         fluidColorB = (fcol & 0xFF) / 255.0F;

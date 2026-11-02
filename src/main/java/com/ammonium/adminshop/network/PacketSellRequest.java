@@ -10,7 +10,9 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
@@ -18,6 +20,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -30,18 +33,18 @@ import java.util.UUID;
 public class PacketSellRequest implements CustomPacketPayload {
 
     public static final Type<PacketSellRequest> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "sell_request"));
+            Identifier.fromNamespaceAndPath(AdminShop.MODID, "sell_request"));
     public static final StreamCodec<FriendlyByteBuf, PacketSellRequest> STREAM_CODEC = StreamCodec.of(
             (buf, pkt) -> {
                 buf.writeUUID(pkt.teamId);
                 buf.writeInt(pkt.slotIndex);
-                buf.writeResourceLocation(pkt.recipeId);
+                buf.writeIdentifier(pkt.recipeId);
                 buf.writeInt(pkt.quantity);
             },
             buf -> {
                 UUID teamId = buf.readUUID();
                 int slotIndex = buf.readInt();
-                ResourceLocation recipeId = buf.readResourceLocation();
+                Identifier recipeId = buf.readIdentifier();
                 int quantity = buf.readInt();
                 return new PacketSellRequest(teamId, recipeId, slotIndex, quantity);
             }
@@ -50,9 +53,9 @@ public class PacketSellRequest implements CustomPacketPayload {
     private int quantity;
     private final UUID teamId;
     private int slotIndex;
-    private final ResourceLocation recipeId;
+    private final Identifier recipeId;
 
-    public PacketSellRequest(UUID teamId, ResourceLocation recipeId, int slotIndex, int quantity) {
+    public PacketSellRequest(UUID teamId, Identifier recipeId, int slotIndex, int quantity) {
         this.teamId = teamId;
         this.slotIndex = slotIndex;
         this.recipeId = recipeId;
@@ -62,11 +65,11 @@ public class PacketSellRequest implements CustomPacketPayload {
     public static void handle(PacketSellRequest packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             ServerPlayer player = (ServerPlayer) context.player();
-            ServerLevel level = player.serverLevel();
+            ServerLevel level = player.level();
             Inventory playerInventory = player.getInventory();
             IItemHandler itemHandler = new PlayerMainInvWrapper(playerInventory);
 
-            RecipeHolder<?> rawHolder = level.getRecipeManager().byKey(packet.recipeId).orElse(null);
+            RecipeHolder<?> rawHolder = level.recipeAccess().byKey(ResourceKey.create(Registries.RECIPE, packet.recipeId)).orElse(null);
             if (rawHolder == null || !(rawHolder.value() instanceof SellRecipe recipe)) {
                 AdminShop.LOGGER.debug("Recipe is not a SellRecipe");
                 return;
@@ -122,7 +125,7 @@ public class PacketSellRequest implements CustomPacketPayload {
                 ItemStack sellStack = ItemStack.EMPTY;
                 if (packet.slotIndex != -1) {
                     sellStack = itemHandler.getStackInSlot(packet.slotIndex);
-                    IFluidHandlerItem fluidHandler = sellStack.getCapability(Capabilities.FluidHandler.ITEM);
+                    IFluidHandlerItem fluidHandler = FluidUtil.getFluidHandler(sellStack).orElse(null);
                     if (fluidHandler == null) { return; }
                     int targetAmount = (packet.quantity > 0) ? fluidRecipe.getFluid().getAmount() * packet.quantity : fluidRecipe.getFluid().getAmount();
                     boolean found = false;
@@ -138,7 +141,7 @@ public class PacketSellRequest implements CustomPacketPayload {
                     int targetAmount = (packet.quantity > 0) ? fluidRecipe.getFluid().getAmount() * packet.quantity : fluidRecipe.getFluid().getAmount();
                     for (int i = 0; i < itemHandler.getSlots(); i++) {
                         ItemStack currentStack = itemHandler.getStackInSlot(i);
-                        IFluidHandlerItem fluidHandler = currentStack.getCapability(Capabilities.FluidHandler.ITEM);
+                        IFluidHandlerItem fluidHandler = FluidUtil.getFluidHandler(currentStack).orElse(null);
                         if (fluidHandler == null) { continue; }
                         for (int j = 0; j < fluidHandler.getTanks(); j++) {
                             FluidStack fluidStack = fluidHandler.getFluidInTank(j);
@@ -157,7 +160,7 @@ public class PacketSellRequest implements CustomPacketPayload {
                     return;
                 }
 
-                IFluidHandlerItem fluidHandler = sellStack.getCapability(Capabilities.FluidHandler.ITEM);
+                IFluidHandlerItem fluidHandler = FluidUtil.getFluidHandler(sellStack).orElse(null);
                 assert fluidHandler != null;
                 int tankNumber = -1;
                 int targetAmount = (packet.quantity > 0) ? fluidRecipe.getFluid().getAmount() * packet.quantity : fluidRecipe.getFluid().getAmount();
@@ -193,7 +196,7 @@ public class PacketSellRequest implements CustomPacketPayload {
 
     private void sellFluid(ServerPlayer player, ServerLevel level, IItemHandler itemHandler, int slotIndex, SellFluidRecipe recipe, int sellQuantity) {
         ItemStack toExtract = itemHandler.getStackInSlot(slotIndex);
-        IFluidHandlerItem fluidHandler = toExtract.getCapability(Capabilities.FluidHandler.ITEM);
+        IFluidHandlerItem fluidHandler = FluidUtil.getFluidHandler(toExtract).orElse(null);
         assert fluidHandler != null;
         int quantity = sellQuantity * recipe.getCount();
         FluidStack toDrain = recipe.getFluid().copy();

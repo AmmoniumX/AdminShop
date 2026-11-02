@@ -12,13 +12,15 @@ import com.ammonium.adminshop.recipes.SellItemRecipe;
 import com.ammonium.adminshop.setup.Messages;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -27,8 +29,8 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import java.util.UUID;
 
 public class SellerScreen<T extends SellerMenu> extends AbstractContainerScreen<T> {
-    private static final ResourceLocation TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/seller.png");
+    private static final Identifier TEXTURE =
+            Identifier.fromNamespaceAndPath(AdminShop.MODID, "textures/gui/seller.png");
     private final BlockPos blockPos;
     private SellerEntity sellerEntity;
     private UUID teamId = null;
@@ -56,7 +58,7 @@ public class SellerScreen<T extends SellerMenu> extends AbstractContainerScreen<
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         // Creative players can lock this machine to a specific sell recipe by clicking
         // an item in their own inventory, mirroring how Buyers pick their target item.
         LocalPlayer player = Minecraft.getInstance().player;
@@ -70,30 +72,28 @@ public class SellerScreen<T extends SellerMenu> extends AbstractContainerScreen<
                     RecipeHolder<SellItemRecipe> recipeHolder =
                             RecipeManager.isSellItemRecipe(Minecraft.getInstance().level, itemStack).orElse(null);
                     if (recipeHolder != null) {
-                        this.sellerEntity.setLockedRecipeId(recipeHolder.id());
-                        Messages.sendToServer(new PacketSetSellerRecipe(this.blockPos, recipeHolder.id()));
+                        this.sellerEntity.setLockedRecipeId(recipeHolder.id().identifier());
+                        Messages.sendToServer(new PacketSetSellerRecipe(this.blockPos, recipeHolder.id().identifier()));
                         return false;
                     }
                 }
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    protected void renderBg(GuiGraphics guiGraphics, float pPartialTicks, int pMouseX, int pMouseY) {
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.setShaderTexture(0, TEXTURE);
+    public void extractBackground(GuiGraphicsExtractor guiGraphics, int pMouseX, int pMouseY, float pPartialTicks) {
+        super.extractBackground(guiGraphics, pMouseX, pMouseY, pPartialTicks);
         int x = (width - imageWidth) / 2;
         int y = (height - imageHeight) / 2;
 
-        guiGraphics.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0, 0, imageWidth, imageHeight, 256, 256);
     }
 
     @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int pMouseX, int pMouseY) {
-        super.renderLabels(guiGraphics, pMouseX, pMouseY);
+    protected void extractLabels(GuiGraphicsExtractor guiGraphics, int pMouseX, int pMouseY) {
+        super.extractLabels(guiGraphics, pMouseX, pMouseY);
         Component name = Component.translatable("gui.adminshop.no_account");
         boolean accAvailable = false;
         if (this.teamId != null) {
@@ -103,15 +103,13 @@ public class SellerScreen<T extends SellerMenu> extends AbstractContainerScreen<
                 accAvailable = true;
             }
         }
-        int color = accAvailable ? 0xffffff : 0xff0000;
-        guiGraphics.drawString(font, name.getString(), 7,62,color);
+        int color = accAvailable ? 0xffffffff : 0xffff0000;
+        guiGraphics.text(font, name.getString(), 7,62,color);
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        renderBackground(guiGraphics, mouseX, mouseY, delta);
-        super.render(guiGraphics, mouseX, mouseY, delta);
-        renderTooltip(guiGraphics, mouseX, mouseY);
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(guiGraphics, mouseX, mouseY, delta);
 
         // Get data from BlockEntity
         this.sellerEntity = this.getMenu().getBlockEntity();

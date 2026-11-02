@@ -7,7 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -16,7 +16,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 public class PacketSetDetectorThreshold implements CustomPacketPayload {
 
     public static final Type<PacketSetDetectorThreshold> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "set_detector_threshold"));
+            Identifier.fromNamespaceAndPath(AdminShop.MODID, "set_detector_threshold"));
     public static final StreamCodec<FriendlyByteBuf, PacketSetDetectorThreshold> STREAM_CODEC = StreamCodec.of(
             (buf, pkt) -> {
                 buf.writeBlockPos(pkt.pos);
@@ -37,7 +37,7 @@ public class PacketSetDetectorThreshold implements CustomPacketPayload {
         context.enqueueWork(() -> {
             ServerPlayer player = (ServerPlayer) context.player();
             AdminShop.LOGGER.debug("Setting detector threshold for {} to {}", packet.pos, packet.threshold);
-            ServerLevel level = player.serverLevel();
+            ServerLevel level = player.level();
             BlockEntity blockEntity = level.getBlockEntity(packet.pos);
             if (!(blockEntity instanceof Detector detectorBE)) {
                 AdminShop.LOGGER.error("BlockEntity at pos is not Detector");

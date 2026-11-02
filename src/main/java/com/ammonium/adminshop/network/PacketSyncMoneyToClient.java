@@ -7,7 +7,7 @@ import com.google.common.collect.ImmutableSet;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.Collection;
@@ -17,7 +17,7 @@ import java.util.UUID;
 public class PacketSyncMoneyToClient implements CustomPacketPayload {
 
     public static final Type<PacketSyncMoneyToClient> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(AdminShop.MODID, "sync_money_to_client"));
+            Identifier.fromNamespaceAndPath(AdminShop.MODID, "sync_money_to_client"));
     public static final StreamCodec<RegistryFriendlyByteBuf, PacketSyncMoneyToClient> STREAM_CODEC = StreamCodec.of(
             (buf, pkt) -> {
                 buf.writeUUID(pkt.teamId);

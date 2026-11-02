@@ -6,12 +6,8 @@
     "   "
   ],
   "key": {
-    "I": {
-      "item": "minecraft:stick"
-    },
-    "#": {
-      "item": "minecraft:emerald"
-    }
+    "I": "minecraft:stick",
+    "#": "minecraft:emerald"
   },
   "result": {
     "id": "adminshop:detector"

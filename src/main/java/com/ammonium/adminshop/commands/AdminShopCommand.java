@@ -26,7 +26,7 @@ public class AdminShopCommand {
         LiteralArgumentBuilder<CommandSourceStack> adminShopCommand = Commands.literal("adminshop");
 
         // adminshop getPermit {permit}
-        LiteralArgumentBuilder<CommandSourceStack> getPermitCommand = Commands.literal("getPermit").requires(source -> source.hasPermission(3));
+        LiteralArgumentBuilder<CommandSourceStack> getPermitCommand = Commands.literal("getPermit").requires(Commands.hasPermission(Commands.LEVEL_ADMINS));
         RequiredArgumentBuilder<CommandSourceStack, String> getPermitCommandTier = Commands.argument("tier", StringArgumentType.string())
                 .executes(command -> {
                     String tier = StringArgumentType.getString(command, "tier");
@@ -36,7 +36,7 @@ public class AdminShopCommand {
 
         // adminshop give {player} {amount}
         LiteralArgumentBuilder<CommandSourceStack> giveMoneyCommand = Commands.literal("give")
-                .requires(source -> source.hasPermission(3))
+                .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
                 .then(Commands.argument("player", EntityArgument.players())
                 .then(Commands.argument("amount", LongArgumentType.longArg())
                 .executes(context -> {
@@ -47,7 +47,7 @@ public class AdminShopCommand {
 
         // adminshop remove {player} {amount}
         LiteralArgumentBuilder<CommandSourceStack> removeMoneyCommand = Commands.literal("remove")
-                .requires(source -> source.hasPermission(3))
+                .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
                 .then(Commands.argument("player", EntityArgument.players())
                 .then(Commands.argument("amount", LongArgumentType.longArg())
                 .executes(context -> {
@@ -58,7 +58,7 @@ public class AdminShopCommand {
 
         // adminshop removePermit {permit}
         LiteralArgumentBuilder<CommandSourceStack> removePermitCommand = Commands.literal("removePermit")
-                .requires(source -> source.hasPermission(0))
+                .requires(Commands.hasPermission(Commands.LEVEL_ALL))
                 .then(Commands.argument("tier", StringArgumentType.string())
                 .executes(command -> {
                     String tier = StringArgumentType.getString(command, "tier");
@@ -67,7 +67,7 @@ public class AdminShopCommand {
         
         // adminshop listOwnedPermits
         LiteralArgumentBuilder<CommandSourceStack> listOwnedPermitsCommand = Commands.literal("listOwnedPermits")
-                .requires(source -> source.hasPermission(0))
+                .requires(Commands.hasPermission(Commands.LEVEL_ALL))
                 .executes(command -> listOwnedPermits(command.getSource()));
 
 
